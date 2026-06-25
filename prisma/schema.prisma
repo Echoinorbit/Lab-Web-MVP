@@ -1,0 +1,442 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String     @id @default(cuid())
+  username       String     @unique
+  passwordHash   String
+  displayName    String
+  avatar         String?
+  role           Role       @default(MEMBER)
+  status         UserStatus @default(ACTIVE)
+  bio            String?
+  studentId      String?
+  grade          String?
+  enrollmentDate DateTime?
+  advisorId      String?
+  advisor        User?      @relation("AdvisorStudent", fields: [advisorId], references: [id], onDelete: Restrict)
+  students       User[]     @relation("AdvisorStudent")
+
+  announcements   Announcement[]
+  posts           Post[]
+  postTags        UserPostTag[]    @relation("UserPostTags")
+  comments        Comment[]
+  projectMembers  ProjectMember[]
+  createdProjects Project[]        @relation("ProjectCreator")
+  advisedProjects Project[]        @relation("ProjectAdvisor")
+  projectNodes    ProjectNode[]    @relation("NodeAuthor")
+  progressReports ProgressReport[]
+  notifications   Notification[]
+  tags            UserTag[]
+  grantedTags     UserTag[]        @relation("TagGranter")
+
+  mustChangePassword Boolean   @default(true)
+  tokenVersion       Int       @default(0)
+  lastLoginAt        DateTime?
+  loginAttempts      Int       @default(0)
+  lockedUntil        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([advisorId])
+  @@index([status])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  GRADUATED
+}
+
+model Tag {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  displayName String
+  description String?
+  permissions Json?
+  scope       TagScope     @default(GLOBAL)
+  isSystem    Boolean      @default(false)
+  templateId  String?
+  template    TagTemplate? @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  userTags    UserTag[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([scope])
+  @@index([templateId])
+}
+
+enum TagScope {
+  GLOBAL
+  PROJECT
+}
+
+model TagTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  permissions Json
+  tags        Tag[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserTag {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  grantedById String
+  grantedBy   User      @relation("TagGranter", fields: [grantedById], references: [id], onDelete: Restrict)
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  revokedById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tagId])
+  @@index([projectId])
+  @@index([revokedAt])
+}
+
+model Announcement {
+  id         String       @id @default(cuid())
+  title      String
+  content    String
+  authorId   String
+  author     User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  isPinned   Boolean      @default(false)
+  isUrgent   Boolean      @default(false)
+  targetType NotifyTarget @default(ALL)
+  targetIds  String[]     @default([])
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime?
+
+  @@index([authorId])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+enum NotifyTarget {
+  ALL
+  PROJECT
+  TAG
+  USERS
+}
+
+model Post {
+  id        String       @id @default(cuid())
+  title     String
+  content   String
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  category  PostCategory @default(GENERAL)
+  status    PostStatus   @default(PUBLISHED)
+  tags      String[]     @default([])
+  comments  Comment[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  @@index([authorId])
+  @@index([category])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+enum PostCategory {
+  GENERAL
+  EXPERIENCE
+  TUTORIAL
+  DISCUSSION
+  RESOURCE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Restrict)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([authorId])
+  @@index([postId])
+  @@index([parentId])
+  @@index([deletedAt])
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus   @default(PLANNING)
+  creatorId   String
+  creator     User            @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  advisorId   String?
+  advisor     User?           @relation("ProjectAdvisor", fields: [advisorId], references: [id], onDelete: Restrict)
+  members     ProjectMember[]
+  nodes       ProjectNode[]
+  userTags    UserTag[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+  archivedAt  DateTime?
+
+  @@index([creatorId])
+  @@index([advisorId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  ARCHIVED
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+}
+
+model ProjectNode {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  nodeType    NodeType      @default(UPDATE)
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      ProjectNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    ProjectNode[] @relation("NodeTree")
+  authorId    String
+  author      User          @relation("NodeAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  colorHex    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  @@index([projectId])
+  @@index([parentId])
+  @@index([authorId])
+  @@index([nodeType])
+  @@index([deletedAt])
+}
+
+enum NodeType {
+  MILESTONE
+  UPDATE
+  DECISION
+  ISSUE
+  RESOURCE
+}
+
+model ProgressReport {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  year           Int
+  month          Int
+  studySummary   String?
+  projectSummary String?
+  thesisSummary  String?
+  otherWork      String?
+  externalDays   Int          @default(0)
+  status         ReportStatus @default(DRAFT)
+  submittedAt    DateTime?
+  editCount      Int          @default(0)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([year, month])
+  @@index([deletedAt])
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  content     String?
+  relatedId   String?
+  relatedType String?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([relatedType, relatedId])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  ANNOUNCEMENT_NEW
+  ANNOUNCEMENT_URGENT
+  POST_COMMENT
+  PROJECT_NODE_NEW
+  PROJECT_STATUS
+  TAG_GRANTED
+  TAG_REQUEST
+  SYSTEM
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entityType String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model UserPostTag {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserPostTags", fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, label])
+  @@index([userId])
+}
+
+model AuditExportArchive {
+  id         String   @id @default(cuid())
+  fileName   String
+  excelData  Bytes
+  seqInYear  Int
+  rangeStart DateTime
+  rangeEnd   DateTime
+  rowCount   Int
+  exportedAt DateTime @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([exportedAt])
+  @@index([expiresAt])
+}
+
+model AuditExportCounter {
+  id            String    @id @default(cuid())
+  year          Int       @unique
+  exportsInYear Int       @default(0)
+  cycleCount    Int       @default(0)
+  lastExportAt  DateTime?
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  ACCOUNT_LOCKED
+  PASSWORD_RESET
+  PASSWORD_CHANGE
+  TAG_GRANT
+  TAG_REVOKE
+  TAG_REQUEST
+  ROLE_CHANGE
+  STATUS_CHANGE
+  ADVISOR_CHANGE
+  EXPORT
+  IMPORT
+  PROGRESS_BACKFILL
+  PERMISSION_DENIED
+  SESSION_REVOKE
+}
+
+model RateLimitCounter {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  windowStart DateTime
+  count       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, action, windowStart])
+  @@index([action, windowStart])
+}
+
+model IpLoginFailureCounter {
+  id          String   @id @default(cuid())
+  ipAddress   String
+  windowStart DateTime
+  count       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ipAddress, windowStart])
+  @@index([windowStart])
+}
+
+model ProgressBackfillWindow {
+  id         String    @id @default(cuid())
+  userId     String
+  year       Int
+  month      Int
+  openedById String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, year, month])
+  @@index([openedById])
+  @@index([expiresAt])
+}

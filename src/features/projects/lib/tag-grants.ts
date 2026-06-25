@@ -1,0 +1,118 @@
+import type { Prisma } from "@prisma/client";
+
+import type { EffectiveTag } from "@/shared/lib/permissions";
+import { PROJECT_LEAD_TAG_PREFIX, PROJECT_MEMBER_TAG_PREFIX } from "@/shared/lib/system-tags";
+
+export type ProjectScopedTagKind = "lead" | "member";
+
+const tagConfig = {
+  lead: {
+    prefix: PROJECT_LEAD_TAG_PREFIX,
+    templateName: "project-lead",
+    displaySuffix: "项目组长",
+  },
+  member: {
+    prefix: PROJECT_MEMBER_TAG_PREFIX,
+    templateName: "project-member",
+    displaySuffix: "项目成员",
+  },
+} as const satisfies Record<ProjectScopedTagKind, { prefix: string; templateName: string; displaySuffix: string }>;
+
+export function projectScopedTagName(kind: ProjectScopedTagKind, projectId: string) {
+  return `${tagConfig[kind].prefix}:${projectId}`;
+}
+
+export function isProjectLeadTagName(tagName: string, projectId: string) {
+  return tagName === projectScopedTagName("lead", projectId);
+}
+
+export function hasEffectiveProjectLeadTag(tags: readonly EffectiveTag[], projectId: string) {
+  return tags.some((tag) => tag.projectId === projectId && isProjectLeadTagName(tag.name, projectId));
+}
+
+export async function ensureProjectScopedTag(
+  tx: Prisma.TransactionClient,
+  {
+    kind,
+    projectId,
+    projectName,
+  }: {
+    kind: ProjectScopedTagKind;
+    projectId: string;
+    projectName: string;
+  },
+) {
+  const config = tagConfig[kind];
+  const template = await tx.tagTemplate.findUniqueOrThrow({
+    where: { name: config.templateName },
+    select: { id: true },
+  });
+
+  return tx.tag.upsert({
+    where: { name: projectScopedTagName(kind, projectId) },
+    create: {
+      name: projectScopedTagName(kind, projectId),
+      displayName: `${projectName} - ${config.displaySuffix}`,
+      scope: "PROJECT",
+      templateId: template.id,
+      isSystem: true,
+    },
+    update: {},
+    select: { id: true, displayName: true },
+  });
+}
+
+export async function grantProjectScopedTag(
+  tx: Prisma.TransactionClient,
+  {
+    kind,
+    userId,
+    projectId,
+    projectName,
+    grantedById,
+  }: {
+    kind: ProjectScopedTagKind;
+    userId: string;
+    projectId: string;
+    projectName: string;
+    grantedById: string;
+  },
+) {
+  await tx.projectMember.upsert({
+    where: {
+      userId_projectId: {
+        userId,
+        projectId,
+      },
+    },
+    create: {
+      userId,
+      projectId,
+    },
+    update: {},
+  });
+
+  const tag = await ensureProjectScopedTag(tx, { kind, projectId, projectName });
+  const existingGrant = await tx.userTag.findFirst({
+    where: {
+      userId,
+      tagId: tag.id,
+      projectId,
+      revokedAt: null,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+    select: { id: true },
+  });
+  if (!existingGrant) {
+    await tx.userTag.create({
+      data: {
+        userId,
+        tagId: tag.id,
+        projectId,
+        grantedById,
+      },
+    });
+  }
+
+  return tag;
+}

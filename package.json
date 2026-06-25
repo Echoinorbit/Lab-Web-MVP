@@ -1,0 +1,62 @@
+{
+  "name": "lab-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "DATABASE_URL=postgresql://lab:lab@localhost:5432/lab_platform prisma validate",
+    "seed": "tsx prisma/seed.ts",
+    "e2e:fixtures": "tsx scripts/e2e-fixtures.ts",
+    "e2e:browser": "tsx scripts/e2e-browser.ts",
+    "e2e:smoke": "tsx scripts/e2e-smoke.ts",
+    "migrate:graduated-tags": "tsx scripts/migrate-graduated-tag.ts",
+    "cleanup:tags": "tsx scripts/cleanup-tags.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run prisma:validate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "@tanstack/react-query": "^5.59.0",
+    "@xyflow/react": "^12.11.1",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
+    "lucide-react": "^0.468.0",
+    "next": "^15.3.0",
+    "next-auth": "^5.0.0-beta.25",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "^15.5.19",
+    "postcss": "^8.5.10",
+    "prisma": "^6.0.0",
+    "tailwindcss": "^3.4.16",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.17.0"
+  },
+  "overrides": {
+    "postcss": "$postcss",
+    "uuid": "^11.1.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
