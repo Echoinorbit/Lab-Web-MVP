@@ -38,3 +38,7 @@ export function mergePostTagLabels(...groups: readonly string[][]) {
   }
   return labels;
 }
+
+export function joinPostTagLabels(tags: readonly string[]) {
+  return tags.join("，");
+}

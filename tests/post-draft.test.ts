@@ -7,6 +7,7 @@ import {
   buildVisiblePostWhere,
   shouldAutosaveDraft,
 } from "../src/features/posts/lib/drafts";
+import { formatPostValidationError } from "../src/features/posts/lib/post-validation-copy";
 import { draftInputSchema, publishPostInputSchema } from "../src/shared/lib/validators/posts";
 
 test("公开帖子查询应排除草稿和软删除帖子", () => {
@@ -54,6 +55,21 @@ test("草稿至少需要标题或正文，但发布仍要求完整标题和正�
     }).success,
     true,
   );
+});
+
+test("发布草稿校验错误应转换为可读中文提示", () => {
+  const parsed = publishPostInputSchema.safeParse({
+    postId: "draft-1",
+    title: "A",
+    content: "正文",
+    category: "GENERAL",
+    tags: [],
+  });
+
+  assert.equal(parsed.success, false);
+  if (!parsed.success) {
+    assert.equal(formatPostValidationError(parsed.error, "保存失败"), "标题至少需要 2 个字符。");
+  }
 });
 
 test("自动保存只应在标题或正文非空时触发", () => {

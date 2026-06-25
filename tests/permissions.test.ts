@@ -7,6 +7,7 @@ import {
   computePermissionsFromSnapshot,
   isEffectiveTag,
   normalizePermissionList,
+  describePermission,
   type PermissionTagSnapshot,
 } from "../src/shared/lib/permissions";
 
@@ -87,4 +88,9 @@ test("已撤销或已过期的 Tag 应视为无效，不再授予任何权限", 
 
 test("权限列表归一化必须丢弃未知权限字符串", () => {
   assert.deepEqual(normalizePermissionList([PERMISSIONS.POST_READ, "unknown.permission", 123]), [PERMISSIONS.POST_READ]);
+});
+
+test("权限说明应覆盖已知权限并返回中文文案", () => {
+  assert.equal(describePermission(PERMISSIONS.POST_CREATE), "发布帖子");
+  assert.equal(describePermission(PERMISSIONS.PROJECT_MEMBER_MANAGE), "管理项目成员");
 });

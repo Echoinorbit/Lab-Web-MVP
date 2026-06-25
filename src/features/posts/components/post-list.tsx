@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -10,13 +11,14 @@ export type PostSummary = {
   category: string;
   createdAt: string;
   tags: string[];
+  href?: string;
 };
 
 export function PostList({ posts }: { posts: readonly PostSummary[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {posts.map((post) => (
-        <Link key={post.id} href={`/posts/${post.id}`}>
+        <Link key={post.id} href={(post.href ?? `/posts/${post.id}`) as Route}>
           <Card className="h-full transition hover:border-primary">
             <CardHeader>
               <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">

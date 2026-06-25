@@ -84,7 +84,7 @@ function UserGovernanceActions({
           disabled={isPending || user.status === "GRADUATED" || !user.gradeTrack}
         >
           <option value="" disabled>
-            {user.gradeTrack ? user.computedGrade : "未设培养类型"}
+            {user.gradeTrack ? user.computedGrade : "年级不可直接选择"}
           </option>
           {gradeOptions.map((grade) => (
             <option key={grade} value={grade}>

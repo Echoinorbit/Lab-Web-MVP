@@ -11,7 +11,7 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { splitCommaList } from "@/shared/lib/utils";
 import { publishPostInputSchema } from "@/shared/lib/validators/posts";
 
-import { buildUserPostTagUpsertArgs, mergePostTagLabels } from "../lib/post-tags";
+import { formatPostValidationError } from "../lib/post-validation-copy";
 import { PostRateLimitError, formatPostRateLimitExceeded } from "../lib/rate-limit-copy";
 import { saveDraft } from "./save-draft";
 
@@ -29,9 +29,6 @@ export async function createPost(input: unknown) {
   try {
     post = await prisma.$transaction(async (tx) => {
       await enforceRateLimit(tx, user.id, PERMISSIONS.POST_CREATE);
-      for (const tag of data.tags) {
-        await tx.userPostTag.upsert(buildUserPostTagUpsertArgs(user.id, tag));
-      }
 
       if (data.postId) {
         const draft = await tx.post.findFirst({
@@ -115,9 +112,7 @@ export async function createPostFormAction(
   formData: FormData,
 ): Promise<CreatePostFormState> {
   const draftPostId = String(formData.get("postId") ?? "").trim() || undefined;
-  const selectedTags = formData.getAll("selectedTags").map(String);
-  const newTags = splitCommaList(String(formData.get("newTags") ?? ""));
-  const tags = mergePostTagLabels(selectedTags, newTags);
+  const tags = splitCommaList(String(formData.get("tags") ?? ""));
   const intent = String(formData.get("intent") ?? "publish");
 
   if (intent === "save-draft") {
@@ -133,7 +128,7 @@ export async function createPostFormAction(
     } catch (error) {
       return {
         ok: false,
-        message: error instanceof Error ? error.message : "草稿保存失败",
+        message: formatPostValidationError(error, "草稿保存失败"),
         draftId: draftPostId,
       };
     }
@@ -152,7 +147,7 @@ export async function createPostFormAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "保存失败",
+      message: error instanceof PostRateLimitError ? error.message : formatPostValidationError(error, "保存失败"),
       draftId: draftPostId,
       tone: error instanceof PostRateLimitError ? "info" : "error",
     };

@@ -19,7 +19,7 @@ export default async function AdminUsersPage() {
           },
           select: {
             projectId: true,
-            tag: { select: { name: true } },
+            tag: { select: { name: true, displayName: true } },
           },
         },
       },
@@ -68,7 +68,9 @@ export default async function AdminUsersPage() {
             gradeTrack: resolveGradeTrackFromTagNames(globalTagNames),
             advisorId: user.advisorId,
             tags: user.tags.map((userTag) =>
-              userTag.projectId ? `${userTag.tag.name}@${userTag.projectId.slice(0, 6)}` : userTag.tag.name,
+              userTag.projectId
+                ? `${userTag.tag.displayName}@${userTag.projectId.slice(0, 6)}`
+                : userTag.tag.displayName,
             ),
           };
         })}

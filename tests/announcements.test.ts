@@ -17,6 +17,12 @@ import {
   uniqueAnnouncementRecipientIds,
 } from "../src/features/announcements/lib/recipients";
 import { ALL_TARGET_LABEL } from "../src/features/announcements/lib/target-copy";
+import {
+  canViewAnnouncementFromSnapshot,
+  getDefaultAnnouncementExpiresAt,
+  isAnnouncementActive,
+  type AnnouncementVisibilityViewer,
+} from "../src/features/announcements/lib/visibility";
 import { PERMISSIONS } from "../src/shared/lib/permissions";
 
 test("公告发布页应使用独立路由并复用创建权限", () => {
@@ -67,4 +73,38 @@ test("公告展示排序比较器应匹配查询排序语义", () => {
     "urgent-old",
     "normal-new",
   ]);
+});
+
+test("公告默认生命周期应为 72 小时", () => {
+  const now = new Date("2026-06-25T00:00:00.000Z");
+  assert.equal(getDefaultAnnouncementExpiresAt(now).toISOString(), "2026-06-28T00:00:00.000Z");
+  assert.equal(isAnnouncementActive({ expiresAt: "2026-06-25T00:00:01.000Z" }, now), true);
+  assert.equal(isAnnouncementActive({ expiresAt: "2026-06-24T23:59:59.000Z" }, now), false);
+});
+
+test("公告可见性应按目标类型限制普通用户，管理员可治理查看", () => {
+  const viewer: AnnouncementVisibilityViewer = {
+    id: "user-1",
+    role: "MEMBER",
+    tagIds: ["tag-1"],
+    projectIds: ["project-1"],
+  };
+  const admin: AnnouncementVisibilityViewer = { id: "admin-1", role: "ADMIN", tagIds: [], projectIds: [] };
+
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "ALL", targetIds: [] }), true);
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "USERS", targetIds: ["user-1"] }), true);
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "USERS", targetIds: ["user-2"] }), false);
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "TAG", targetIds: ["tag-1"] }), true);
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "PROJECT", targetIds: ["project-1"] }), true);
+  assert.equal(canViewAnnouncementFromSnapshot(viewer, { targetType: "PROJECT", targetIds: ["project-2"] }), false);
+  assert.equal(
+    canViewAnnouncementFromSnapshot(viewer, {
+      authorId: "user-1",
+      targetType: "PROJECT",
+      targetIds: ["project-2"],
+    }),
+    true,
+  );
+  assert.equal(canViewAnnouncementFromSnapshot(admin, { targetType: "USERS", targetIds: ["user-2"] }), true);
+  assert.equal(canViewAnnouncementFromSnapshot(admin, { targetType: "ALL", targetIds: [], deletedAt: new Date() }), false);
 });

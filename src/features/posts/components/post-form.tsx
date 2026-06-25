@@ -10,13 +10,9 @@ import { splitCommaList } from "@/shared/lib/utils";
 
 import { createPostFormAction, type CreatePostFormState } from "../actions/create-post";
 import { shouldAutosaveDraft } from "../lib/drafts";
+import { joinPostTagLabels } from "../lib/post-tags";
 
 const initialState: CreatePostFormState = { ok: false, message: null, tone: "error" };
-
-export type PostTagOption = {
-  id: string;
-  label: string;
-};
 
 export type PostDraftInitial = {
   id?: string;
@@ -26,23 +22,10 @@ export type PostDraftInitial = {
   tags?: readonly string[];
 };
 
-function mergeClientPostTags(...groups: readonly string[][]) {
-  const labels: string[] = [];
-  for (const group of groups) {
-    for (const label of group) {
-      const normalized = label.trim();
-      if (normalized && !labels.includes(normalized)) labels.push(normalized);
-    }
-  }
-  return labels;
-}
-
 export function PostForm({
-  postTags = [],
   initialDraft,
   quotaNotice,
 }: {
-  postTags?: readonly PostTagOption[];
   initialDraft?: PostDraftInitial;
   quotaNotice?: string | null;
 }) {
@@ -69,15 +52,18 @@ export function PostForm({
     const currentContent = contentRef.current;
     if (!shouldAutosaveDraft({ title, content: currentContent })) return null;
 
-    const selectedTags = formData.getAll("selectedTags").map(String);
-    const newTags = splitCommaList(String(formData.get("newTags") ?? ""));
     return {
       postId: draftIdRef.current || undefined,
       title,
       category: String(formData.get("category") ?? "GENERAL"),
       content: currentContent,
-      tags: mergeClientPostTags(selectedTags, newTags),
+      tags: splitCommaList(String(formData.get("tags") ?? "")),
     };
+  }, []);
+
+  const rememberDraftId = useCallback((id: string) => {
+    draftIdRef.current = id;
+    setDraftId(id);
   }, []);
 
   const autosaveDraft = useCallback(
@@ -96,9 +82,15 @@ export function PostForm({
         body,
         credentials: "include",
         keepalive: preferBeacon,
-      }).catch(() => undefined);
+      })
+        .then(async (response) => {
+          if (!response.ok) return;
+          const result = (await response.json().catch(() => null)) as { id?: unknown } | null;
+          if (typeof result?.id === "string") rememberDraftId(result.id);
+        })
+        .catch(() => undefined);
     },
-    [buildDraftPayload],
+    [buildDraftPayload, rememberDraftId],
   );
 
   useEffect(() => {
@@ -155,23 +147,12 @@ export function PostForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-tags">标签</Label>
-        <select
+        <Input
           id="post-tags"
-          name="selectedTags"
-          defaultValue={[...(initialDraft?.tags ?? [])]}
-          className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm"
-          multiple
-        >
-          {postTags.map((tag) => (
-            <option key={tag.id} value={tag.label}>
-              {tag.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="post-new-tags">新增标签</Label>
-        <Input id="post-new-tags" name="newTags" placeholder="多个标签用逗号分隔（中英文逗号均可）" />
+          name="tags"
+          defaultValue={joinPostTagLabels(initialDraft?.tags ?? [])}
+          placeholder="多个标签用逗号分隔（中英文逗号均可）"
+        />
       </div>
       <MarkdownEditor name="content" value={content} onChange={handleContentChange} placeholder="Markdown 正文" />
       {quotaNotice ? <p className="text-sm text-muted-foreground">{quotaNotice}</p> : null}

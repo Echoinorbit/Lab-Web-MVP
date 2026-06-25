@@ -20,6 +20,10 @@ export const RATE_LIMITS: Record<string, Record<string, RateLimitRule>> = {
   },
 };
 
+const DEFAULT_RATE_LIMITS: Partial<Record<string, RateLimitRule>> = {
+  "post.create": { max: 5, window: "1d" },
+};
+
 export type RateLimitSelection =
   | { kind: "unlimited" }
   | { kind: "limited"; max: number }
@@ -42,7 +46,14 @@ export function selectRateLimit(action: string, tagNames: readonly string[]): Ra
     maxAllowed = Math.max(maxAllowed, limit.max);
   }
 
-  return maxAllowed > 0 ? { kind: "limited", max: maxAllowed } : { kind: "denied" };
+  if (maxAllowed > 0) return { kind: "limited", max: maxAllowed };
+
+  const defaultLimit = DEFAULT_RATE_LIMITS[action];
+  if (defaultLimit) {
+    return defaultLimit.max === null ? { kind: "unlimited" } : { kind: "limited", max: defaultLimit.max };
+  }
+
+  return { kind: "denied" };
 }
 
 export function resolveRateLimitResult(selection: RateLimitSelection, count: number): RateLimitResult {

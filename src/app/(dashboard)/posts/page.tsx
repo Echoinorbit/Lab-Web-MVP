@@ -14,7 +14,7 @@ export default async function PostsPage() {
   const user = await requireActiveUser();
   const permissions = await getUserPermissions(user.id);
   const canCreate = permissions.has(PERMISSIONS.POST_CREATE);
-  const [posts, drafts, postTags, quotaStatus] = await Promise.all([
+  const [posts, drafts, quotaStatus] = await Promise.all([
     prisma.post.findMany({
       where: buildPublicPostWhere(),
       orderBy: { createdAt: "desc" },
@@ -27,13 +27,6 @@ export default async function PostsPage() {
           orderBy: { updatedAt: "desc" },
           take: 20,
           include: { author: { select: { displayName: true } } },
-        })
-      : Promise.resolve([]),
-    canCreate
-      ? prisma.userPostTag.findMany({
-          where: { userId: user.id },
-          orderBy: { label: "asc" },
-          select: { id: true, label: true },
         })
       : Promise.resolve([]),
     canCreate ? getRateLimitStatus(user.id, PERMISSIONS.POST_CREATE) : Promise.resolve(null),
@@ -63,12 +56,13 @@ export default async function PostsPage() {
                 category: post.category,
                 createdAt: formatDate(post.updatedAt),
                 tags: post.tags,
+                href: `/posts/${post.id}/edit`,
               }))}
             />
           </section>
         ) : null}
       </div>
-      {canCreate ? <PostForm postTags={postTags} quotaNotice={formatPostQuotaNotice(quotaStatus)} /> : null}
+      {canCreate ? <PostForm quotaNotice={formatPostQuotaNotice(quotaStatus)} /> : null}
     </div>
   );
 }

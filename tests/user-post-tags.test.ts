@@ -5,6 +5,7 @@ import {
   buildUserPostTagDeleteWhere,
   buildUserPostTagListArgs,
   buildUserPostTagUpsertArgs,
+  joinPostTagLabels,
   mergePostTagLabels,
   normalizePostTagLabel,
   postTagLabelSchema,
@@ -18,6 +19,7 @@ test("个人帖子标签应规范化空白并限制长度", () => {
 
 test("发帖标签应合并已有选择与新增标签并去重", () => {
   assert.deepEqual(mergePostTagLabels(["科研", "AI"], ["AI", "写作", " "]), ["科研", "AI", "写作"]);
+  assert.equal(joinPostTagLabels(["科研", "AI"]), "科研，AI");
 });
 
 test("个人帖子标签查询只能读取当前用户自己的标签", () => {

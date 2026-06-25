@@ -25,10 +25,14 @@ export function hasGlobalAdvisorTag(viewer: Pick<ProjectVisibilityViewer, "tags"
   return viewer.tags.some((tag) => tag.name === ADVISOR_TAG_NAME && tag.projectId === null);
 }
 
+function advisorProjectParticipationWhere(viewerId: string): Prisma.ProjectWhereInput[] {
+  return [{ advisorId: viewerId }, { members: { some: { userId: viewerId } } }];
+}
+
 export function getProjectVisibilityWhere(viewer: ProjectVisibilityViewer): Prisma.ProjectWhereInput {
   const baseWhere = { deletedAt: null };
   if (viewer.role === "ADMIN") return baseWhere;
-  if (hasGlobalAdvisorTag(viewer)) return { ...baseWhere, advisorId: viewer.id };
+  if (hasGlobalAdvisorTag(viewer)) return { ...baseWhere, OR: advisorProjectParticipationWhere(viewer.id) };
   return { ...baseWhere, members: { some: { userId: viewer.id } } };
 }
 
@@ -40,7 +44,7 @@ export function getMyProjectWhere(viewer: ProjectVisibilityViewer): Prisma.Proje
       OR: [{ creatorId: viewer.id }, { advisorId: viewer.id }, { members: { some: { userId: viewer.id } } }],
     };
   }
-  if (hasGlobalAdvisorTag(viewer)) return { ...baseWhere, advisorId: viewer.id };
+  if (hasGlobalAdvisorTag(viewer)) return { ...baseWhere, OR: advisorProjectParticipationWhere(viewer.id) };
   return { ...baseWhere, members: { some: { userId: viewer.id } } };
 }
 

@@ -51,6 +51,7 @@ export async function createProjectNode(input: unknown) {
       await tx.notification.createMany({
         data: members.map((member) => ({
           userId: member.userId,
+          senderId: user.id,
           type: "PROJECT_NODE_NEW",
           title: "项目节点更新",
           content: data.title,

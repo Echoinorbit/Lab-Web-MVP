@@ -8,8 +8,6 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { draftInputSchema } from "@/shared/lib/validators/posts";
 
-import { buildUserPostTagUpsertArgs } from "../lib/post-tags";
-
 export async function saveDraft(input: unknown) {
   const user = await requireActiveUser();
   const data = draftInputSchema.parse(input);
@@ -22,10 +20,6 @@ export async function saveDraft(input: unknown) {
   });
 
   const draft = await prisma.$transaction(async (tx) => {
-    for (const tag of data.tags) {
-      await tx.userPostTag.upsert(buildUserPostTagUpsertArgs(user.id, tag));
-    }
-
     if (data.postId) {
       const existing = await tx.post.findFirst({
         where: {

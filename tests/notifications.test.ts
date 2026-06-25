@@ -5,6 +5,7 @@ import {
   buildNotificationReadUpdate,
   notificationReadStateSchema,
 } from "../src/features/notifications/lib/read-state";
+import { getNotificationTypeLabel } from "../src/features/notifications/lib/display";
 import {
   shouldNotifyRecipient,
   uniqueNotificationRecipientIds,
@@ -43,4 +44,11 @@ test("通知标未读必须限定单条本人通知", () => {
       data: { isRead: false, readAt: null },
     },
   );
+});
+
+test("通知类型应映射为中文标签", () => {
+  assert.equal(getNotificationTypeLabel("ANNOUNCEMENT_URGENT"), "紧急公告");
+  assert.equal(getNotificationTypeLabel("POST_COMMENT"), "评论");
+  assert.equal(getNotificationTypeLabel("TAG_GRANTED"), "Tag 授予");
+  assert.equal(getNotificationTypeLabel("TAG_GRANTED", "PROJECT"), "项目成员");
 });

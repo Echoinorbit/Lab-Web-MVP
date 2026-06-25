@@ -73,6 +73,7 @@ export async function grantTag(input: unknown) {
       await tx.notification.create({
         data: {
           userId: data.userId,
+          senderId: actor.id,
           type: "TAG_GRANTED",
           title: "获得新 Tag",
           content: tag.displayName,

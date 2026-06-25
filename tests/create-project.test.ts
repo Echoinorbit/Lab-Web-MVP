@@ -31,6 +31,32 @@ test("创建者不应自动成为组长，除非表单显式选择创建者", ()
   );
 });
 
+test("导师创建项目时可从成员列表中排除创建者本人", () => {
+  assert.deepEqual(
+    resolveProjectCreationAssignments({
+      creatorUserId: "advisor-1",
+      leadUserId: "lead-1",
+      memberUserIds: ["advisor-1", "member-1", "lead-1"],
+      excludeCreatorFromMembers: true,
+    }),
+    { leadUserId: "lead-1", memberUserIds: ["member-1"] },
+  );
+});
+
+test("导师创建项目时服务端应拒绝创建者自任组长", () => {
+  assert.throws(
+    () =>
+      resolveProjectCreationAssignments({
+        creatorUserId: "advisor-1",
+        leadUserId: "advisor-1",
+        memberUserIds: ["member-1"],
+        excludeCreatorFromLead: true,
+        excludeCreatorFromMembers: true,
+      }),
+    /不能将自己设为项目组长/,
+  );
+});
+
 test("项目 scoped Tag 名称应稳定生成", () => {
   assert.equal(projectScopedTagName("lead", "project-1"), "project-lead:project-1");
   assert.equal(projectScopedTagName("member", "project-1"), "project-member:project-1");

@@ -19,12 +19,15 @@ export async function GET() {
       type: true,
       relatedId: true,
       relatedType: true,
+      sender: { select: { displayName: true } },
     },
   });
 
   return NextResponse.json(
-    notifications.map((notification) => ({
+    notifications.map(({ sender, ...notification }) => ({
       ...notification,
+      relatedType: notification.relatedType ?? undefined,
+      senderName: sender?.displayName,
       createdAt: notification.createdAt.toISOString(),
     })),
   );

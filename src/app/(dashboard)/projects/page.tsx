@@ -38,8 +38,8 @@ export default async function ProjectsPage({
         <div className="flex gap-2">
           {(
             [
-              ["all", "全部项目"],
-              ["mine", "我负责的项目"],
+              ["all", "可见项目"],
+              ["mine", "我参与/负责"],
             ] as const
           ).map(([value, label]) => (
             <Link

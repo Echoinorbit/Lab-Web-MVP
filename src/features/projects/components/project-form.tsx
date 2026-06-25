@@ -20,9 +20,11 @@ export type ProjectUserOption = {
 export function ProjectForm({
   users,
   advisors,
+  lockedAdvisorId,
 }: {
   users: readonly ProjectUserOption[];
   advisors: readonly ProjectUserOption[];
+  lockedAdvisorId?: string;
 }) {
   const [description, setDescription] = useState("");
   const [state, formAction, isPending] = useActionState(createProjectFormAction, initialState);
@@ -61,7 +63,14 @@ export function ProjectForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="project-advisor">负责导师</Label>
-        <select id="project-advisor" name="advisorId" className="h-9 rounded-md border bg-background px-3 text-sm">
+        {lockedAdvisorId ? <input type="hidden" name="advisorId" value={lockedAdvisorId} /> : null}
+        <select
+          id="project-advisor"
+          name={lockedAdvisorId ? undefined : "advisorId"}
+          className="h-9 rounded-md border bg-background px-3 text-sm disabled:opacity-70"
+          defaultValue={lockedAdvisorId ?? ""}
+          disabled={Boolean(lockedAdvisorId)}
+        >
           <option value="">暂不指定</option>
           {advisors.map((advisor) => (
             <option key={advisor.id} value={advisor.id}>

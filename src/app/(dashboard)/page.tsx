@@ -3,6 +3,7 @@ import type { Route } from "next";
 
 import { AnnouncementList } from "@/features/announcements";
 import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
+import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { ProjectList } from "@/features/projects";
 import { getProjectVisibilityWhere, hasGlobalAdvisorTag } from "@/features/projects/lib/visibility";
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
@@ -23,6 +24,8 @@ export default async function DashboardPage() {
   const canReadAllProgress = permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ALL);
   const { year, month } = getShanghaiDateParts();
   const projectVisibilityWhere = getProjectVisibilityWhere({ id: user.id, role: user.role, tags: effectiveTags });
+  const announcementVisibilityViewer = await getAnnouncementVisibilityViewer(user);
+  const announcementWhere = buildAnnouncementVisibilityWhere(announcementVisibilityViewer);
   const canPreviewProjects = hasGlobalAdvisorTag({ tags: effectiveTags });
   const progressAudienceWhere = canReadAllProgress
     ? { role: "MEMBER" as const, status: "ACTIVE" as const, ...withoutEffectiveAdvisorTagWhere() }
@@ -39,10 +42,10 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     prisma.user.count({ where: { role: "MEMBER", status: "ACTIVE" } }),
     prisma.project.count({ where: projectVisibilityWhere }),
-    prisma.announcement.count({ where: { deletedAt: null } }),
+    prisma.announcement.count({ where: announcementWhere }),
     prisma.notification.count({ where: { userId: user.id, isRead: false } }),
     prisma.announcement.findMany({
-      where: { deletedAt: null },
+      where: announcementWhere,
       orderBy: ANNOUNCEMENT_ORDER_BY,
       take: 5,
       include: { author: { select: { displayName: true } } },
@@ -106,18 +109,26 @@ export default async function DashboardPage() {
       </div>
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
-          <AnnouncementList
-            announcements={announcements.map((announcement) => ({
-              id: announcement.id,
-              title: announcement.title,
-              content: announcement.content,
-              authorName: announcement.author.displayName,
-              createdAt: formatDate(announcement.createdAt),
-              isPinned: announcement.isPinned,
-              isUrgent: announcement.isUrgent,
-            }))}
-            linkToDetail
-          />
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">公告中心</h2>
+              <Link href="/announcements" className="text-sm text-muted-foreground hover:text-foreground">
+                查看全部
+              </Link>
+            </div>
+            <AnnouncementList
+              announcements={announcements.map((announcement) => ({
+                id: announcement.id,
+                title: announcement.title,
+                content: announcement.content,
+                authorName: announcement.author.displayName,
+                createdAt: formatDate(announcement.createdAt),
+                isPinned: announcement.isPinned,
+                isUrgent: announcement.isUrgent,
+              }))}
+              linkToDetail
+            />
+          </section>
           <ProjectList
             projects={projects.map((project) => ({
               id: project.id,

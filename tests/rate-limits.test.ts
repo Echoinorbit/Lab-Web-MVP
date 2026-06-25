@@ -16,6 +16,10 @@ test("没有相应资格 Tag 的用户，对受限操作应被拒绝", () => {
   assert.deepEqual(selectRateLimit("announcement.create", ["grad-master"]), { kind: "denied" });
 });
 
+test("拥有发帖权限但没有专属配额 Tag 的用户应使用基础发帖配额", () => {
+  assert.deepEqual(selectRateLimit("post.create", ["custom-author"]), { kind: "limited", max: 5 });
+});
+
 test("超限结果应保留上限与剩余次数，供中文提示使用", () => {
   const result = resolveRateLimitResult({ kind: "limited", max: 5 }, 6);
   assert.deepEqual(result, { kind: "limited", allowed: false, remaining: 0, max: 5 });

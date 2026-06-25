@@ -1,6 +1,6 @@
 import { TagGrantForm, TagList, TagPermissions } from "@/features/tags";
 import { requirePermission } from "@/shared/lib/authorization";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { normalizePermissionList, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 
 export default async function AdminTagsPage() {
@@ -11,6 +11,7 @@ export default async function AdminTagsPage() {
       where: { scope: "GLOBAL" },
       orderBy: [{ scope: "asc" }, { name: "asc" }],
       include: {
+        template: { select: { permissions: true } },
         _count: {
           select: {
             userTags: {
@@ -69,7 +70,15 @@ export default async function AdminTagsPage() {
             label: `${userTag.user.displayName} (${userTag.user.username}) -> ${userTag.tag.displayName} (${userTag.tag.name})`,
           }))}
         />
-        <TagPermissions permissions={[PERMISSIONS.POST_CREATE, PERMISSIONS.COMMENT_CREATE]} />
+        <TagPermissions
+          groups={tags.map((tag) => ({
+            name: tag.name,
+            displayName: tag.displayName,
+            permissions: normalizePermissionList(
+              Array.isArray(tag.permissions) ? tag.permissions : tag.template?.permissions,
+            ),
+          }))}
+        />
       </div>
     </div>
   );

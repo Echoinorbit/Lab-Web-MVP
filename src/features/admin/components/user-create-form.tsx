@@ -33,6 +33,9 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
       <div className="space-y-2">
         <Label htmlFor="admin-password">临时密码</Label>
         <Input id="admin-password" name="password" type="password" required />
+        <p className="text-xs leading-5 text-muted-foreground">
+          至少 10 位，并包含大小写字母、数字、符号中的至少三类；不能包含用户名或学号。
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="admin-student-id">学号</Label>
@@ -53,7 +56,7 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
           ))}
         </select>
       </div>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? <p className={state.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>{message}</p> : null}
       <Button type="submit" className="w-fit" disabled={isPending}>
         {isPending ? "创建中" : "创建成员"}
       </Button>

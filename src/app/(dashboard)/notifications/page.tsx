@@ -12,6 +12,9 @@ export default async function NotificationsPage() {
       id: true,
       title: true,
       content: true,
+      type: true,
+      relatedType: true,
+      sender: { select: { displayName: true } },
       createdAt: true,
       isRead: true,
     },
@@ -22,6 +25,8 @@ export default async function NotificationsPage() {
       notifications={notifications.map((notification) => ({
         ...notification,
         content: notification.content ?? undefined,
+        relatedType: notification.relatedType ?? undefined,
+        senderName: notification.sender?.displayName,
         createdAt: notification.createdAt.toISOString().slice(0, 10),
       }))}
     />

@@ -5,8 +5,12 @@ import { securityHeaders } from "../next.config";
 import { validatePasswordPolicy } from "../src/shared/lib/security";
 
 test("密码策略应拒绝过短或与身份信息相关联的密码", () => {
-  assert.equal(validatePasswordPolicy("Short1!", ["alice"]).ok, false);
-  assert.equal(validatePasswordPolicy("AliceStrong123!", ["alice"]).ok, false);
+  const short = validatePasswordPolicy("Short1!", ["alice"]);
+  assert.equal(short.ok, false);
+  assert.equal(short.errors.includes("密码至少需要 10 位。"), true);
+  const identity = validatePasswordPolicy("AliceStrong123!", ["alice"]);
+  assert.equal(identity.ok, false);
+  assert.equal(identity.errors.includes("密码不能包含用户名或学号。"), true);
 });
 
 test("密码策略应接受足够复杂且与身份信息无关的密码", () => {

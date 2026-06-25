@@ -1,17 +1,38 @@
 import { AnnouncementCard } from "@/features/announcements";
+import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
+import { prisma } from "@/shared/lib/prisma";
+import { requireActiveUser } from "@/shared/lib/session";
+import { notFound } from "next/navigation";
+
+function formatDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
 
 export default async function AnnouncementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await requireActiveUser();
+  const now = new Date();
+  const viewer = await getAnnouncementVisibilityViewer(user, now);
+  const announcement = await prisma.announcement.findFirst({
+    where: {
+      id,
+      AND: [buildAnnouncementVisibilityWhere(viewer, now)],
+    },
+    include: { author: { select: { displayName: true } } },
+  });
+
+  if (!announcement) notFound();
+
   return (
     <AnnouncementCard
       announcement={{
-        id,
-        title: `公告 ${id}`,
-        content: "公告详情骨架。真实查询应包含 `deletedAt: null` 过滤。",
-        authorName: "李教授",
-        createdAt: "2026-06-22",
-        isPinned: false,
-        isUrgent: false,
+        id: announcement.id,
+        title: announcement.title,
+        content: announcement.content,
+        authorName: announcement.author.displayName,
+        createdAt: formatDate(announcement.createdAt),
+        isPinned: announcement.isPinned,
+        isUrgent: announcement.isUrgent,
       }}
     />
   );

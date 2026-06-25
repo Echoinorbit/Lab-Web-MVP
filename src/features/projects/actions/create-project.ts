@@ -4,29 +4,36 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { getEffectiveTags, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
 import { projectInputSchema } from "@/shared/lib/validators/projects";
 
 import { resolveProjectCreationAssignments } from "../lib/create-project";
+import { hasGlobalAdvisorTag } from "../lib/visibility";
 import { grantProjectScopedTag } from "../lib/tag-grants";
 
 export async function createProject(input: unknown) {
   const user = await requireActiveUser();
   const data = projectInputSchema.parse(input);
-  const assignments = resolveProjectCreationAssignments({
-    creatorUserId: user.id,
-    leadUserId: data.leadUserId,
-    memberUserIds: data.memberUserIds,
-  });
 
   await assertPermissionWithAudit({
     userId: user.id,
     permission: PERMISSIONS.PROJECT_CREATE,
     entityType: "Project",
   });
+
+  const effectiveTags = await getEffectiveTags(user.id);
+  const creatorIsAdvisor = hasGlobalAdvisorTag({ tags: effectiveTags });
+  const assignments = resolveProjectCreationAssignments({
+    creatorUserId: user.id,
+    leadUserId: data.leadUserId,
+    memberUserIds: data.memberUserIds,
+    excludeCreatorFromLead: creatorIsAdvisor,
+    excludeCreatorFromMembers: creatorIsAdvisor,
+  });
+  const advisorId = creatorIsAdvisor ? user.id : data.advisorId;
 
   const project = await prisma.$transaction(async (tx) => {
     const participantIds = [assignments.leadUserId, ...assignments.memberUserIds];
@@ -38,11 +45,11 @@ export async function createProject(input: unknown) {
       throw new Error("项目组长或成员不存在，或账号不可用。");
     }
 
-    if (data.advisorId) {
+    if (advisorId) {
       const now = new Date();
       await tx.user.findFirstOrThrow({
         where: {
-          id: data.advisorId,
+          id: advisorId,
           status: "ACTIVE",
           tags: {
             some: {
@@ -61,7 +68,7 @@ export async function createProject(input: unknown) {
         name: data.name,
         description: data.description,
         creatorId: user.id,
-        advisorId: data.advisorId ?? null,
+        advisorId: advisorId ?? null,
       },
     });
 
@@ -92,7 +99,7 @@ export async function createProject(input: unknown) {
         details: {
           leadUserId: assignments.leadUserId,
           memberUserIds: assignments.memberUserIds,
-          advisorId: data.advisorId ?? null,
+          advisorId: advisorId ?? null,
         },
       },
     });

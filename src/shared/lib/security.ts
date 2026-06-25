@@ -9,7 +9,7 @@ export type PasswordCheck = {
 
 export function validatePasswordPolicy(password: string, identityValues: readonly string[] = []): PasswordCheck {
   const errors: string[] = [];
-  if (password.length < 10) errors.push("Password must be at least 10 characters.");
+  if (password.length < 10) errors.push("密码至少需要 10 位。");
 
   const classes = [
     /[a-z]/.test(password),
@@ -17,13 +17,13 @@ export function validatePasswordPolicy(password: string, identityValues: readonl
     /\d/.test(password),
     /[^A-Za-z0-9]/.test(password),
   ].filter(Boolean).length;
-  if (classes < 3) errors.push("Password must include at least three character classes.");
+  if (classes < 3) errors.push("密码必须包含大小写字母、数字、符号中的至少三类。");
 
   const lower = password.toLowerCase();
   for (const value of identityValues) {
     const normalized = value.trim().toLowerCase();
     if (normalized && lower.includes(normalized)) {
-      errors.push("Password must not contain username or student id.");
+      errors.push("密码不能包含用户名或学号。");
       break;
     }
   }

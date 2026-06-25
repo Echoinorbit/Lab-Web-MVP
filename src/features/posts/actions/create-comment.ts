@@ -8,6 +8,8 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { commentInputSchema } from "@/shared/lib/validators/posts";
 
+import { buildReplyParentWhere } from "../lib/comment-replies";
+
 export async function createComment(input: unknown) {
   const user = await requireActiveUser();
   const data = commentInputSchema.parse(input);
@@ -27,7 +29,7 @@ export async function createComment(input: unknown) {
 
   if (data.parentId) {
     const parent = await prisma.comment.findFirst({
-      where: { id: data.parentId, postId: data.postId, deletedAt: null },
+      where: buildReplyParentWhere(data.postId, data.parentId),
       select: { id: true },
     });
     if (!parent) throw new Error("Parent comment not found.");
@@ -47,6 +49,7 @@ export async function createComment(input: unknown) {
       await tx.notification.create({
         data: {
           userId: post.authorId,
+          senderId: user.id,
           type: "POST_COMMENT",
           title: "帖子收到新评论",
           content: post.title,

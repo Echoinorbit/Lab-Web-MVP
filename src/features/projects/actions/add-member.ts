@@ -47,6 +47,7 @@ export async function addProjectMember(input: unknown) {
       await tx.notification.create({
         data: {
           userId: data.userId,
+          senderId: actor.id,
           type: "TAG_GRANTED",
           title: "加入项目",
           content: memberTag.displayName,

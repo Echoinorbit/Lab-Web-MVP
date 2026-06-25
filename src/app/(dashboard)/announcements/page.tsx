@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AnnouncementList } from "@/features/announcements";
 import { ANNOUNCEMENT_CREATE_ROUTE } from "@/features/announcements/lib/access";
 import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
+import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
@@ -23,15 +24,18 @@ export default async function AnnouncementsPage({
 }) {
   const requestedPage = parsePageParam((await searchParams).page);
   const user = await requireActiveUser();
+  const now = new Date();
   const permissions = await getUserPermissions(user.id);
-  const totalAnnouncements = await prisma.announcement.count({ where: { deletedAt: null } });
+  const announcementViewer = await getAnnouncementVisibilityViewer(user, now);
+  const announcementWhere = buildAnnouncementVisibilityWhere(announcementViewer, now);
+  const totalAnnouncements = await prisma.announcement.count({ where: announcementWhere });
   const pagination = getPaginationState({
     page: requestedPage,
     totalItems: totalAnnouncements,
     pageSize: ANNOUNCEMENTS_PAGE_SIZE,
   });
   const announcements = await prisma.announcement.findMany({
-    where: { deletedAt: null },
+    where: announcementWhere,
     orderBy: ANNOUNCEMENT_ORDER_BY,
     skip: pagination.skip,
     take: pagination.pageSize,

@@ -11,7 +11,7 @@ import { requireActiveUser } from "@/shared/lib/session";
 export default async function PostEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireActiveUser();
-  const [permissions, post, postTags] = await Promise.all([
+  const [permissions, post] = await Promise.all([
     getUserPermissions(user.id),
     prisma.post.findFirst({
       where: { id, deletedAt: null },
@@ -25,11 +25,6 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
         authorId: true,
       },
     }),
-    prisma.userPostTag.findMany({
-      where: { userId: user.id },
-      orderBy: { label: "asc" },
-      select: { id: true, label: true },
-    }),
   ]);
 
   if (!post) notFound();
@@ -39,15 +34,6 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
       ? await getRateLimitStatus(user.id, PERMISSIONS.POST_CREATE)
       : null;
 
-  const optionLabels = new Set(postTags.map((tag) => tag.label));
-  const missingTagOptions = [];
-  for (const label of post.tags) {
-    if (optionLabels.has(label)) continue;
-    optionLabels.add(label);
-    missingTagOptions.push({ id: `post-${label}`, label });
-  }
-  const tagOptions = [...postTags, ...missingTagOptions];
-
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div>
@@ -56,7 +42,6 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
       </div>
       {post.status === "DRAFT" ? (
         <PostForm
-          postTags={tagOptions}
           initialDraft={{
             id: post.id,
             title: post.title,
@@ -73,7 +58,6 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
           category={post.category}
           content={post.content}
           tags={post.tags}
-          postTags={tagOptions}
         />
       )}
     </div>

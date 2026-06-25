@@ -17,6 +17,7 @@ import {
   resolveProjectAnnouncementRecipientIds,
   uniqueAnnouncementRecipientIds,
 } from "../lib/recipients";
+import { getDefaultAnnouncementExpiresAt } from "../lib/visibility";
 
 async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TAG" | "USERS", targetIds: string[], authorId: string) {
   const now = new Date();
@@ -95,6 +96,7 @@ export async function createAnnouncement(input: unknown) {
   }
 
   const recipientIds = await resolveAnnouncementRecipients(data.targetType, data.targetIds, user.id);
+  const now = new Date();
 
   const announcement = await prisma.$transaction(async (tx) => {
     await enforceRateLimit(tx, user.id, PERMISSIONS.ANNOUNCEMENT_CREATE);
@@ -108,6 +110,7 @@ export async function createAnnouncement(input: unknown) {
         isUrgent: data.isUrgent,
         targetType: data.targetType,
         targetIds: data.targetType === "ALL" ? [] : data.targetIds,
+        expiresAt: getDefaultAnnouncementExpiresAt(now),
       },
     });
 
@@ -115,6 +118,7 @@ export async function createAnnouncement(input: unknown) {
       await tx.notification.createMany({
         data: recipientIds.map((recipientId) => ({
           userId: recipientId,
+          senderId: user.id,
           type: data.isUrgent ? "ANNOUNCEMENT_URGENT" : "ANNOUNCEMENT_NEW",
           title: data.title,
           content: data.content.slice(0, 240),

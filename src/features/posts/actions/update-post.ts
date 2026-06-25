@@ -11,7 +11,7 @@ import { splitCommaList } from "@/shared/lib/utils";
 import { updatePostInputSchema } from "@/shared/lib/validators/posts";
 
 import { resolvePostUpdateAccess } from "../lib/author-ops";
-import { mergePostTagLabels } from "../lib/post-tags";
+import { formatPostValidationError } from "../lib/post-validation-copy";
 
 export async function updatePost(input: unknown) {
   const user = await requireActiveUser();
@@ -36,14 +36,6 @@ export async function updatePost(input: unknown) {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const tag of data.tags) {
-      await tx.userPostTag.upsert({
-        where: { userId_label: { userId: user.id, label: tag } },
-        create: { userId: user.id, label: tag },
-        update: {},
-      });
-    }
-
     await tx.post.update({
       where: { id: data.postId },
       data: {
@@ -77,9 +69,7 @@ export async function updatePostFormAction(
   formData: FormData,
 ): Promise<UpdatePostFormState> {
   const postId = String(formData.get("postId") ?? "");
-  const selectedTags = formData.getAll("selectedTags").map(String);
-  const newTags = splitCommaList(String(formData.get("newTags") ?? ""));
-  const tags = mergePostTagLabels(selectedTags, newTags);
+  const tags = splitCommaList(String(formData.get("tags") ?? ""));
 
   try {
     await updatePost({
@@ -90,7 +80,7 @@ export async function updatePostFormAction(
       tags,
     });
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "保存失败" };
+    return { ok: false, message: formatPostValidationError(error, "保存失败") };
   }
   redirect(`/posts/${postId}`);
 }

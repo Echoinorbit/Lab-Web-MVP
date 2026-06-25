@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { cn } from "@/shared/lib/utils";
 
 import { NOTIFICATIONS_QUERY_KEY, useNotifications } from "../hooks/use-notifications";
+import { getNotificationTypeLabel } from "../lib/display";
 import type { NotificationRow } from "../types";
 
 async function updateNotificationReadState(input: { id?: string; read?: boolean }) {
@@ -81,8 +82,14 @@ export function NotificationList({ notifications }: { notifications: readonly No
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-foreground">
+                      {getNotificationTypeLabel(notification.type, notification.relatedType)}
+                    </span>
+                    <span>{notification.isRead ? "已读" : "未读"}</span>
+                    {notification.senderName ? <span>来自 {notification.senderName}</span> : null}
+                  </div>
                   <CardTitle className="text-sm">{notification.title}</CardTitle>
-                  <div className="text-xs text-muted-foreground">{notification.isRead ? "已读" : "未读"}</div>
                 </div>
                 <Button
                   type="button"

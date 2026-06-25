@@ -22,17 +22,27 @@ export type CommentRow = {
 const initialState: CommentFormState = { ok: false, message: null };
 
 function CommentItem({
+  postId,
   comment,
   viewerId,
+  canComment,
   canModerate,
   canDeleteOwn,
+  allowReply,
 }: {
+  postId: string;
   comment: CommentRow;
   viewerId: string;
+  canComment: boolean;
   canModerate: boolean;
   canDeleteOwn: boolean;
+  allowReply: boolean;
 }) {
   const canDelete = canModerate || (canDeleteOwn && comment.authorId === viewerId);
+  const canReply = canComment && allowReply;
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [replyState, replyAction, isReplyPending] = useActionState(createCommentFormAction, initialState);
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -51,15 +61,47 @@ function CommentItem({
         ) : null}
       </div>
       <p className="whitespace-pre-wrap text-sm">{comment.content}</p>
+      {canReply ? (
+        <div className="space-y-2">
+          <Button type="button" variant="ghost" className="h-8 px-2" onClick={() => setIsReplying((value) => !value)}>
+            回复
+          </Button>
+          {isReplying ? (
+            <form action={replyAction} className="grid gap-2">
+              <input type="hidden" name="postId" value={postId} />
+              <input type="hidden" name="parentId" value={comment.id} />
+              <Textarea
+                name="content"
+                value={replyContent}
+                onChange={(event) => setReplyContent(event.target.value)}
+                placeholder={`回复 ${comment.authorName}`}
+                required
+              />
+              {replyState.message ? <p className="text-sm text-destructive">{replyState.message}</p> : null}
+              <div className="flex gap-2">
+                <Button type="submit" className="w-fit" disabled={isReplyPending || !replyContent.trim()}>
+                  {isReplyPending ? "提交中" : "提交回复"}
+                </Button>
+                <Button type="button" variant="secondary" className="w-fit" onClick={() => setIsReplying(false)}>
+                  取消
+                </Button>
+              </div>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
       {comment.children?.length ? (
         <div className="space-y-2 pl-4">
           {comment.children.map((child) => (
             <CommentItem
               key={child.id}
+              postId={postId}
               comment={child}
               viewerId={viewerId}
+              canComment={canComment}
               canModerate={canModerate}
               canDeleteOwn={canDeleteOwn}
+              allowReply={false}
             />
           ))}
         </div>
@@ -101,10 +143,13 @@ export function CommentSection({
             {comments.map((comment) => (
               <CommentItem
                 key={comment.id}
+                postId={postId}
                 comment={comment}
                 viewerId={viewerId}
+                canComment={canComment}
                 canModerate={canModerate}
                 canDeleteOwn={canDeleteOwn}
+                allowReply={true}
               />
             ))}
           </div>

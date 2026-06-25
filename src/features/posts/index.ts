@@ -1,6 +1,6 @@
 export { PostList, type PostSummary } from "./components/post-list";
 export { PostDetail } from "./components/post-detail";
-export { PostForm, type PostTagOption } from "./components/post-form";
+export { PostForm } from "./components/post-form";
 export { PostEditForm } from "./components/post-edit-form";
 export { CommentSection, type CommentRow } from "./components/comment-section";
 export { PostModeration } from "./components/post-moderation";

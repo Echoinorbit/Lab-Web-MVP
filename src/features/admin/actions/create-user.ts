@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
@@ -61,6 +62,16 @@ export async function createUser(input: unknown) {
 
 export type CreateUserFormState = { ok: boolean; message: string | null };
 
+function formatCreateUserError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = Array.isArray(error.meta?.target) ? error.meta.target.map(String) : [];
+    if (target.includes("username")) return "用户名已存在，请换一个用户名。";
+    if (target.includes("studentId")) return "学号已存在，请检查是否重复创建。";
+    return "用户唯一字段重复，请检查用户名或学号。";
+  }
+  return error instanceof Error ? error.message : "创建失败";
+}
+
 export async function createUserFormAction(
   _prevState: CreateUserFormState,
   formData: FormData,
@@ -76,6 +87,6 @@ export async function createUserFormAction(
     });
     return { ok: true, message: "成员已创建" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "创建失败" };
+    return { ok: false, message: formatCreateUserError(error) };
   }
 }

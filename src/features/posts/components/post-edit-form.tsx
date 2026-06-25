@@ -8,7 +8,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 
 import { updatePostFormAction, type UpdatePostFormState } from "../actions/update-post";
-import type { PostTagOption } from "./post-form";
+import { joinPostTagLabels } from "../lib/post-tags";
 
 const initialState: UpdatePostFormState = { ok: false, message: null };
 
@@ -26,14 +26,12 @@ export function PostEditForm({
   category,
   content,
   tags,
-  postTags = [],
 }: {
   postId: string;
   title: string;
   category: string;
   content: string;
   tags: readonly string[];
-  postTags?: readonly PostTagOption[];
 }) {
   const [body, setBody] = useState(content);
   const [state, formAction, isPending] = useActionState(updatePostFormAction, initialState);
@@ -63,23 +61,12 @@ export function PostEditForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-tags">标签</Label>
-        <select
+        <Input
           id="post-tags"
-          name="selectedTags"
-          defaultValue={[...tags]}
-          className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm"
-          multiple
-        >
-          {postTags.map((tag) => (
-            <option key={tag.id} value={tag.label}>
-              {tag.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="post-new-tags">新增标签</Label>
-        <Input id="post-new-tags" name="newTags" placeholder="多个标签用逗号分隔（中英文逗号均可）" />
+          name="tags"
+          defaultValue={joinPostTagLabels(tags)}
+          placeholder="多个标签用逗号分隔（中英文逗号均可）"
+        />
       </div>
       <MarkdownEditor name="content" value={body} onChange={setBody} placeholder="Markdown 正文" />
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
