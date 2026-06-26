@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Route } from "next";
 
-import { CommentSection, PostDetail, PostModeration, type CommentRow } from "@/features/posts";
+import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
+import { buildCommentTree } from "@/features/posts/lib/comment-tree";
 import { buildVisiblePostWhere } from "@/features/posts/lib/drafts";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -9,42 +10,6 @@ import { requireActiveUser } from "@/shared/lib/session";
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-type CommentWithAuthor = {
-  id: string;
-  content: string;
-  createdAt: Date;
-  parentId: string | null;
-  author: { id: string; displayName: string };
-};
-
-function buildCommentTree(comments: readonly CommentWithAuthor[]): CommentRow[] {
-  const roots: CommentRow[] = [];
-  const byId = new Map<string, CommentRow>();
-
-  for (const comment of comments) {
-    byId.set(comment.id, {
-      id: comment.id,
-      content: comment.content,
-      authorId: comment.author.id,
-      authorName: comment.author.displayName,
-      createdAt: formatDate(comment.createdAt),
-      children: [],
-    });
-  }
-
-  for (const comment of comments) {
-    const row = byId.get(comment.id);
-    if (!row) continue;
-    if (comment.parentId) {
-      byId.get(comment.parentId)?.children?.push(row);
-    } else {
-      roots.push(row);
-    }
-  }
-
-  return roots;
 }
 
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,7 +21,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     include: {
       author: { select: { id: true, displayName: true } },
       comments: {
-        where: { deletedAt: null },
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, displayName: true } } },
       },

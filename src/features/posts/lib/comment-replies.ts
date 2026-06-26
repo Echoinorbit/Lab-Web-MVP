@@ -5,9 +5,9 @@ export type ReplyParentSnapshot = {
 };
 
 export function buildReplyParentWhere(postId: string, parentId: string) {
-  return { id: parentId, postId, parentId: null, deletedAt: null };
+  return { id: parentId, postId, deletedAt: null };
 }
 
 export function canReplyToCommentSnapshot(comment: ReplyParentSnapshot, postId: string) {
-  return comment.postId === postId && comment.parentId === null && comment.deletedAt === null;
+  return comment.postId === postId && comment.deletedAt === null;
 }

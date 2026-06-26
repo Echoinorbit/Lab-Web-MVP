@@ -6,18 +6,13 @@ import { useActionState, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { cn } from "@/shared/lib/utils";
 
 import { createCommentFormAction, type CommentFormState } from "../actions/create-comment";
 import { deleteCommentFormAction } from "../actions/delete-comment";
+import type { CommentRow } from "../types";
 
-export type CommentRow = {
-  id: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  createdAt: string;
-  children?: CommentRow[];
-};
+export type { CommentRow };
 
 const initialState: CommentFormState = { ok: false, message: null };
 
@@ -29,6 +24,8 @@ function CommentItem({
   canModerate,
   canDeleteOwn,
   allowReply,
+  depth = 0,
+  replyToName,
 }: {
   postId: string;
   comment: CommentRow;
@@ -37,18 +34,23 @@ function CommentItem({
   canModerate: boolean;
   canDeleteOwn: boolean;
   allowReply: boolean;
+  depth?: number;
+  replyToName?: string;
 }) {
-  const canDelete = canModerate || (canDeleteOwn && comment.authorId === viewerId);
-  const canReply = canComment && allowReply;
+  const isDeleted = comment.isDeleted === true;
+  const canDelete = !isDeleted && (canModerate || (canDeleteOwn && comment.authorId === viewerId));
+  const canReply = !isDeleted && canComment && allowReply;
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyState, replyAction, isReplyPending] = useActionState(createCommentFormAction, initialState);
+  const isFlattenedReply = depth >= 2 && Boolean(replyToName) && !isDeleted;
+  const nextReplyToName = isDeleted ? "已删除评论" : comment.authorName;
 
   return (
-    <div className="space-y-2 rounded-md border p-3">
+    <div className={cn("space-y-2 rounded-md border p-3", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
-          {comment.authorName} · {comment.createdAt}
+          {isDeleted ? `该评论已删除 · ${comment.createdAt}` : `${comment.authorName} · ${comment.createdAt}`}
         </span>
         {canDelete ? (
           <form action={deleteCommentFormAction}>
@@ -60,7 +62,14 @@ function CommentItem({
           </form>
         ) : null}
       </div>
-      <p className="whitespace-pre-wrap text-sm">{comment.content}</p>
+      {isDeleted ? (
+        <p className="text-sm text-muted-foreground">该评论已被删除</p>
+      ) : (
+        <p className="whitespace-pre-wrap text-sm">
+          {isFlattenedReply ? <span className="mr-1 font-medium text-primary">回复 @{replyToName}</span> : null}
+          {comment.content}
+        </p>
+      )}
       {canReply ? (
         <div className="space-y-2">
           <Button type="button" variant="ghost" className="h-8 px-2" onClick={() => setIsReplying((value) => !value)}>
@@ -91,7 +100,7 @@ function CommentItem({
         </div>
       ) : null}
       {comment.children?.length ? (
-        <div className="space-y-2 pl-4">
+        <div className={cn("space-y-2", depth === 0 ? "pl-4" : "pl-0")}>
           {comment.children.map((child) => (
             <CommentItem
               key={child.id}
@@ -101,7 +110,9 @@ function CommentItem({
               canComment={canComment}
               canModerate={canModerate}
               canDeleteOwn={canDeleteOwn}
-              allowReply={false}
+              allowReply={true}
+              depth={depth + 1}
+              replyToName={nextReplyToName}
             />
           ))}
         </div>
