@@ -9,10 +9,6 @@ import { getEffectiveTags, getProjectPermissions, PERMISSIONS } from "@/shared/l
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
 type ProjectNodeWithAuthor = {
   id: string;
   projectId: string;
@@ -36,7 +32,7 @@ function buildCanvasNodes(nodes: readonly ProjectNodeWithAuthor[]): ProjectCanva
     parentId: node.parentId,
     authorId: node.authorId,
     authorName: node.author.displayName,
-    createdAt: formatDate(node.createdAt),
+    createdAt: node.createdAt.toISOString(),
     colorHex: node.colorHex,
   }));
 }

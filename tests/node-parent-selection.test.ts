@@ -13,4 +13,3 @@ test("项目节点父级表单值应区分显式根节点和未选择父节点",
   assert.equal(normalizeProjectNodeParentInput("node-1"), "node-1");
   assert.equal(normalizeProjectNodeParentInput(" node-1 "), "node-1");
 });
-

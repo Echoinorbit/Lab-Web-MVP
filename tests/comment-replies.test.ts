@@ -61,6 +61,8 @@ test("删除的父评论有可见回复时应保留占位楼层", () => {
   assert.equal(tree[0].id, "root");
   assert.equal(tree[0].isDeleted, true);
   assert.equal(tree[0].content, "");
+  assert.equal(tree[0].authorId, "");
+  assert.equal(tree[0].authorName, "已删除评论");
   assert.deepEqual(tree[0].children?.map((child) => child.id), ["reply"]);
 });
 

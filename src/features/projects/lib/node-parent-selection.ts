@@ -10,4 +10,3 @@ export function normalizeProjectNodeParentInput(value: unknown): string | null |
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
 }
-

@@ -53,6 +53,17 @@ test("画布布局应按时间倒序排列行，而不是按树深度强制父�
   assert.equal(positions.get("child")?.x, 320);
 });
 
+test("画布布局同一天内应按完整创建时间排列行", () => {
+  const result = mapProjectNodesToCanvas([
+    node({ id: "morning", createdAt: "2026-06-01T08:00:00.000Z" }),
+    node({ id: "evening", createdAt: "2026-06-01T20:00:00.000Z" }),
+  ]);
+  const positions = new Map(result.nodes.map((flowNode) => [flowNode.id, flowNode.position]));
+
+  assert.equal(positions.get("evening")?.y, 0);
+  assert.equal(positions.get("morning")?.y, 170);
+});
+
 test("缺失父节点的项目节点应作为根节点呈现且不生成悬空边", () => {
   const result = mapProjectNodesToCanvas([
     node({ id: "root", createdAt: "2026-06-01" }),

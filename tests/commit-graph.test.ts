@@ -28,6 +28,15 @@ test("commit graph 应按时间倒序呈现提交节点", () => {
   assert.deepEqual(graph.rows.map((row) => row.id), ["newer", "older"]);
 });
 
+test("commit graph 同一天内也应按完整时间倒序呈现提交节点", () => {
+  const graph = buildCommitGraph([
+    node({ id: "morning", authorId: "author-a", authorName: "甲", createdAt: "2026-06-01T08:00:00.000Z" }),
+    node({ id: "evening", authorId: "author-a", authorName: "甲", createdAt: "2026-06-01T20:00:00.000Z" }),
+  ]);
+
+  assert.deepEqual(graph.rows.map((row) => row.id), ["evening", "morning"]);
+});
+
 test("commit graph 应按作者生成稳定 lane 并记录父节点 lane", () => {
   const graph = buildCommitGraph([
     node({ id: "root", authorId: "author-a", authorName: "甲", createdAt: "2026-06-01", colorHex: "#123abc" }),

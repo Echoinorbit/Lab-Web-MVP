@@ -32,8 +32,8 @@ export function buildCommentTree(comments: readonly CommentTreeSource[]): Commen
     byId.set(comment.id, {
       id: comment.id,
       content: isDeleted ? "" : comment.content,
-      authorId: comment.author.id,
-      authorName: comment.author.displayName,
+      authorId: isDeleted ? "" : comment.author.id,
+      authorName: isDeleted ? "已删除评论" : comment.author.displayName,
       createdAt: formatDate(comment.createdAt),
       isDeleted,
       children: [],
@@ -57,4 +57,3 @@ export function buildCommentTree(comments: readonly CommentTreeSource[]): Commen
 
   return pruneDeletedLeaves(roots);
 }
-

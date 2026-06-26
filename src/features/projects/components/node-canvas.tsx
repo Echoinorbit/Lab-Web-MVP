@@ -35,6 +35,10 @@ const nodeMeta = {
   RESOURCE: { label: "资源", icon: Paperclip, className: "bg-muted" },
 } as const;
 
+function formatCanvasNodeDate(value: string) {
+  return value.includes("T") ? value.slice(0, 10) : value;
+}
+
 function ProjectCanvasCard({ id, data }: NodeProps<ProjectFlowNode>) {
   const meta = nodeMeta[data.nodeType];
   const Icon = meta.icon;
@@ -62,7 +66,7 @@ function ProjectCanvasCard({ id, data }: NodeProps<ProjectFlowNode>) {
             aria-hidden="true"
           />
           <span className="text-xs text-muted-foreground">
-            {data.authorName} · {data.createdAt}
+            {data.authorName} · {formatCanvasNodeDate(data.createdAt)}
           </span>
         </div>
         <div className="text-sm font-semibold leading-5">{data.title}</div>

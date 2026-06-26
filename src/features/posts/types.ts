@@ -7,4 +7,3 @@ export type CommentRow = {
   isDeleted?: boolean;
   children?: CommentRow[];
 };
-

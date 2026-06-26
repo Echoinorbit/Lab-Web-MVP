@@ -29,7 +29,13 @@ function truncateText(value: string | undefined, maxLength: number) {
 }
 
 function formatNodeDate(value: string) {
-  return value.slice(5);
+  const date = value.includes("T") ? value.slice(0, 10) : value;
+  return date.length >= 10 ? date.slice(5, 10) : date;
+}
+
+function formatNodeDateTime(value: string) {
+  if (!value.includes("T")) return value;
+  return `${value.slice(0, 10)} ${value.slice(11, 16)}`;
 }
 
 function getCommitGraphMetrics(laneCount: number) {
@@ -201,7 +207,7 @@ function CommitInspector({
             <Icon className="mr-1 h-3 w-3" />
             {meta.label}
           </Badge>
-          <span className="text-xs text-muted-foreground">{row.createdAt}</span>
+          <span className="text-xs text-muted-foreground">{formatNodeDateTime(row.createdAt)}</span>
         </div>
         <h3 className="mt-3 text-base font-semibold leading-6">{row.title}</h3>
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
