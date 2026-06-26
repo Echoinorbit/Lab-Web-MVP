@@ -17,7 +17,7 @@ async function lockProgressReportWrite(
   data: ProgressReportInput,
 ) {
   const lockKey = buildProgressReportWriteLockKey(userId, data.year, data.month);
-  await tx.$queryRaw`
+  await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0::bigint))
   `;
 }
