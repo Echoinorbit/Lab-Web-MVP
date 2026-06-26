@@ -18,9 +18,9 @@ const nodeMeta = {
   RESOURCE: { label: "资源", icon: Paperclip, className: "bg-muted" },
 } as const;
 
-const rowHeight = 58;
-const laneGap = 26;
-const graphPadding = 14;
+const rowHeight = 64;
+const laneGap = 28;
+const graphPadding = 20;
 
 function truncateText(value: string | undefined, maxLength: number) {
   if (!value) return "";
@@ -32,71 +32,117 @@ function formatNodeDate(value: string) {
   return value.slice(5);
 }
 
-function CommitGraphRail({
-  row,
-  laneCount,
+function getCommitGraphMetrics(laneCount: number) {
+  const laneWidth = graphPadding * 2 + Math.max(laneCount - 1, 0) * laneGap;
+  const detailOffset = Math.max(132, laneWidth + 44);
+  return {
+    detailOffset,
+    minWidth: Math.max(680, detailOffset + 520),
+    laneX: (laneIndex: number) => graphPadding + laneIndex * laneGap,
+  };
+}
+
+function CommitGraphCanvas({
+  rows,
+  lanes,
+  selectedId,
+  minWidth,
+  laneX,
 }: {
-  row: CommitGraphRow;
-  laneCount: number;
+  rows: readonly CommitGraphRow[];
+  lanes: readonly { authorId: string; color: string }[];
+  selectedId: string | null;
+  minWidth: number;
+  laneX: (laneIndex: number) => number;
 }) {
-  const width = Math.max(72, graphPadding * 2 + laneCount * laneGap);
-  const centerY = rowHeight / 2;
-  const laneX = (laneIndex: number) => graphPadding + laneIndex * laneGap;
-  const x = laneX(row.laneIndex);
-  const linkedLanes = [...new Set([row.parentLaneIndex, ...row.childLaneIndexes].filter((lane): lane is number => lane !== null))];
+  const height = rows.length * rowHeight;
+  const rowIndexById = new Map(rows.map((row, index) => [row.id, index]));
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  const rowY = (index: number) => index * rowHeight + rowHeight / 2;
 
   return (
     <svg
       aria-hidden="true"
-      width={width}
-      height={rowHeight}
-      viewBox={`0 0 ${width} ${rowHeight}`}
-      className="block shrink-0"
+      width={minWidth}
+      height={height}
+      viewBox={`0 0 ${minWidth} ${height}`}
+      className="pointer-events-none absolute inset-0"
     >
-      {Array.from({ length: laneCount }).map((_, laneIndex) => (
+      {lanes.map((lane, laneIndex) => (
         <line
-          key={laneIndex}
+          key={lane.authorId}
           x1={laneX(laneIndex)}
           y1={0}
           x2={laneX(laneIndex)}
-          y2={rowHeight}
-          stroke={laneIndex === row.laneIndex ? row.color : "hsl(var(--border))"}
-          strokeWidth={laneIndex === row.laneIndex ? 2 : 1}
-          opacity={laneIndex === row.laneIndex ? 0.85 : 0.55}
+          y2={height}
+          stroke={lane.color}
+          strokeWidth={2}
+          opacity={0.5}
         />
       ))}
-      {linkedLanes.map((targetLane) => {
-        if (targetLane === row.laneIndex) return null;
-        const targetX = laneX(targetLane);
-        const startX = Math.min(x, targetX);
-        const endX = Math.max(x, targetX);
+      {rows.map((row, rowIndex) => {
+        if (!row.parentId) return null;
+        const parent = rowById.get(row.parentId);
+        const parentIndex = rowIndexById.get(row.parentId);
+        if (!parent || parentIndex === undefined) return null;
+        const startX = laneX(row.laneIndex);
+        const startY = rowY(rowIndex);
+        const endX = laneX(parent.laneIndex);
+        const endY = rowY(parentIndex);
+        if (startX === endX) {
+          return (
+            <line
+              key={`${row.id}-${row.parentId}`}
+              x1={startX}
+              y1={startY}
+              x2={endX}
+              y2={endY}
+              stroke={row.color}
+              strokeWidth={2}
+              opacity={0.88}
+            />
+          );
+        }
+        const midY = (startY + endY) / 2;
         return (
           <path
-            key={targetLane}
-            d={`M ${startX} ${centerY} C ${startX + 8} ${centerY}, ${endX - 8} ${centerY}, ${endX} ${centerY}`}
+            key={`${row.id}-${row.parentId}`}
+            d={`M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`}
             fill="none"
             stroke={row.color}
             strokeWidth={2}
-            opacity={0.9}
+            opacity={0.88}
           />
         );
       })}
-      <circle cx={x} cy={centerY} r={6} fill={row.color} stroke="hsl(var(--card))" strokeWidth={2} />
-      <circle cx={x} cy={centerY} r={10} fill="none" stroke={row.color} strokeWidth={1.5} opacity={0.4} />
+      {rows.map((row, rowIndex) => {
+        const selected = row.id === selectedId;
+        const x = laneX(row.laneIndex);
+        const y = rowY(rowIndex);
+        return (
+          <g key={row.id}>
+            <circle cx={x} cy={y} r={selected ? 10 : 8} fill="hsl(var(--card))" stroke={row.color} strokeWidth={selected ? 3 : 2} />
+            <circle cx={x} cy={y} r={5} fill={row.color} />
+            {selected ? <circle cx={x} cy={y} r={14} fill="none" stroke={row.color} strokeWidth={1.5} opacity={0.35} /> : null}
+          </g>
+        );
+      })}
     </svg>
   );
 }
 
 function CommitGraphRowButton({
   row,
-  laneCount,
   selected,
   onSelect,
+  index,
+  detailOffset,
 }: {
   row: CommitGraphRow;
-  laneCount: number;
   selected: boolean;
   onSelect: () => void;
+  index: number;
+  detailOffset: number;
 }) {
   const meta = nodeMeta[row.nodeType];
   const Icon = meta.icon;
@@ -107,31 +153,29 @@ function CommitGraphRowButton({
       data-project-commit-row
       data-selected={selected ? "true" : undefined}
       onClick={onSelect}
+      style={{ top: index * rowHeight, height: rowHeight }}
       className={cn(
-        "grid w-full grid-cols-[auto_minmax(0,1fr)_88px] items-stretch border-b text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        selected ? "bg-primary/10" : "bg-card",
+        "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        selected ? "bg-primary/10" : "bg-transparent",
       )}
     >
-      <div className={cn("border-r", selected ? "bg-primary/10" : "bg-muted/30")}>
-        <CommitGraphRail row={row} laneCount={laneCount} />
-      </div>
-      <div className="min-w-0 px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Badge className={meta.className}>
-            <Icon className="mr-1 h-3 w-3" />
-            {meta.label}
-          </Badge>
-          <span className="min-w-0 truncate text-sm font-medium">{row.title}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-3 pr-3" style={{ paddingLeft: detailOffset }}>
+        <Badge className={cn("shrink-0", meta.className)}>
+          <Icon className="mr-1 h-3 w-3" />
+          {meta.label}
+        </Badge>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{row.title}</div>
+          <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex min-w-0 shrink-0 items-center gap-1">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
+              {row.authorName}
+            </span>
+            {row.description ? <span className="min-w-0 truncate">{truncateText(row.description, 72)}</span> : null}
+          </div>
         </div>
-        <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
-            {row.authorName}
-          </span>
-          {row.description ? <span className="min-w-0 truncate">{truncateText(row.description, 72)}</span> : null}
-        </div>
+        <span className="shrink-0 text-xs text-muted-foreground">{formatNodeDate(row.createdAt)}</span>
       </div>
-      <div className="flex items-center justify-end px-3 text-xs text-muted-foreground">{formatNodeDate(row.createdAt)}</div>
     </button>
   );
 }
@@ -178,7 +222,7 @@ function CommitInspector({
         {canManageNode ? (
           <ProjectNodeActions projectId={row.projectId} nodeId={row.id} />
         ) : (
-          <p className="text-xs text-muted-foreground">节点由作者维护；项目组长不能修改他人节点。</p>
+          <p className="text-xs text-muted-foreground">节点由作者维护；项目组中其它成员不能修改他人节点。</p>
         )}
       </div>
     </aside>
@@ -197,6 +241,8 @@ export function CommitGraphView({
   const graph = useMemo(() => buildCommitGraph(nodes), [nodes]);
   const [selectedId, setSelectedId] = useState<string | null>(graph.rows[0]?.id ?? null);
   const selectedRow = graph.rows.find((row) => row.id === selectedId) ?? graph.rows[0] ?? null;
+  const metrics = getCommitGraphMetrics(Math.max(graph.lanes.length, 1));
+  const graphHeight = graph.rows.length * rowHeight;
 
   if (graph.rows.length === 0) {
     return (
@@ -209,12 +255,8 @@ export function CommitGraphView({
   return (
     <div className="overflow-hidden rounded-md border bg-card" data-project-commit-graph>
       <div className="grid border-b bg-muted/40 text-xs text-muted-foreground lg:grid-cols-[156px_minmax(0,1fr)_320px]">
-        <div className="border-r px-3 py-2">分支 / 作者</div>
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_88px]">
-          <div className="border-r px-3 py-2">图谱</div>
-          <div className="px-3 py-2">提交消息</div>
-          <div className="px-3 py-2 text-right">日期</div>
-        </div>
+        <div className="border-r px-3 py-2">作者</div>
+        <div className="px-3 py-2">提交详情</div>
         <div className="hidden border-l px-3 py-2 lg:block">节点详情</div>
       </div>
       <div className="grid lg:grid-cols-[156px_minmax(0,1fr)_320px]">
@@ -240,14 +282,22 @@ export function CommitGraphView({
           </div>
         </div>
         <div className="min-w-0 overflow-auto">
-          <div className="min-w-[640px]">
-            {graph.rows.map((row) => (
+          <div className="relative" style={{ minWidth: metrics.minWidth, height: graphHeight }}>
+            <CommitGraphCanvas
+              rows={graph.rows}
+              lanes={graph.lanes}
+              selectedId={selectedRow?.id ?? null}
+              minWidth={metrics.minWidth}
+              laneX={metrics.laneX}
+            />
+            {graph.rows.map((row, index) => (
               <CommitGraphRowButton
                 key={row.id}
                 row={row}
-                laneCount={Math.max(graph.lanes.length, 1)}
                 selected={row.id === selectedRow?.id}
                 onSelect={() => setSelectedId(row.id)}
+                index={index}
+                detailOffset={metrics.detailOffset}
               />
             ))}
           </div>

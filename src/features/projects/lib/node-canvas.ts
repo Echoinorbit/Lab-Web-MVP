@@ -1,5 +1,7 @@
 import type { Edge, Node } from "@xyflow/react";
 
+import { buildAuthorLegend } from "./author-color";
+
 export type ProjectCanvasNodeType = "MILESTONE" | "UPDATE" | "DECISION" | "ISSUE" | "RESOURCE";
 
 export type ProjectCanvasSourceNode = {
@@ -33,40 +35,24 @@ export type ProjectFlowEdge = Edge;
 const horizontalGap = 320;
 const verticalGap = 170;
 
+function compareCanvasRows(left: ProjectCanvasSourceNode, right: ProjectCanvasSourceNode) {
+  const timeCompare = right.createdAt.localeCompare(left.createdAt);
+  if (timeCompare !== 0) return timeCompare;
+  return right.id.localeCompare(left.id);
+}
+
 export function mapProjectNodesToCanvas(nodes: readonly ProjectCanvasSourceNode[]) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
-  const childrenByParent = new Map<string, ProjectCanvasSourceNode[]>();
-
-  for (const node of nodes) {
-    if (!node.parentId || !byId.has(node.parentId)) continue;
-    const children = childrenByParent.get(node.parentId) ?? [];
-    children.push(node);
-    childrenByParent.set(node.parentId, children);
-  }
-
-  const roots = nodes.filter((node) => !node.parentId || !byId.has(node.parentId));
+  const lanes = buildAuthorLegend(nodes);
+  const laneByAuthor = new Map(lanes.map((lane, index) => [lane.authorId, index]));
   const positions = new Map<string, { x: number; y: number }>();
-  let nextLeaf = 0;
 
-  function placeSubtree(node: ProjectCanvasSourceNode, depth: number): number {
-    const children = childrenByParent.get(node.id) ?? [];
-    if (children.length === 0) {
-      const x = nextLeaf * horizontalGap;
-      nextLeaf += 1;
-      positions.set(node.id, { x, y: depth * verticalGap });
-      return x;
-    }
-
-    const childXs = children.map((child) => placeSubtree(child, depth + 1));
-    const x = (childXs[0] + childXs[childXs.length - 1]) / 2;
-    positions.set(node.id, { x, y: depth * verticalGap });
-    return x;
-  }
-
-  for (const root of roots) {
-    placeSubtree(root, 0);
-    nextLeaf += 1;
-  }
+  [...nodes].sort(compareCanvasRows).forEach((node, rowIndex) => {
+    positions.set(node.id, {
+      x: (laneByAuthor.get(node.authorId) ?? 0) * horizontalGap,
+      y: rowIndex * verticalGap,
+    });
+  });
 
   const flowNodes: ProjectFlowNode[] = nodes.map((node) => ({
     id: node.id,

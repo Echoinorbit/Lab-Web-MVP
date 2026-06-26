@@ -6,7 +6,6 @@ import { ProjectArchiveCountdown } from "./project-archive-countdown";
 import { ProjectMemberForm, type ProjectMemberOption } from "./project-member-form";
 import { ProjectNodeViews } from "./project-node-views";
 import { ProjectNodeForm, type ProjectNodeOption } from "./project-node-form";
-import type { TimelineNode } from "./node-card";
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
 
 export type ProjectMemberRow = {
@@ -21,7 +20,6 @@ export function ProjectDetail({
   status,
   description,
   viewerId,
-  nodes,
   canvasNodes,
   members,
   availableUsers,
@@ -36,7 +34,6 @@ export function ProjectDetail({
   status: string;
   description?: string;
   viewerId: string;
-  nodes: readonly TimelineNode[];
   canvasNodes: readonly ProjectCanvasSourceNode[];
   members: readonly ProjectMemberRow[];
   availableUsers: readonly ProjectMemberOption[];
@@ -64,7 +61,6 @@ export function ProjectDetail({
       {canArchive ? <ArchiveProjectButton projectId={id} status={status} archivedAt={archivedAt} /> : null}
       <ProjectNodeViews
         viewerId={viewerId}
-        timelineNodes={nodes}
         canvasNodes={canvasNodes}
         canManageNodeActions={!isArchived}
       />

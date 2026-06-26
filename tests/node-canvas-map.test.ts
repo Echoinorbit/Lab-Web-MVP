@@ -38,23 +38,25 @@ test("项目节点画布映射应保留父子连线", () => {
   );
 });
 
-test("画布布局应按树深度拉开层级，并将父节点置于子节点中间", () => {
+test("画布布局应按时间倒序排列行，而不是按树深度强制父节点置顶", () => {
   const result = mapProjectNodesToCanvas([
-    node({ id: "root" }),
-    node({ id: "left", parentId: "root" }),
-    node({ id: "right", parentId: "root" }),
+    node({ id: "root", authorId: "author-a", createdAt: "2026-06-01" }),
+    node({ id: "child", parentId: "root", authorId: "author-b", createdAt: "2026-06-03" }),
+    node({ id: "middle", parentId: "root", authorId: "author-a", createdAt: "2026-06-02" }),
   ]);
   const positions = new Map(result.nodes.map((flowNode) => [flowNode.id, flowNode.position]));
 
-  assert.equal(positions.get("left")?.y, 170);
-  assert.equal(positions.get("right")?.y, 170);
-  assert.equal(positions.get("root")?.x, 160);
+  assert.equal(positions.get("child")?.y, 0);
+  assert.equal(positions.get("middle")?.y, 170);
+  assert.equal(positions.get("root")?.y, 340);
+  assert.equal(positions.get("root")?.x, 0);
+  assert.equal(positions.get("child")?.x, 320);
 });
 
 test("缺失父节点的项目节点应作为根节点呈现且不生成悬空边", () => {
   const result = mapProjectNodesToCanvas([
-    node({ id: "root" }),
-    node({ id: "orphan", parentId: "missing" }),
+    node({ id: "root", createdAt: "2026-06-01" }),
+    node({ id: "orphan", parentId: "missing", createdAt: "2026-06-02" }),
   ]);
 
   assert.equal(result.nodes.length, 2);

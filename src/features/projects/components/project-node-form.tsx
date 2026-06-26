@@ -9,6 +9,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 
 import { createProjectNodeFormAction, type ProjectNodeState } from "../actions/create-node";
+import { PROJECT_NODE_ROOT_PARENT_VALUE } from "../lib/node-parent-selection";
 
 export type ProjectNodeOption = {
   id: string;
@@ -27,6 +28,7 @@ export function ProjectNodeForm({
   const [description, setDescription] = useState("");
   const [state, formAction, isPending] = useActionState(createProjectNodeFormAction, initialState);
   const message = state.message;
+  const defaultParentId = parentOptions[0]?.id ?? PROJECT_NODE_ROOT_PARENT_VALUE;
 
   return (
     <Card>
@@ -52,8 +54,13 @@ export function ProjectNodeForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="parent-node">父节点</Label>
-            <select id="parent-node" name="parentId" className="h-9 rounded-md border bg-background px-3 text-sm">
-              <option value="">根节点</option>
+            <select
+              id="parent-node"
+              name="parentId"
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+              defaultValue={defaultParentId}
+            >
+              <option value={PROJECT_NODE_ROOT_PARENT_VALUE}>根节点</option>
               {parentOptions.map((node) => (
                 <option key={node.id} value={node.id}>
                   {node.title}

@@ -1,5 +1,6 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { assertProjectPermissionWithAudit } from "@/shared/lib/authorization";
@@ -10,6 +11,33 @@ import { projectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { assertProjectWritable } from "../lib/writable";
 import { assertProjectNodeParentAllowed, buildProjectNodeParentLookupWhere } from "../lib/node-parent-guard";
+import { normalizeProjectNodeParentInput } from "../lib/node-parent-selection";
+
+async function resolveProjectNodeParentId(
+  tx: Prisma.TransactionClient,
+  projectId: string,
+  parentId: string | null | undefined,
+) {
+  if (parentId === null) {
+    return null;
+  }
+
+  if (parentId) {
+    const parent = await tx.projectNode.findFirst({
+      where: buildProjectNodeParentLookupWhere(parentId, projectId),
+      select: { id: true },
+    });
+    assertProjectNodeParentAllowed(parent);
+    return parentId;
+  }
+
+  const latestNode = await tx.projectNode.findFirst({
+    where: { projectId, deletedAt: null },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { id: true },
+  });
+  return latestNode?.id ?? null;
+}
 
 export async function createProjectNode(input: unknown) {
   const user = await requireActiveUser();
@@ -24,18 +52,12 @@ export async function createProjectNode(input: unknown) {
   await assertProjectWritable(data.projectId);
 
   const node = await prisma.$transaction(async (tx) => {
-    if (data.parentId) {
-      const parent = await tx.projectNode.findFirst({
-        where: buildProjectNodeParentLookupWhere(data.parentId, data.projectId),
-        select: { id: true },
-      });
-      assertProjectNodeParentAllowed(parent);
-    }
+    const parentId = await resolveProjectNodeParentId(tx, data.projectId, data.parentId);
 
     const created = await tx.projectNode.create({
       data: {
         projectId: data.projectId,
-        parentId: data.parentId,
+        parentId,
         title: data.title,
         description: data.description,
         nodeType: data.nodeType,
@@ -87,7 +109,7 @@ export async function createProjectNodeFormAction(
   try {
     await createProjectNode({
       projectId: formData.get("projectId"),
-      parentId: formData.get("parentId") || undefined,
+      parentId: normalizeProjectNodeParentInput(formData.get("parentId")),
       title: formData.get("title"),
       description: formData.get("description"),
       nodeType: formData.get("nodeType"),

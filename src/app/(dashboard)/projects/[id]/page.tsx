@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
 import { ProjectDetail } from "@/features/projects";
-import type { TimelineNode } from "@/features/projects";
 import type { ProjectCanvasSourceNode } from "@/features/projects/lib/node-canvas";
 import { canViewProject } from "@/features/projects/lib/visibility";
 import { hasEffectiveProjectLeadTag } from "@/features/projects/lib/tag-grants";
@@ -19,45 +18,13 @@ type ProjectNodeWithAuthor = {
   projectId: string;
   title: string;
   description: string | null;
-  nodeType: TimelineNode["nodeType"];
+  nodeType: ProjectCanvasSourceNode["nodeType"];
   parentId: string | null;
   authorId: string;
   colorHex: string | null;
   createdAt: Date;
   author: { displayName: string };
 };
-
-function buildNodeTree(nodes: readonly ProjectNodeWithAuthor[]): TimelineNode[] {
-  const roots: TimelineNode[] = [];
-  const byId = new Map<string, TimelineNode>();
-
-  for (const node of nodes) {
-    byId.set(node.id, {
-      id: node.id,
-      projectId: node.projectId,
-      title: node.title,
-      description: node.description ?? undefined,
-      nodeType: node.nodeType,
-      authorId: node.authorId,
-      authorName: node.author.displayName,
-      colorHex: node.colorHex,
-      createdAt: formatDate(node.createdAt),
-      children: [],
-    });
-  }
-
-  for (const node of nodes) {
-    const row = byId.get(node.id);
-      if (!row) continue;
-    if (node.parentId && byId.has(node.parentId)) {
-      byId.get(node.parentId)?.children?.push(row);
-    } else {
-      roots.push(row);
-    }
-  }
-
-  return roots;
-}
 
 function buildCanvasNodes(nodes: readonly ProjectNodeWithAuthor[]): ProjectCanvasSourceNode[] {
   return nodes.map((node) => ({
@@ -87,7 +54,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         },
         nodes: {
           where: { deletedAt: null },
-          orderBy: { createdAt: "asc" },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           include: { author: { select: { displayName: true } } },
         },
       },
@@ -123,7 +90,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       description={project.description ?? undefined}
       archivedAt={project.archivedAt?.toISOString() ?? null}
       viewerId={user.id}
-      nodes={buildNodeTree(project.nodes)}
       canvasNodes={buildCanvasNodes(project.nodes)}
       members={project.members.map((member) => ({
         id: member.user.id,

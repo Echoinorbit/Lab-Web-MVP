@@ -10,7 +10,7 @@ export const projectInputSchema = z.object({
 
 export const projectNodeInputSchema = z.object({
   projectId: z.string().min(1),
-  parentId: z.string().min(1).optional(),
+  parentId: z.string().min(1).nullable().optional(),
   title: z.string().trim().min(2).max(160),
   description: z.string().max(20000).optional(),
   nodeType: z.enum(["MILESTONE", "UPDATE", "DECISION", "ISSUE", "RESOURCE"]),
