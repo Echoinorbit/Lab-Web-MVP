@@ -1,3 +1,5 @@
+import { formatShanghaiDate } from "@/shared/lib/date";
+
 import type { CommentRow } from "../types";
 
 export type CommentTreeSource = {
@@ -8,10 +10,6 @@ export type CommentTreeSource = {
   deletedAt: Date | null;
   author: { id: string; displayName: string };
 };
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 function pruneDeletedLeaves(rows: readonly CommentRow[]): CommentRow[] {
   return rows.flatMap((row) => {
@@ -34,7 +32,7 @@ export function buildCommentTree(comments: readonly CommentTreeSource[]): Commen
       content: isDeleted ? "" : comment.content,
       authorId: isDeleted ? "" : comment.author.id,
       authorName: isDeleted ? "已删除评论" : comment.author.displayName,
-      createdAt: formatDate(comment.createdAt),
+      createdAt: formatShanghaiDate(comment.createdAt),
       isDeleted,
       children: [],
     });

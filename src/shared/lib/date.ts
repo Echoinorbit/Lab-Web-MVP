@@ -14,12 +14,44 @@ const shanghaiFormatter = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const shanghaiDateTimeFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: SHANGHAI_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+type DateInput = Date | string | number;
+
+function asValidDate(value: DateInput) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) throw new RangeError("Invalid date value.");
+  return date;
+}
+
+function datePart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) {
+  const value = parts.find((part) => part.type === type)?.value;
+  if (!value) throw new Error(`Missing ${type} in Shanghai date.`);
+  return value;
+}
+
+export function formatShanghaiDate(value: DateInput) {
+  const parts = shanghaiFormatter.formatToParts(asValidDate(value));
+  return `${datePart(parts, "year")}-${datePart(parts, "month")}-${datePart(parts, "day")}`;
+}
+
+export function formatShanghaiDateTime(value: DateInput) {
+  const parts = shanghaiDateTimeFormatter.formatToParts(asValidDate(value));
+  return `${datePart(parts, "year")}-${datePart(parts, "month")}-${datePart(parts, "day")} ${datePart(parts, "hour")}:${datePart(parts, "minute")}`;
+}
+
 export function getShanghaiDateParts(date = new Date()): ShanghaiDateParts {
-  const parts = shanghaiFormatter.formatToParts(date);
+  const parts = shanghaiFormatter.formatToParts(asValidDate(date));
   const pick = (type: Intl.DateTimeFormatPartTypes) => {
-    const value = parts.find((part) => part.type === type)?.value;
-    if (!value) throw new Error(`Missing ${type} in Shanghai date.`);
-    return Number(value);
+    return Number(datePart(parts, type));
   };
   return {
     year: pick("year"),

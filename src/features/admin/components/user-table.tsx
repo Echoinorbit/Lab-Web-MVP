@@ -37,17 +37,19 @@ function UserGovernanceActions({
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState(user.status);
   const [isPending, startTransition] = useTransition();
   const gradeOptions = user.gradeTrack ? GRADE_LABELS[user.gradeTrack] : [];
   const selectableGrade = (gradeOptions as readonly string[]).includes(user.computedGrade);
 
-  function run(action: () => Promise<void>) {
+  function run(action: () => Promise<void>, onError?: () => void) {
     setMessage(null);
     startTransition(async () => {
       try {
         await action();
         router.refresh();
       } catch (error) {
+        onError?.();
         setMessage(error instanceof Error ? error.message : "操作失败");
       }
     });
@@ -58,8 +60,22 @@ function UserGovernanceActions({
       <div className="flex flex-wrap gap-2">
         <select
           className="h-8 rounded-md border bg-background px-2 text-xs"
-          defaultValue={user.status}
-          onChange={(event) => run(() => updateUserStatus({ userId: user.id, status: event.target.value }))}
+          value={selectedStatus}
+          onChange={(event) => {
+            const nextStatus = event.target.value as UserRow["status"];
+            if (
+              nextStatus === "GRADUATED"
+              && !window.confirm("毕业操作不可撤销，将立即吊销会话并撤销该用户全部有效 Tag。确认继续？")
+            ) {
+              setSelectedStatus(user.status);
+              return;
+            }
+            setSelectedStatus(nextStatus);
+            run(
+              () => updateUserStatus({ userId: user.id, status: nextStatus }),
+              () => setSelectedStatus(user.status),
+            );
+          }}
           disabled={isPending || user.status === "GRADUATED"}
         >
           <option value="ACTIVE">ACTIVE</option>
@@ -137,7 +153,19 @@ export function UserTable({
         { key: "role", header: "角色", cell: (row) => <Badge>{row.role}</Badge> },
         { key: "status", header: "状态", cell: (row) => <Badge>{row.status}</Badge> },
         { key: "grade", header: "年级", cell: (row) => <Badge className="bg-muted">{row.computedGrade}</Badge> },
-        { key: "tags", header: "Tag", cell: (row) => row.tags.join(", ") || "-" },
+        {
+          key: "tags",
+          header: "Tag",
+          cell: (row) => row.tags.length > 0
+            ? (
+                <div className="flex min-w-48 flex-wrap gap-1">
+                  {row.tags.map((tag) => (
+                    <Badge key={tag} className="bg-muted">{tag}</Badge>
+                  ))}
+                </div>
+              )
+            : "-",
+        },
         { key: "actions", header: "治理", cell: (row) => <UserGovernanceActions user={row} advisors={advisors} /> },
       ]}
     />

@@ -1,7 +1,8 @@
 "use client";
 
 import { Trash2, MessageCircle } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -37,6 +38,7 @@ function CommentItem({
   depth?: number;
   replyToName?: string;
 }) {
+  const router = useRouter();
   const isDeleted = comment.isDeleted === true;
   const canDelete = !isDeleted && (canModerate || (canDeleteOwn && comment.authorId === viewerId));
   const canReply = !isDeleted && canComment && allowReply;
@@ -45,6 +47,13 @@ function CommentItem({
   const [replyState, replyAction, isReplyPending] = useActionState(createCommentFormAction, initialState);
   const isFlattenedReply = depth >= 2 && Boolean(replyToName) && !isDeleted;
   const nextReplyToName = isDeleted ? "已删除评论" : comment.authorName;
+
+  useEffect(() => {
+    if (!replyState.ok) return;
+    setReplyContent("");
+    setIsReplying(false);
+    router.refresh();
+  }, [replyState, router]);
 
   return (
     <div className={cn("space-y-2 rounded-md border p-3", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}>
@@ -136,9 +145,16 @@ export function CommentSection({
   canModerate: boolean;
   canDeleteOwn: boolean;
 }) {
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [state, formAction, isPending] = useActionState(createCommentFormAction, initialState);
   const message = state.message;
+
+  useEffect(() => {
+    if (!state.ok) return;
+    setContent("");
+    router.refresh();
+  }, [router, state]);
 
   return (
     <Card>

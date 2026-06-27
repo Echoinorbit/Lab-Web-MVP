@@ -9,14 +9,10 @@ import { getProjectVisibilityWhere, hasGlobalAdvisorTag } from "@/features/proje
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { withoutEffectiveAdvisorTagWhere } from "@/features/progress/lib/advisor-filter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { getShanghaiDateParts } from "@/shared/lib/date";
+import { formatShanghaiDate, getShanghaiDateParts } from "@/shared/lib/date";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function DashboardPage() {
   const user = await requireActiveUser();
@@ -122,7 +118,7 @@ export default async function DashboardPage() {
                 title: announcement.title,
                 content: announcement.content,
                 authorName: announcement.author.displayName,
-                createdAt: formatDate(announcement.createdAt),
+                createdAt: formatShanghaiDate(announcement.createdAt),
                 isPinned: announcement.isPinned,
                 isUrgent: announcement.isUrgent,
               }))}

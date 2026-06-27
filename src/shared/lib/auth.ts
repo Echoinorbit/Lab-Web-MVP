@@ -16,7 +16,7 @@ const TRUSTED_PROXY_HOPS_ENV = "TRUSTED_PROXY_HOPS";
 async function failLogin(input: {
   userId?: string | null;
   username: string;
-  reason: "invalid" | "locked" | "suspended" | "ip-rate-limited";
+  reason: "invalid" | "locked" | "suspended" | "graduated" | "ip-rate-limited";
   ipAddress?: string | null;
 }) {
   await appendAuditLog({
@@ -222,7 +222,12 @@ export const authConfig = {
 
         if (user.status !== "ACTIVE") {
           await verifyPasswordWithDummyFallback(password, user.passwordHash);
-          return failLogin({ userId: user.id, username, reason: "suspended", ipAddress });
+          return failLogin({
+            userId: user.id,
+            username,
+            reason: user.status === "GRADUATED" ? "graduated" : "suspended",
+            ipAddress,
+          });
         }
 
         const passwordOk = await verifyPasswordWithDummyFallback(password, user.passwordHash);

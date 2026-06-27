@@ -1,15 +1,29 @@
 import { NextResponse } from "next/server";
 
 import { buildNotificationReadUpdate, notificationReadStateSchema } from "@/features/notifications/lib/read-state";
+import { NOTIFICATIONS_PAGE_SIZE } from "@/features/notifications/lib/pagination";
+import { formatShanghaiDateTime } from "@/shared/lib/date";
+import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await requireActiveUser();
+  const requestedPage = parsePageParam(new URL(request.url).searchParams.get("page") ?? undefined);
+  const [total, unreadCount] = await Promise.all([
+    prisma.notification.count({ where: { userId: user.id } }),
+    prisma.notification.count({ where: { userId: user.id, isRead: false } }),
+  ]);
+  const pagination = getPaginationState({
+    page: requestedPage,
+    totalItems: total,
+    pageSize: NOTIFICATIONS_PAGE_SIZE,
+  });
   const notifications = await prisma.notification.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    skip: pagination.skip,
+    take: pagination.pageSize,
     select: {
       id: true,
       title: true,
@@ -23,14 +37,19 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(
-    notifications.map(({ sender, ...notification }) => ({
+  return NextResponse.json({
+    items: notifications.map(({ sender, ...notification }) => ({
       ...notification,
       relatedType: notification.relatedType ?? undefined,
       senderName: sender?.displayName,
-      createdAt: notification.createdAt.toISOString(),
+      createdAt: formatShanghaiDateTime(notification.createdAt),
     })),
-  );
+    page: pagination.currentPage,
+    pageSize: pagination.pageSize,
+    total,
+    totalPages: pagination.totalPages,
+    unreadCount,
+  });
 }
 
 export async function PATCH(request: Request) {

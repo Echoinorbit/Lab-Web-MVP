@@ -1,15 +1,12 @@
 import { AuditLogTable } from "@/features/admin";
 import { requirePermission } from "@/shared/lib/authorization";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { formatShanghaiDateTime } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 
 const AUDIT_LOG_PAGE_SIZE = 50;
-
-function formatDateTime(date: Date) {
-  return date.toISOString().replace("T", " ").slice(0, 16);
-}
 
 export default async function AdminAuditPage({
   searchParams,
@@ -57,7 +54,7 @@ export default async function AdminAuditPage({
       </div>
       <AuditLogTable
         rows={rows.map((row) => ({
-          createdAt: formatDateTime(row.createdAt),
+          createdAt: formatShanghaiDateTime(row.createdAt),
           actor: row.userId ? formatActor(userById.get(row.userId)) : "-",
           action: row.action,
           entityType: row.entityType,
@@ -89,8 +86,8 @@ export default async function AdminAuditPage({
                     <td className="px-3 py-2">{archive.fileName}</td>
                     <td className="px-3 py-2">seq{archive.seqInYear}</td>
                     <td className="px-3 py-2">{archive.rowCount}</td>
-                    <td className="px-3 py-2">{formatDateTime(archive.exportedAt)}</td>
-                    <td className="px-3 py-2">{formatDateTime(archive.expiresAt)}</td>
+                    <td className="px-3 py-2">{formatShanghaiDateTime(archive.exportedAt)}</td>
+                    <td className="px-3 py-2">{formatShanghaiDateTime(archive.expiresAt)}</td>
                     <td className="px-3 py-2">
                       <a
                         className="text-primary underline-offset-4 hover:underline"

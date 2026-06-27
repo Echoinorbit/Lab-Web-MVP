@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { assertProjectPermissionWithAudit } from "@/shared/lib/authorization";
-import { shouldNotifyRecipient } from "@/features/notifications/lib/recipients";
+import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -43,17 +43,21 @@ export async function addProjectMember(input: unknown) {
       grantedById: actor.id,
     });
 
-    if (shouldNotifyRecipient(actor.id, data.userId)) {
-      await tx.notification.create({
-        data: {
-          userId: data.userId,
+    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+      recipientIds: [data.userId],
+      actorId: actor.id,
+    });
+    if (recipientIds.length > 0) {
+      await tx.notification.createMany({
+        data: recipientIds.map((recipientId) => ({
+          userId: recipientId,
           senderId: actor.id,
           type: "TAG_GRANTED",
           title: "加入项目",
           content: memberTag.displayName,
           relatedType: "PROJECT",
           relatedId: data.projectId,
-        },
+        })),
       });
     }
 

@@ -7,9 +7,11 @@ import {
 } from "../src/features/notifications/lib/read-state";
 import { getNotificationTypeLabel } from "../src/features/notifications/lib/display";
 import {
+  mergeAdminNotificationRecipientIds,
   shouldNotifyRecipient,
   uniqueNotificationRecipientIds,
 } from "../src/features/notifications/lib/recipients";
+import { NOTIFICATIONS_PAGE_SIZE } from "../src/features/notifications/lib/pagination";
 
 test("通知收件人应排除触发者自己", () => {
   assert.equal(shouldNotifyRecipient("actor", "actor"), false);
@@ -18,6 +20,21 @@ test("通知收件人应排除触发者自己", () => {
 
 test("通知收件人列表应去重并排除触发者自己", () => {
   assert.deepEqual(uniqueNotificationRecipientIds(["u1", "actor", "u1", "u2"], "actor"), ["u1", "u2"]);
+});
+
+test("领域收件人应自动合并有效管理员、去重并排除触发者", () => {
+  assert.deepEqual(
+    mergeAdminNotificationRecipientIds({
+      recipientIds: ["member-1", "admin-1", "member-1"],
+      adminIds: ["admin-1", "admin-2", "actor"],
+      actorId: "actor",
+    }),
+    ["member-1", "admin-1", "admin-2"],
+  );
+});
+
+test("通知分页固定为每页 5 条", () => {
+  assert.equal(NOTIFICATIONS_PAGE_SIZE, 5);
 });
 
 test("通知标已读应支持单条和显式全部未读通知", () => {

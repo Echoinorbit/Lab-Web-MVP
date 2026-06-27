@@ -1,14 +1,11 @@
 import { PostForm, PostList } from "@/features/posts";
 import { buildMyDraftsWhere, buildPublicPostWhere } from "@/features/posts/lib/drafts";
 import { formatPostQuotaNotice } from "@/features/posts/lib/rate-limit-copy";
+import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { getRateLimitStatus } from "@/shared/lib/rate-limits";
 import { requireActiveUser } from "@/shared/lib/session";
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function PostsPage() {
   const user = await requireActiveUser();
@@ -41,7 +38,7 @@ export default async function PostsPage() {
             title: post.title,
             authorName: post.author.displayName,
             category: post.category,
-            createdAt: formatDate(post.createdAt),
+            createdAt: formatShanghaiDate(post.createdAt),
             tags: post.tags,
           }))}
         />
@@ -54,7 +51,7 @@ export default async function PostsPage() {
                 title: post.title || "未命名草稿",
                 authorName: post.author.displayName,
                 category: post.category,
-                createdAt: formatDate(post.updatedAt),
+                createdAt: formatShanghaiDate(post.updatedAt),
                 tags: post.tags,
                 href: `/posts/${post.id}/edit`,
               }))}

@@ -13,8 +13,8 @@ import { applyAdminUserStatusUpdate } from "../lib/user-status-management";
 export async function updateUserStatus(input: unknown) {
   const admin = await requireActiveUser();
   const data = updateUserStatusInputSchema.parse(input);
-  if (admin.id === data.userId && data.status === "SUSPENDED") {
-    throw new Error("Admins cannot suspend their own active session.");
+  if (admin.id === data.userId && data.status !== "ACTIVE") {
+    throw new Error("管理员不能停用或毕业自己的账号。");
   }
 
   await assertPermissionWithAudit({

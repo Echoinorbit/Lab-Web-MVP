@@ -20,3 +20,12 @@ export type NotificationRow = {
   createdAt: string;
   isRead: boolean;
 };
+
+export type NotificationPageData = {
+  items: NotificationRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  unreadCount: number;
+};

@@ -1,9 +1,11 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
+import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { enforceRateLimit } from "@/shared/lib/rate-limits";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -19,11 +21,16 @@ import {
 } from "../lib/recipients";
 import { getDefaultAnnouncementExpiresAt } from "../lib/visibility";
 
-async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TAG" | "USERS", targetIds: string[], authorId: string) {
+async function resolveAnnouncementRecipients(
+  client: Pick<Prisma.TransactionClient, "user" | "projectMember" | "userTag">,
+  targetType: "ALL" | "PROJECT" | "TAG" | "USERS",
+  targetIds: string[],
+  authorId: string,
+) {
   const now = new Date();
 
   if (targetType === "ALL") {
-    const users = await prisma.user.findMany({
+    const users = await client.user.findMany({
       where: { status: "ACTIVE" },
       select: { id: true },
     });
@@ -31,7 +38,7 @@ async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TA
   }
 
   if (targetType === "USERS") {
-    const users = await prisma.user.findMany({
+    const users = await client.user.findMany({
       where: { id: { in: targetIds }, status: "ACTIVE" },
       select: { id: true },
     });
@@ -40,7 +47,7 @@ async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TA
 
   if (targetType === "PROJECT") {
     const [members, leadGrants] = await Promise.all([
-      prisma.projectMember.findMany({
+      client.projectMember.findMany({
         where: {
           projectId: { in: targetIds },
           project: { deletedAt: null },
@@ -48,7 +55,7 @@ async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TA
         },
         select: { userId: true },
       }),
-      prisma.userTag.findMany({
+      client.userTag.findMany({
         where: {
           projectId: { in: targetIds },
           revokedAt: null,
@@ -66,7 +73,7 @@ async function resolveAnnouncementRecipients(targetType: "ALL" | "PROJECT" | "TA
     });
   }
 
-  const userTags = await prisma.userTag.findMany({
+  const userTags = await client.userTag.findMany({
     where: {
       tagId: { in: targetIds },
       revokedAt: null,
@@ -95,11 +102,15 @@ export async function createAnnouncement(input: unknown) {
     });
   }
 
-  const recipientIds = await resolveAnnouncementRecipients(data.targetType, data.targetIds, user.id);
   const now = new Date();
 
   const announcement = await prisma.$transaction(async (tx) => {
     await enforceRateLimit(tx, user.id, PERMISSIONS.ANNOUNCEMENT_CREATE);
+    const domainRecipientIds = await resolveAnnouncementRecipients(tx, data.targetType, data.targetIds, user.id);
+    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+      recipientIds: domainRecipientIds,
+      actorId: user.id,
+    });
 
     const announcement = await tx.announcement.create({
       data: {

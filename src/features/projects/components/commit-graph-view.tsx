@@ -4,6 +4,7 @@ import { CircleAlert, FileText, Flag, GitCommitHorizontal, Lightbulb, Paperclip 
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/shared/components/ui/badge";
+import { formatShanghaiDate, formatShanghaiDateTime } from "@/shared/lib/date";
 import { cn } from "@/shared/lib/utils";
 
 import { ProjectNodeActions } from "./project-node-actions";
@@ -29,13 +30,11 @@ function truncateText(value: string | undefined, maxLength: number) {
 }
 
 function formatNodeDate(value: string) {
-  const date = value.includes("T") ? value.slice(0, 10) : value;
-  return date.length >= 10 ? date.slice(5, 10) : date;
+  return formatShanghaiDate(value).slice(5);
 }
 
 function formatNodeDateTime(value: string) {
-  if (!value.includes("T")) return value;
-  return `${value.slice(0, 10)} ${value.slice(11, 16)}`;
+  return formatShanghaiDateTime(value);
 }
 
 function getCommitGraphMetrics(laneCount: number) {

@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { assertProjectPermissionWithAudit } from "@/shared/lib/authorization";
+import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -69,10 +70,14 @@ export async function createProjectNode(input: unknown) {
       where: { projectId: data.projectId, userId: { not: user.id } },
       select: { userId: true },
     });
-    if (members.length > 0) {
+    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+      recipientIds: members.map((member) => member.userId),
+      actorId: user.id,
+    });
+    if (recipientIds.length > 0) {
       await tx.notification.createMany({
-        data: members.map((member) => ({
-          userId: member.userId,
+        data: recipientIds.map((recipientId) => ({
+          userId: recipientId,
           senderId: user.id,
           type: "PROJECT_NODE_NEW",
           title: "项目节点更新",

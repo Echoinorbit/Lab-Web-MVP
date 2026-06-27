@@ -6,16 +6,13 @@ import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { formatShanghaiDate } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
 const ANNOUNCEMENTS_PAGE_SIZE = 10;
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function AnnouncementsPage({
   searchParams,
@@ -51,7 +48,7 @@ export default async function AnnouncementsPage({
             title: announcement.title,
             content: announcement.content,
             authorName: announcement.author.displayName,
-            createdAt: formatDate(announcement.createdAt),
+            createdAt: formatShanghaiDate(announcement.createdAt),
             isPinned: announcement.isPinned,
             isUrgent: announcement.isUrgent,
           }))}

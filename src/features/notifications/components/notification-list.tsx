@@ -11,7 +11,7 @@ import { cn } from "@/shared/lib/utils";
 
 import { NOTIFICATIONS_QUERY_KEY, useNotifications } from "../hooks/use-notifications";
 import { getNotificationTypeLabel } from "../lib/display";
-import type { NotificationRow } from "../types";
+import type { NotificationPageData, NotificationRow } from "../types";
 
 async function updateNotificationReadState(input: { id?: string; read?: boolean }) {
   const response = await fetch("/api/notifications", {
@@ -23,12 +23,13 @@ async function updateNotificationReadState(input: { id?: string; read?: boolean 
   if (!response.ok) throw new Error("通知状态更新失败。");
 }
 
-export function NotificationList({ notifications }: { notifications: readonly NotificationRow[] }) {
+export function NotificationList({ pageData }: { pageData: NotificationPageData }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const query = useNotifications(notifications);
-  const rows = query.data ?? notifications;
-  const unreadCount = rows.filter((notification) => !notification.isRead).length;
+  const query = useNotifications(pageData.page, pageData);
+  const data = query.data ?? pageData;
+  const rows = data.items;
+  const unreadCount = data.unreadCount;
   const mutation = useMutation({
     mutationFn: updateNotificationReadState,
     onSuccess: async () => {

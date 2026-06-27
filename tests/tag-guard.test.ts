@@ -19,3 +19,7 @@ test("GLOBAL Tag 和相似前缀不应被项目 Tag 守卫误伤", () => {
   assert.equal(isProjectManagedTagName("project-leader:project-1"), false);
   assert.doesNotThrow(() => assertManuallyManageableTagName("advisor"));
 });
+
+test("毕业 Tag 仅保留历史迁移用途，不能手动授予或撤销", () => {
+  assert.throws(() => assertManuallyManageableTagName("graduated"), /毕业状态/);
+});

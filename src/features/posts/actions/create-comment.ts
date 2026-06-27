@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
+import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -45,17 +46,21 @@ export async function createComment(input: unknown) {
       },
     });
 
-    if (post.authorId !== user.id) {
-      await tx.notification.create({
-        data: {
-          userId: post.authorId,
+    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+      recipientIds: [post.authorId],
+      actorId: user.id,
+    });
+    if (recipientIds.length > 0) {
+      await tx.notification.createMany({
+        data: recipientIds.map((recipientId) => ({
+          userId: recipientId,
           senderId: user.id,
           type: "POST_COMMENT",
           title: "帖子收到新评论",
           content: post.title,
           relatedType: "POST",
           relatedId: post.id,
-        },
+        })),
       });
     }
 

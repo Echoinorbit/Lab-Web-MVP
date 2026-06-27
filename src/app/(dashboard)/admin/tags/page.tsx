@@ -63,12 +63,14 @@ export default async function AdminTagsPage() {
         <TagGrantForm
           users={users}
           tags={tags
-            .filter((tag) => tag.scope === "GLOBAL")
+            .filter((tag) => tag.scope === "GLOBAL" && tag.name !== "graduated")
             .map((tag) => ({ id: tag.id, name: tag.name, displayName: tag.displayName }))}
-          userTags={userTags.map((userTag) => ({
-            id: userTag.id,
-            label: `${userTag.user.displayName} (${userTag.user.username}) -> ${userTag.tag.displayName} (${userTag.tag.name})`,
-          }))}
+          userTags={userTags
+            .filter((userTag) => userTag.tag.name !== "graduated")
+            .map((userTag) => ({
+              id: userTag.id,
+              label: `${userTag.user.displayName} (${userTag.user.username}) -> ${userTag.tag.displayName} (${userTag.tag.name})`,
+            }))}
         />
         <TagPermissions
           groups={tags.map((tag) => ({

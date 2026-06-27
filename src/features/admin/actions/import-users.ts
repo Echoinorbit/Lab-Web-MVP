@@ -13,6 +13,8 @@ import { validatePasswordPolicy } from "@/shared/lib/security";
 import { requireActiveUser } from "@/shared/lib/session";
 import { importUsersInputSchema } from "@/shared/lib/validators/admin";
 
+import { assertUserImportHeaders, USER_IMPORT_COLUMNS } from "../lib/user-import-template";
+
 export type ImportUsersResult = {
   created: number;
   errors: string[];
@@ -41,6 +43,9 @@ export async function importUsers(input: unknown): Promise<ImportUsersResult> {
   await workbook.xlsx.load(Buffer.from(data.base64, "base64") as unknown as ExcelWorkbookBuffer);
   const worksheet = workbook.worksheets[0];
   if (!worksheet) throw new Error("Excel file has no worksheet.");
+  assertUserImportHeaders(
+    USER_IMPORT_COLUMNS.map((_, index) => cellText(worksheet.getRow(1).getCell(index + 1).value)),
+  );
 
   let created = 0;
   const errors: string[] = [];
@@ -56,13 +61,13 @@ export async function importUsers(input: unknown): Promise<ImportUsersResult> {
 
     if (!username && !displayName && !password) continue;
     if (!username || !displayName || !password) {
-      errors.push(`Row ${rowNumber}: username, displayName and password are required.`);
+      errors.push(`第 ${rowNumber} 行：username、displayName 和 password 为必填项。`);
       continue;
     }
 
     const passwordCheck = validatePasswordPolicy(password, [username, studentId]);
     if (!passwordCheck.ok) {
-      errors.push(`Row ${rowNumber}: ${passwordCheck.errors.join(" ")}`);
+      errors.push(`第 ${rowNumber} 行：${passwordCheck.errors.join(" ")}`);
       continue;
     }
 
@@ -81,7 +86,7 @@ export async function importUsers(input: unknown): Promise<ImportUsersResult> {
       });
       created += 1;
     } catch {
-      errors.push(`Row ${rowNumber}: failed to create user ${username}.`);
+      errors.push(`第 ${rowNumber} 行：无法创建用户 ${username}，请检查用户名或学号是否重复。`);
     }
   }
 

@@ -20,6 +20,7 @@ export default async function AdminUsersPage() {
           select: {
             projectId: true,
             tag: { select: { name: true, displayName: true } },
+            project: { select: { name: true } },
           },
         },
       },
@@ -69,7 +70,7 @@ export default async function AdminUsersPage() {
             advisorId: user.advisorId,
             tags: user.tags.map((userTag) =>
               userTag.projectId
-                ? `${userTag.tag.displayName}@${userTag.projectId.slice(0, 6)}`
+                ? `${userTag.tag.displayName}@${userTag.project?.name ?? "未知项目"}`
                 : userTag.tag.displayName,
             ),
           };

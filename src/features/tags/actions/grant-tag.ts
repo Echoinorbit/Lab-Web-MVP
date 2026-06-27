@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { shouldNotifyRecipient } from "@/features/notifications/lib/recipients";
+import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { PERMISSIONS, PermissionDeniedError, type Permission, getUserPermissions } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -69,17 +69,21 @@ export async function grantTag(input: unknown) {
       },
     });
 
-    if (shouldNotifyRecipient(actor.id, data.userId)) {
-      await tx.notification.create({
-        data: {
-          userId: data.userId,
+    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+      recipientIds: [data.userId],
+      actorId: actor.id,
+    });
+    if (recipientIds.length > 0) {
+      await tx.notification.createMany({
+        data: recipientIds.map((recipientId) => ({
+          userId: recipientId,
           senderId: actor.id,
           type: "TAG_GRANTED",
           title: "获得新 Tag",
           content: tag.displayName,
           relatedType: "TAG",
           relatedId: tag.id,
-        },
+        })),
       });
     }
 

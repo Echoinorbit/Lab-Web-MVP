@@ -2,16 +2,13 @@ import Link from "next/link";
 
 import { BackfillWindowForm, ExportButton, ReportForm, ReportList, SummaryTable } from "@/features/progress";
 import { withoutEffectiveAdvisorTagWhere } from "@/features/progress/lib/advisor-filter";
+import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
 const DEFAULT_YEAR = 2026;
 const DEFAULT_MONTH = 6;
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 function resolvePeriod(searchParams: { year?: string; month?: string }) {
   const parsedYear = Number(searchParams.year);
@@ -126,7 +123,7 @@ export default async function ProgressPage({
             reports={reports.map((report) => ({
               yearMonth: `${report.year}-${String(report.month).padStart(2, "0")}`,
               status: report.status,
-              updatedAt: formatDate(report.updatedAt),
+              updatedAt: formatShanghaiDate(report.updatedAt),
             }))}
           />
         </div>

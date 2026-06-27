@@ -4,13 +4,10 @@ import type { Route } from "next";
 import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
 import { buildCommentTree } from "@/features/posts/lib/comment-tree";
 import { buildVisiblePostWhere } from "@/features/posts/lib/drafts";
+import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,7 +35,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     <div className="space-y-4">
       <PostDetail
         title={post.title}
-        authorName={`${post.author.displayName} · ${formatDate(post.createdAt)}`}
+        authorName={`${post.author.displayName} · ${formatShanghaiDate(post.createdAt)}`}
         content={post.content}
       />
       {canEditPost || canDeletePost ? (
