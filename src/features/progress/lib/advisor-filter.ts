@@ -38,3 +38,24 @@ export function withoutEffectiveAdvisorTagWhere(now = new Date()): Prisma.UserWh
     },
   };
 }
+
+export function getProgressAudienceWhere({
+  userId,
+  canReadAll,
+  canReadAdvisees,
+  now = new Date(),
+}: {
+  userId: string;
+  canReadAll: boolean;
+  canReadAdvisees: boolean;
+  now?: Date;
+}): Prisma.UserWhereInput {
+  const withoutAdvisorTag = withoutEffectiveAdvisorTagWhere(now);
+  if (canReadAll) {
+    return { role: "MEMBER", status: "ACTIVE", ...withoutAdvisorTag };
+  }
+  if (canReadAdvisees) {
+    return { role: "MEMBER", status: "ACTIVE", advisorId: userId, ...withoutAdvisorTag };
+  }
+  return { id: userId, ...withoutAdvisorTag };
+}

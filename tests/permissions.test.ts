@@ -20,6 +20,35 @@ test("管理员应拥有治理类权限，但不得拥有任何内容创作权�
   assert.equal(permissions.has(PERMISSIONS.PROJECT_CREATE), false);
 });
 
+test("管理员即使残留历史 Tag 也不得获得全局或项目内容权限", () => {
+  const globalPermissions = computePermissionsFromSnapshot({
+    role: "ADMIN",
+    status: "ACTIVE",
+    tags: [{ tag: { name: "advisor", permissions: [PERMISSIONS.POST_CREATE, PERMISSIONS.PROJECT_CREATE] } }],
+  });
+  const projectPermissions = computeProjectPermissionsFromSnapshot({
+    role: "ADMIN",
+    status: "ACTIVE",
+    tags: [{
+      projectId: "project-a",
+      tag: { name: "project-lead:project-a", permissions: [PERMISSIONS.PROJECT_MANAGE] },
+    }],
+  }, "project-a");
+  assert.equal(globalPermissions.has(PERMISSIONS.POST_CREATE), false);
+  assert.equal(globalPermissions.has(PERMISSIONS.PROJECT_CREATE), false);
+  assert.equal(projectPermissions.has(PERMISSIONS.PROJECT_MANAGE), false);
+});
+
+test("导师 Tag 应授予查看自己学生进展的能力，而非全量进展", () => {
+  const permissions = computePermissionsFromSnapshot({
+    role: "MEMBER",
+    status: "ACTIVE",
+    tags: [{ tag: { name: "advisor", permissions: [PERMISSIONS.PROGRESS_REPORT_READ_ADVISEES] } }],
+  });
+  assert.equal(permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ADVISEES), true);
+  assert.equal(permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ALL), false);
+});
+
 test("已停用或不存在的用户应得到一个空的权限集合", () => {
   assert.equal(computePermissionsFromSnapshot(null).size, 0);
   assert.equal(computePermissionsFromSnapshot({ role: "MEMBER", status: "SUSPENDED", tags: [] }).size, 0);

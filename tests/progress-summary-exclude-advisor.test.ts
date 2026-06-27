@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   ADVISOR_TAG_NAME,
+  getProgressAudienceWhere,
   hasEffectiveAdvisorTag,
   withoutEffectiveAdvisorTagWhere,
 } from "../src/features/progress/lib/advisor-filter";
@@ -21,6 +22,23 @@ test("进度汇总应识别持有有效 advisor Tag 的导师账号", () => {
       tags: [{ tag: { name: ADVISOR_TAG_NAME }, expiresAt: "2026-06-25T04:00:01.000Z", revokedAt: null }],
     }, now),
     true,
+  );
+});
+
+test("进度受众应区分全局管理、导师直属学生和学生自己", () => {
+  const now = new Date("2026-06-25T04:00:00.000Z");
+  const withoutAdvisorTag = withoutEffectiveAdvisorTagWhere(now);
+  assert.deepEqual(
+    getProgressAudienceWhere({ userId: "admin-1", canReadAll: true, canReadAdvisees: false, now }),
+    { role: "MEMBER", status: "ACTIVE", ...withoutAdvisorTag },
+  );
+  assert.deepEqual(
+    getProgressAudienceWhere({ userId: "advisor-1", canReadAll: false, canReadAdvisees: true, now }),
+    { role: "MEMBER", status: "ACTIVE", advisorId: "advisor-1", ...withoutAdvisorTag },
+  );
+  assert.deepEqual(
+    getProgressAudienceWhere({ userId: "student-1", canReadAll: false, canReadAdvisees: false, now }),
+    { id: "student-1", ...withoutAdvisorTag },
   );
 });
 

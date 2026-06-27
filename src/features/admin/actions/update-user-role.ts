@@ -8,6 +8,8 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { updateUserRoleInputSchema } from "@/shared/lib/validators/admin";
 
+import { applyAdminUserRoleUpdate } from "../lib/user-governance";
+
 export async function updateUserRole(input: unknown) {
   const admin = await requireActiveUser();
   const data = updateUserRoleInputSchema.parse(input);
@@ -23,18 +25,10 @@ export async function updateUserRole(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: data.userId },
-      data: { role: data.role, tokenVersion: { increment: 1 } },
-    });
-    await tx.auditLog.create({
-      data: {
-        userId: admin.id,
-        action: "ROLE_CHANGE",
-        entityType: "User",
-        entityId: data.userId,
-        details: { role: data.role },
-      },
+    await applyAdminUserRoleUpdate(tx, {
+      adminId: admin.id,
+      userId: data.userId,
+      role: data.role,
     });
   });
 

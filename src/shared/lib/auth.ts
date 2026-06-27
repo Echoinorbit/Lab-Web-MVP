@@ -13,6 +13,10 @@ const MAX_LOGIN_ATTEMPTS = 5;
 export const IP_FAILURE_LIMIT_PER_MINUTE = 30;
 const TRUSTED_PROXY_HOPS_ENV = "TRUSTED_PROXY_HOPS";
 
+export function getInactiveLoginReason(status: "SUSPENDED" | "GRADUATED") {
+  return status === "GRADUATED" ? "graduated" as const : "suspended" as const;
+}
+
 async function failLogin(input: {
   userId?: string | null;
   username: string;
@@ -225,7 +229,7 @@ export const authConfig = {
           return failLogin({
             userId: user.id,
             username,
-            reason: user.status === "GRADUATED" ? "graduated" : "suspended",
+            reason: getInactiveLoginReason(user.status),
             ipAddress,
           });
         }

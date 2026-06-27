@@ -56,6 +56,7 @@ export default async function AdminUsersPage() {
             id: user.id,
             username: user.username,
             displayName: user.displayName,
+            studentId: user.studentId,
             role: user.role,
             status: user.status,
             computedGrade: formatComputedGrade(
@@ -68,6 +69,7 @@ export default async function AdminUsersPage() {
             ),
             gradeTrack: resolveGradeTrackFromTagNames(globalTagNames),
             advisorId: user.advisorId,
+            isAdvisor: globalTagNames.includes("advisor"),
             tags: user.tags.map((userTag) =>
               userTag.projectId
                 ? `${userTag.tag.displayName}@${userTag.project?.name ?? "未知项目"}`

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   IP_FAILURE_LIMIT_PER_MINUTE,
   LOCK_MINUTES,
+  getInactiveLoginReason,
   isIpLoginFailureRateLimited,
   parseTrustedProxyHops,
   resolveFailedLoginUpdate,
@@ -13,6 +14,11 @@ import {
 test("登录锁定时长应为 3 分钟，且每分钟 IP 失败次数上限应为正数", () => {
   assert.equal(LOCK_MINUTES, 3);
   assert.equal(IP_FAILURE_LIMIT_PER_MINUTE > 0, true);
+});
+
+test("登录审计应区分停用与毕业原因", () => {
+  assert.equal(getInactiveLoginReason("SUSPENDED"), "suspended");
+  assert.equal(getInactiveLoginReason("GRADUATED"), "graduated");
 });
 
 test("未配置可信代理时应忽略可伪造的客户端 IP 头", () => {

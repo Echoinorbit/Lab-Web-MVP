@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { BackfillWindowForm, ExportButton, ReportForm, ReportList, SummaryTable } from "@/features/progress";
-import { withoutEffectiveAdvisorTagWhere } from "@/features/progress/lib/advisor-filter";
+import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -30,9 +30,14 @@ export default async function ProgressPage({
   const permissions = await getUserPermissions(user.id);
   const canWrite = permissions.has(PERMISSIONS.PROGRESS_REPORT_WRITE);
   const canReadAll = permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ALL);
+  const canReadAdvisees = permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ADVISEES);
   const canExport = permissions.has(PERMISSIONS.PROGRESS_EXPORT);
   const canBackfill = permissions.has(PERMISSIONS.PROGRESS_BACKFILL);
-  const progressAudienceWhere = { role: "MEMBER" as const, status: "ACTIVE" as const, ...withoutEffectiveAdvisorTagWhere() };
+  const progressAudienceWhere = getProgressAudienceWhere({
+    userId: user.id,
+    canReadAll: canReadAll || canBackfill,
+    canReadAdvisees,
+  });
 
   const [currentReport, reports, members] = await Promise.all([
     prisma.progressReport.findFirst({
@@ -43,7 +48,7 @@ export default async function ProgressPage({
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
     }),
-    canReadAll || canBackfill
+    canReadAll || canReadAdvisees || canBackfill
       ? prisma.user.findMany({
           where: progressAudienceWhere,
           orderBy: [{ grade: "asc" }, { studentId: "asc" }, { displayName: "asc" }],
@@ -59,7 +64,7 @@ export default async function ProgressPage({
       : Promise.resolve([]),
   ]);
 
-  const summaryRows = canReadAll
+  const summaryRows = canReadAll || canReadAdvisees
     ? members.map((member) => ({
         studentName: member.displayName,
         studentId: member.studentId ?? "-",
@@ -127,7 +132,7 @@ export default async function ProgressPage({
             }))}
           />
         </div>
-        {canReadAll ? <SummaryTable rows={summaryRows} /> : null}
+        {canReadAll || canReadAdvisees ? <SummaryTable rows={summaryRows} /> : null}
       </div>
     </div>
   );

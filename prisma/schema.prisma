@@ -16,7 +16,7 @@ model User {
   role           Role       @default(MEMBER)
   status         UserStatus @default(ACTIVE)
   bio            String?
-  studentId      String?
+  studentId      String?    @unique
   grade          String?
   enrollmentDate DateTime?
   advisorId      String?

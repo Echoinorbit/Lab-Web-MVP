@@ -10,6 +10,7 @@ import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { validatePasswordPolicy } from "@/shared/lib/security";
 import { requireActiveUser } from "@/shared/lib/session";
+import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
 import { createUserInputSchema } from "@/shared/lib/validators/admin";
 
 export async function createUser(input: unknown) {
@@ -29,6 +30,24 @@ export async function createUser(input: unknown) {
   }
 
   const user = await prisma.$transaction(async (tx) => {
+    if (data.advisorId) {
+      const advisor = await tx.user.findFirst({
+        where: {
+          id: data.advisorId,
+          role: "MEMBER",
+          status: "ACTIVE",
+          tags: {
+            some: {
+              revokedAt: null,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+              tag: { name: ADVISOR_TAG_NAME },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (!advisor) throw new Error("所选导师不存在或导师资格已失效。");
+    }
     const created = await tx.user.create({
       data: {
         username: data.username,

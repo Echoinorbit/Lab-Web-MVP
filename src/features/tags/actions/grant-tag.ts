@@ -7,6 +7,7 @@ import { appendAuditLog } from "@/shared/lib/audit";
 import { PERMISSIONS, PermissionDeniedError, type Permission, getUserPermissions } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
 import { grantTagInputSchema } from "@/shared/lib/validators/tags";
 
 import { assertManuallyManageableTagName } from "../lib/project-tag-guard";
@@ -46,19 +47,31 @@ export async function grantTag(input: unknown) {
   }
 
   const projectId = data.projectId ?? null;
-  const existing = await prisma.userTag.findFirst({
-    where: {
-      userId: data.userId,
-      tagId: data.tagId,
-      projectId,
-      revokedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-    },
-    select: { id: true },
-  });
-  if (existing) return { id: existing.id };
-
   const userTag = await prisma.$transaction(async (tx) => {
+    const target = await tx.user.findUniqueOrThrow({
+      where: { id: data.userId },
+      select: { role: true },
+    });
+    if (target.role === "ADMIN") {
+      throw new Error("管理员是治理账号，不能被授予 Tag。");
+    }
+
+    const existing = await tx.userTag.findFirst({
+      where: {
+        userId: data.userId,
+        tagId: data.tagId,
+        projectId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    });
+    if (existing) return existing;
+
+    if (tag.name === ADVISOR_TAG_NAME) {
+      await tx.user.update({ where: { id: data.userId }, data: { advisorId: null } });
+    }
+
     const created = await tx.userTag.create({
       data: {
         userId: data.userId,

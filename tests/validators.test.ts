@@ -6,7 +6,7 @@ import {
   type AdminUserStatusTransaction,
 } from "../src/features/admin/lib/user-status-management";
 import { assertCanUpdateStatusFromAdminPanel } from "../src/shared/lib/user-status";
-import { createUserInputSchema, updateUserGradeInputSchema, updateUserStatusInputSchema } from "../src/shared/lib/validators/admin";
+import { createUserInputSchema, updateUserGradeInputSchema, updateUserIdentityInputSchema, updateUserStatusInputSchema } from "../src/shared/lib/validators/admin";
 import { announcementInputSchema } from "../src/shared/lib/validators/announcements";
 import { commentInputSchema, postInputSchema } from "../src/shared/lib/validators/posts";
 import { projectMemberInputSchema } from "../src/shared/lib/validators/projects";
@@ -71,6 +71,21 @@ test("管理员创建用户的输入必须包含可供策略校验的密码字�
     }).success,
     false,
   );
+});
+
+test("管理员身份更新应规范化空学号并校验用户名与姓名", () => {
+  const parsed = updateUserIdentityInputSchema.parse({
+    userId: "u1",
+    username: " updated-user ",
+    displayName: " 更新姓名 ",
+    studentId: " ",
+  });
+  assert.deepEqual(parsed, {
+    userId: "u1",
+    username: "updated-user",
+    displayName: "更新姓名",
+    studentId: null,
+  });
 });
 
 test("管理员状态更新允许将用户置为已毕业，但已毕业行仍由服务端策略保护", () => {

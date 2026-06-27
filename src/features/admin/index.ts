@@ -10,4 +10,5 @@ export { updateUserStatus } from "./actions/update-user-status";
 export { updateUserRole } from "./actions/update-user-role";
 export { updateUserAdvisor } from "./actions/update-user-advisor";
 export { updateUserGrade } from "./actions/update-user-grade";
+export { updateUserIdentity } from "./actions/update-user-identity";
 export { revokeUserSessions } from "./actions/revoke-user-sessions";

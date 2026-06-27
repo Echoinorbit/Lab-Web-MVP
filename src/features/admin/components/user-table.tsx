@@ -7,11 +7,13 @@ import { useState, useTransition } from "react";
 import { DataTable } from "@/shared/components/data-table";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { GRADE_LABELS, type GradeTrack } from "@/shared/lib/grade";
 
 import { revokeUserSessions } from "../actions/revoke-user-sessions";
 import { updateUserAdvisor } from "../actions/update-user-advisor";
 import { updateUserGrade } from "../actions/update-user-grade";
+import { updateUserIdentity } from "../actions/update-user-identity";
 import { updateUserRole } from "../actions/update-user-role";
 import { updateUserStatus } from "../actions/update-user-status";
 import type { AdvisorOption } from "./user-create-form";
@@ -20,12 +22,14 @@ export type UserRow = {
   id: string;
   username: string;
   displayName: string;
+  studentId: string | null;
   role: "ADMIN" | "MEMBER";
   status: "ACTIVE" | "SUSPENDED" | "GRADUATED";
   computedGrade: string;
   gradeTrack: GradeTrack | null;
   tags: string[];
   advisorId?: string | null;
+  isAdvisor: boolean;
 };
 
 function UserGovernanceActions({
@@ -38,6 +42,9 @@ function UserGovernanceActions({
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState(user.status);
+  const [username, setUsername] = useState(user.username);
+  const [displayName, setDisplayName] = useState(user.displayName);
+  const [studentId, setStudentId] = useState(user.studentId ?? "");
   const [isPending, startTransition] = useTransition();
   const gradeOptions = user.gradeTrack ? GRADE_LABELS[user.gradeTrack] : [];
   const selectableGrade = (gradeOptions as readonly string[]).includes(user.computedGrade);
@@ -57,6 +64,34 @@ function UserGovernanceActions({
 
   return (
     <div className="grid min-w-64 gap-2">
+      <div className="grid gap-2 rounded-md border p-2">
+        <label className="grid gap-1 text-xs">
+          <span className="text-muted-foreground">用户名</span>
+          <Input className="h-8" value={username} onChange={(event) => setUsername(event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs">
+          <span className="text-muted-foreground">姓名</span>
+          <Input className="h-8" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs">
+          <span className="text-muted-foreground">学号</span>
+          <Input className="h-8" value={studentId} onChange={(event) => setStudentId(event.target.value)} />
+        </label>
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-8 w-fit px-2"
+          disabled={isPending || !username.trim() || !displayName.trim()}
+          onClick={() => run(() => updateUserIdentity({
+            userId: user.id,
+            username,
+            displayName,
+            studentId,
+          }))}
+        >
+          保存身份信息
+        </Button>
+      </div>
       <div className="flex flex-wrap gap-2">
         <select
           className="h-8 rounded-md border bg-background px-2 text-xs"
@@ -108,19 +143,21 @@ function UserGovernanceActions({
             </option>
           ))}
         </select>
-        <select
-          className="h-8 rounded-md border bg-background px-2 text-xs"
-          defaultValue={user.advisorId ?? ""}
-          onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
-          disabled={isPending}
-        >
-          <option value="">无导师</option>
-          {advisors.map((advisor) => (
-            <option key={advisor.id} value={advisor.id}>
-              {advisor.displayName}
-            </option>
-          ))}
-        </select>
+        {user.role === "MEMBER" && !user.isAdvisor ? (
+          <select
+            className="h-8 rounded-md border bg-background px-2 text-xs"
+            defaultValue={user.advisorId ?? ""}
+            onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
+            disabled={isPending}
+          >
+            <option value="">无导师</option>
+            {advisors.map((advisor) => (
+              <option key={advisor.id} value={advisor.id}>
+                {advisor.displayName}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <Button
           type="button"
           variant="secondary"
@@ -150,6 +187,7 @@ export function UserTable({
       columns={[
         { key: "username", header: "用户名", cell: (row) => <span className="font-mono text-xs">{row.username}</span> },
         { key: "name", header: "姓名", cell: (row) => row.displayName },
+        { key: "studentId", header: "学号", cell: (row) => row.studentId ?? "-" },
         { key: "role", header: "角色", cell: (row) => <Badge>{row.role}</Badge> },
         { key: "status", header: "状态", cell: (row) => <Badge>{row.status}</Badge> },
         { key: "grade", header: "年级", cell: (row) => <Badge className="bg-muted">{row.computedGrade}</Badge> },

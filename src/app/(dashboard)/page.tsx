@@ -7,7 +7,7 @@ import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } fro
 import { ProjectList } from "@/features/projects";
 import { getProjectVisibilityWhere, hasGlobalAdvisorTag } from "@/features/projects/lib/visibility";
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
-import { withoutEffectiveAdvisorTagWhere } from "@/features/progress/lib/advisor-filter";
+import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { formatShanghaiDate, getShanghaiDateParts } from "@/shared/lib/date";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -18,14 +18,17 @@ export default async function DashboardPage() {
   const user = await requireActiveUser();
   const [permissions, effectiveTags] = await Promise.all([getUserPermissions(user.id), getEffectiveTags(user.id)]);
   const canReadAllProgress = permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ALL);
+  const canReadAdviseeProgress = permissions.has(PERMISSIONS.PROGRESS_REPORT_READ_ADVISEES);
   const { year, month } = getShanghaiDateParts();
   const projectVisibilityWhere = getProjectVisibilityWhere({ id: user.id, role: user.role, tags: effectiveTags });
   const announcementVisibilityViewer = await getAnnouncementVisibilityViewer(user);
   const announcementWhere = buildAnnouncementVisibilityWhere(announcementVisibilityViewer);
   const canPreviewProjects = hasGlobalAdvisorTag({ tags: effectiveTags });
-  const progressAudienceWhere = canReadAllProgress
-    ? { role: "MEMBER" as const, status: "ACTIVE" as const, ...withoutEffectiveAdvisorTagWhere() }
-    : { id: user.id, ...withoutEffectiveAdvisorTagWhere() };
+  const progressAudienceWhere = getProgressAudienceWhere({
+    userId: user.id,
+    canReadAll: canReadAllProgress,
+    canReadAdvisees: canReadAdviseeProgress,
+  });
 
   const [
     memberCount,
@@ -62,7 +65,7 @@ export default async function DashboardPage() {
     prisma.user.findMany({
       where: progressAudienceWhere,
       orderBy: [{ grade: "asc" }, { studentId: "asc" }, { displayName: "asc" }],
-      take: canReadAllProgress ? 8 : 1,
+      take: canReadAllProgress || canReadAdviseeProgress ? 8 : 1,
       include: {
         advisor: { select: { displayName: true } },
         progressReports: {

@@ -33,6 +33,13 @@ export const updateUserStatusInputSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED", "GRADUATED"]),
 });
 
+export const updateUserIdentityInputSchema = z.object({
+  userId: z.string().min(1),
+  username: z.string().trim().min(2).max(80),
+  displayName: z.string().trim().min(1).max(120),
+  studentId: z.string().trim().max(80).nullable().transform((value) => value || null),
+});
+
 export const updateUserRoleInputSchema = z.object({
   userId: z.string().min(1),
   role: z.enum(["ADMIN", "MEMBER"]),

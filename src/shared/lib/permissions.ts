@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   PROGRESS_REPORT_WRITE: "progress.report.write",
   PROGRESS_REPORT_SUBMIT: "progress.report.submit",
   PROGRESS_REPORT_READ_ALL: "progress.report.read_all",
+  PROGRESS_REPORT_READ_ADVISEES: "progress.report.read_advisees",
   PROGRESS_EXPORT: "progress.export",
   PROGRESS_BACKFILL: "progress.backfill",
   TAG_REQUEST: "tag.request",
@@ -63,6 +64,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.PROGRESS_REPORT_WRITE]: "填写进度报告",
   [PERMISSIONS.PROGRESS_REPORT_SUBMIT]: "提交进度报告",
   [PERMISSIONS.PROGRESS_REPORT_READ_ALL]: "查看全部进度",
+  [PERMISSIONS.PROGRESS_REPORT_READ_ADVISEES]: "查看直属学生进度",
   [PERMISSIONS.PROGRESS_EXPORT]: "导出进度",
   [PERMISSIONS.PROGRESS_BACKFILL]: "开启进度补填",
   [PERMISSIONS.TAG_REQUEST]: "申请 Tag",
@@ -165,6 +167,10 @@ export function computePermissionsFromSnapshot(
     permissions.add(permission);
   }
 
+  // ADMIN is a governance-only role. Historical or malformed Tag assignments
+  // must never turn an administrator into a content author.
+  if (user.role === "ADMIN") return permissions;
+
   for (const userTag of user.tags) {
     if (userTag.projectId) continue;
     if (!isEffectiveTag(userTag, now)) continue;
@@ -182,6 +188,8 @@ export function computeProjectPermissionsFromSnapshot(
   const permissions = new Set<Permission>();
   // SUSPENDED and GRADUATED users intentionally receive zero project permissions.
   if (!user || user.status !== "ACTIVE") return permissions;
+  // Project capabilities are Tag-backed MEMBER capabilities, never ADMIN capabilities.
+  if (user.role === "ADMIN") return permissions;
 
   for (const userTag of user.tags) {
     if (userTag.projectId !== projectId) continue;
