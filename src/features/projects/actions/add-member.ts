@@ -7,14 +7,22 @@ import { includeActiveAdminsInNotificationRecipients } from "@/features/notifica
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { projectMemberInputSchema } from "@/shared/lib/validators/projects";
+import { projectMemberInputSchema, projectMembersInputSchema } from "@/shared/lib/validators/projects";
 
 import { grantProjectScopedTag } from "../lib/tag-grants";
+import { assertParticipantsBelongToAdvisor } from "../lib/project-governance";
 import { assertProjectWritable } from "../lib/writable";
 
 export async function addProjectMember(input: unknown) {
+  const legacy = projectMemberInputSchema.safeParse(input);
+  return addProjectMembers(legacy.success
+    ? { projectId: legacy.data.projectId, userIds: [legacy.data.userId] }
+    : input);
+}
+
+export async function addProjectMembers(input: unknown) {
   const actor = await requireActiveUser();
-  const data = projectMemberInputSchema.parse(input);
+  const data = projectMembersInputSchema.parse(input);
 
   await assertProjectPermissionWithAudit({
     userId: actor.id,
@@ -28,23 +36,29 @@ export async function addProjectMember(input: unknown) {
   await prisma.$transaction(async (tx) => {
     const project = await tx.project.findFirstOrThrow({
       where: { id: data.projectId, deletedAt: null },
-      select: { id: true, name: true },
+      select: { id: true, name: true, advisorId: true },
     });
-    await tx.user.findFirstOrThrow({
-      where: { id: data.userId, status: "ACTIVE" },
-      select: { id: true },
+    if (!project.advisorId) throw new Error("项目未设置负责导师，不能添加学生。");
+    const participants = await tx.user.findMany({
+      where: { id: { in: data.userIds }, role: "MEMBER", status: "ACTIVE" },
+      select: { id: true, advisorId: true },
     });
+    assertParticipantsBelongToAdvisor(project.advisorId, data.userIds, participants);
 
-    const memberTag = await grantProjectScopedTag(tx, {
-      kind: "member",
-      userId: data.userId,
-      projectId: data.projectId,
-      projectName: project.name,
-      grantedById: actor.id,
-    });
+    let memberTagName = project.name;
+    for (const userId of data.userIds) {
+      const memberTag = await grantProjectScopedTag(tx, {
+        kind: "member",
+        userId,
+        projectId: data.projectId,
+        projectName: project.name,
+        grantedById: actor.id,
+      });
+      memberTagName = memberTag.displayName;
+    }
 
     const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
-      recipientIds: [data.userId],
+      recipientIds: data.userIds,
       actorId: actor.id,
     });
     if (recipientIds.length > 0) {
@@ -54,7 +68,7 @@ export async function addProjectMember(input: unknown) {
           senderId: actor.id,
           type: "TAG_GRANTED",
           title: "加入项目",
-          content: memberTag.displayName,
+          content: memberTagName,
           relatedType: "PROJECT",
           relatedId: data.projectId,
         })),
@@ -67,7 +81,7 @@ export async function addProjectMember(input: unknown) {
         action: "CREATE",
         entityType: "ProjectMember",
         entityId: data.projectId,
-        details: { userId: data.userId },
+        details: { userIds: data.userIds },
       },
     });
   });
@@ -82,9 +96,9 @@ export async function addProjectMemberFormAction(
   formData: FormData,
 ): Promise<ProjectMemberState> {
   try {
-    await addProjectMember({
+    await addProjectMembers({
       projectId: formData.get("projectId"),
-      userId: formData.get("userId"),
+      userIds: formData.getAll("userIds").map(String).filter(Boolean),
     });
     return { ok: true, message: "成员已加入" };
   } catch (error) {

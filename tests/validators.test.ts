@@ -9,7 +9,11 @@ import { assertCanUpdateStatusFromAdminPanel } from "../src/shared/lib/user-stat
 import { createUserInputSchema, updateUserGradeInputSchema, updateUserIdentityInputSchema, updateUserStatusInputSchema } from "../src/shared/lib/validators/admin";
 import { announcementInputSchema } from "../src/shared/lib/validators/announcements";
 import { commentInputSchema, postInputSchema } from "../src/shared/lib/validators/posts";
-import { projectMemberInputSchema } from "../src/shared/lib/validators/projects";
+import {
+  projectMemberInputSchema,
+  projectMembersInputSchema,
+  updateProjectInputSchema,
+} from "../src/shared/lib/validators/projects";
 import { grantTagInputSchema } from "../src/shared/lib/validators/tags";
 
 test("面向全体（ALL）的公告必须强制使用空的目标 ID 列表", () => {
@@ -188,4 +192,14 @@ test("管理员状态更新应拒绝已毕业目标且不写入审计", async ()
 test("项目成员添加与 Tag 授予的输入契约必须保留显式的 ID 字段", () => {
   assert.equal(projectMemberInputSchema.safeParse({ projectId: "p1", userId: "u1" }).success, true);
   assert.equal(grantTagInputSchema.safeParse({ userId: "u1", tagId: "t1" }).success, true);
+});
+
+test("项目信息编辑仅接受名称、简介与显式项目 ID", () => {
+  assert.equal(updateProjectInputSchema.safeParse({ projectId: "project-1", name: "新名称", description: "简介" }).success, true);
+  assert.equal(updateProjectInputSchema.safeParse({ name: "新名称" }).success, false);
+});
+
+test("项目成员树应支持一次提交多个成员并拒绝空选择", () => {
+  assert.equal(projectMembersInputSchema.safeParse({ projectId: "project-1", userIds: ["user-1", "user-2"] }).success, true);
+  assert.equal(projectMembersInputSchema.safeParse({ projectId: "project-1", userIds: [] }).success, false);
 });

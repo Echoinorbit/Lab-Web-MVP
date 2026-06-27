@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { ProjectList } from "@/features/projects";
-import { getMyProjectWhere, getProjectVisibilityWhere, hasGlobalAdvisorTag, parseProjectListTab } from "@/features/projects/lib/visibility";
+import { canViewProject, getMyProjectWhere, getProjectVisibilityWhere, parseProjectListTab } from "@/features/projects/lib/visibility";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -13,16 +13,19 @@ export default async function ProjectsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const tab = parseProjectListTab((await searchParams).tab);
+  const requestedTab = parseProjectListTab((await searchParams).tab);
   const user = await requireActiveUser();
   const [permissions, effectiveTags] = await Promise.all([getUserPermissions(user.id), getEffectiveTags(user.id)]);
   const viewer = { id: user.id, role: user.role, tags: effectiveTags };
-  const canPreviewProjects = hasGlobalAdvisorTag(viewer);
-  const projectWhere = tab === "mine" ? getMyProjectWhere(viewer) : getProjectVisibilityWhere(viewer);
+  const tab = requestedTab === "deleted" && user.role !== "ADMIN" ? "all" : requestedTab;
+  const projectWhere = tab === "deleted"
+    ? { deletedAt: { not: null } }
+    : tab === "mine" ? getMyProjectWhere(viewer) : getProjectVisibilityWhere(viewer);
   const projects = await prisma.project.findMany({
     where: projectWhere,
     orderBy: { updatedAt: "desc" },
     include: {
+      members: { select: { userId: true } },
       _count: {
         select: {
           members: true,
@@ -40,6 +43,7 @@ export default async function ProjectsPage({
             [
               ["all", "可见项目"],
               ["mine", "我参与/负责"],
+              ...(user.role === "ADMIN" ? [["deleted", "已软删除"]] as const : []),
             ] as const
           ).map(([value, label]) => (
             <Link
@@ -62,11 +66,12 @@ export default async function ProjectsPage({
             memberCount: project._count.members,
             nodeCount: project._count.nodes,
             description: project.description,
-            canPreview: canPreviewProjects,
+            canPreview: canViewProject(viewer, project),
+            deletedAt: project.deletedAt?.toISOString() ?? null,
           }))}
         />
       </div>
-      {permissions.has(PERMISSIONS.PROJECT_CREATE) ? (
+      {permissions.has(PERMISSIONS.PROJECT_CREATE) || permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF) ? (
         <Card>
           <CardHeader>
             <CardTitle>项目创建</CardTitle>

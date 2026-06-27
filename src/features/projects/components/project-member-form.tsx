@@ -1,30 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Label } from "@/shared/components/ui/label";
-
 import { addProjectMemberFormAction, type ProjectMemberState } from "../actions/add-member";
-
-export type ProjectMemberOption = {
-  id: string;
-  username: string;
-  displayName: string;
-};
+import { AdvisorStudentTree, type ProjectAdvisorOption } from "./advisor-student-tree";
 
 const initialState: ProjectMemberState = { ok: false, message: null };
 
 export function ProjectMemberForm({
   projectId,
-  users,
+  advisor,
 }: {
   projectId: string;
-  users: readonly ProjectMemberOption[];
+  advisor?: ProjectAdvisorOption;
 }) {
   const [state, formAction, isPending] = useActionState(addProjectMemberFormAction, initialState);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const message = state.message;
+
+  useEffect(() => {
+    if (state.ok) setSelectedIds([]);
+  }, [state]);
 
   return (
     <Card>
@@ -34,17 +32,15 @@ export function ProjectMemberForm({
       <CardContent>
         <form action={formAction} className="grid gap-3">
           <input type="hidden" name="projectId" value={projectId} />
-          <Label htmlFor="project-member-user">成员</Label>
-          <select id="project-member-user" name="userId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName} ({user.username})
-              </option>
-            ))}
-          </select>
+          <AdvisorStudentTree
+            advisor={advisor}
+            selectedIds={selectedIds}
+            onSelectedIdsChange={setSelectedIds}
+            memberInputName="userIds"
+          />
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-          <Button type="submit" className="w-fit" disabled={isPending || users.length === 0}>
-            {isPending ? "处理中" : "加入项目"}
+          <Button type="submit" className="w-fit" disabled={isPending || selectedIds.length === 0}>
+            {isPending ? "处理中" : `加入 ${selectedIds.length} 人`}
           </Button>
         </form>
       </CardContent>

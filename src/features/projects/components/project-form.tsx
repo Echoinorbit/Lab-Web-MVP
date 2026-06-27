@@ -8,25 +8,21 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 
 import { createProjectFormAction, type ProjectFormState } from "../actions/create-project";
+import { AdvisorStudentTree, type ProjectAdvisorOption } from "./advisor-student-tree";
 
 const initialState: ProjectFormState = { ok: false, message: null };
 
-export type ProjectUserOption = {
-  id: string;
-  username: string;
-  displayName: string;
-};
-
 export function ProjectForm({
-  users,
   advisors,
   lockedAdvisorId,
 }: {
-  users: readonly ProjectUserOption[];
-  advisors: readonly ProjectUserOption[];
+  advisors: readonly ProjectAdvisorOption[];
   lockedAdvisorId?: string;
 }) {
   const [description, setDescription] = useState("");
+  const [advisorId, setAdvisorId] = useState(lockedAdvisorId ?? "");
+  const [memberUserIds, setMemberUserIds] = useState<string[]>([]);
+  const [leadUserId, setLeadUserId] = useState("");
   const [state, formAction, isPending] = useActionState(createProjectFormAction, initialState);
   const message = state.message;
 
@@ -41,37 +37,22 @@ export function ProjectForm({
         <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="项目目标、范围与里程碑" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="project-lead">项目组长</Label>
-        <select id="project-lead" name="leadUserId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
-          <option value="">选择组长</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.displayName} ({user.username})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="project-members">项目组员</Label>
-        <select id="project-members" name="memberUserIds" className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm" multiple>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.displayName} ({user.username})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
         <Label htmlFor="project-advisor">负责导师</Label>
         {lockedAdvisorId ? <input type="hidden" name="advisorId" value={lockedAdvisorId} /> : null}
         <select
           id="project-advisor"
           name={lockedAdvisorId ? undefined : "advisorId"}
           className="h-9 rounded-md border bg-background px-3 text-sm disabled:opacity-70"
-          defaultValue={lockedAdvisorId ?? ""}
+          value={advisorId}
           disabled={Boolean(lockedAdvisorId)}
+          required
+          onChange={(event) => {
+            setAdvisorId(event.target.value);
+            setMemberUserIds([]);
+            setLeadUserId("");
+          }}
         >
-          <option value="">暂不指定</option>
+          <option value="">选择负责导师</option>
           {advisors.map((advisor) => (
             <option key={advisor.id} value={advisor.id}>
               {advisor.displayName} ({advisor.username})
@@ -79,8 +60,16 @@ export function ProjectForm({
           ))}
         </select>
       </div>
+      <AdvisorStudentTree
+        advisor={advisors.find((advisor) => advisor.id === advisorId)}
+        selectedIds={memberUserIds}
+        onSelectedIdsChange={setMemberUserIds}
+        leadUserId={leadUserId}
+        onLeadUserIdChange={setLeadUserId}
+      />
+      {!leadUserId ? <p className="text-sm text-muted-foreground">勾选学生后，请指定其中一人为项目组长。</p> : null}
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
-      <Button type="submit" className="w-fit" disabled={isPending}>
+      <Button type="submit" className="w-fit" disabled={isPending || !advisorId || !leadUserId}>
         {isPending ? "创建中" : "创建"}
       </Button>
     </form>

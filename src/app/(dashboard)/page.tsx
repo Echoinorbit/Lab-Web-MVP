@@ -5,7 +5,7 @@ import { AnnouncementList } from "@/features/announcements";
 import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { ProjectList } from "@/features/projects";
-import { getProjectVisibilityWhere, hasGlobalAdvisorTag } from "@/features/projects/lib/visibility";
+import { canViewProject, getProjectVisibilityWhere } from "@/features/projects/lib/visibility";
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   const projectVisibilityWhere = getProjectVisibilityWhere({ id: user.id, role: user.role, tags: effectiveTags });
   const announcementVisibilityViewer = await getAnnouncementVisibilityViewer(user);
   const announcementWhere = buildAnnouncementVisibilityWhere(announcementVisibilityViewer);
-  const canPreviewProjects = hasGlobalAdvisorTag({ tags: effectiveTags });
+  const projectViewer = { id: user.id, role: user.role, tags: effectiveTags };
   const progressAudienceWhere = getProgressAudienceWhere({
     userId: user.id,
     canReadAll: canReadAllProgress,
@@ -54,6 +54,7 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 6,
       include: {
+        members: { select: { userId: true } },
         _count: {
           select: {
             members: true,
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
               memberCount: project._count.members,
               nodeCount: project._count.nodes,
               description: project.description,
-              canPreview: canPreviewProjects,
+              canPreview: canViewProject(projectViewer, project),
             }))}
           />
         </div>

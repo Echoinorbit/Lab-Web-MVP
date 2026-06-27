@@ -18,6 +18,9 @@ test("管理员应拥有治理类权限，但不得拥有任何内容创作权�
   assert.equal(permissions.has(PERMISSIONS.POST_CREATE), false);
   assert.equal(permissions.has(PERMISSIONS.COMMENT_CREATE), false);
   assert.equal(permissions.has(PERMISSIONS.PROJECT_CREATE), false);
+  assert.equal(permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF), true);
+  assert.equal(permissions.has(PERMISSIONS.PROJECT_DELETE_ANY), true);
+  assert.equal(permissions.has(PERMISSIONS.PROJECT_RESTORE), true);
 });
 
 test("管理员即使残留历史 Tag 也不得获得全局或项目内容权限", () => {

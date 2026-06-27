@@ -29,10 +29,11 @@ test("项目列表可见性：管理员全量、导师看负责或参与项目�
   assert.deepEqual(getProjectVisibilityWhere(member), { deletedAt: null, members: { some: { userId: "member-1" } } });
 });
 
-test("项目列表 Tab 参数只接受 all 与 mine", () => {
+test("项目列表 Tab 参数只接受 all、mine 与 deleted", () => {
   assert.equal(parseProjectListTab(undefined), "all");
   assert.equal(parseProjectListTab("all"), "all");
   assert.equal(parseProjectListTab("mine"), "mine");
+  assert.equal(parseProjectListTab("deleted"), "deleted");
   assert.equal(parseProjectListTab("other"), "all");
   assert.equal(parseProjectListTab(["mine", "all"]), "mine");
 });
@@ -62,6 +63,13 @@ test("项目详情可见性应拒绝跨导师和非成员访问", () => {
   assert.equal(canViewProject(advisor, { advisorId: "advisor-2", members: [] }), false);
   assert.equal(canViewProject(member, { advisorId: "advisor-1", members: [{ userId: "member-1" }] }), true);
   assert.equal(canViewProject(member, { advisorId: "advisor-1", members: [{ userId: "member-2" }] }), false);
+});
+
+test("项目简报权限必须逐项目判断，组长也按 ProjectMember 关系视为参与者", () => {
+  assert.equal(canViewProject(admin, { advisorId: "advisor-2", members: [] }), true);
+  assert.equal(canViewProject(advisor, { advisorId: "advisor-1", members: [] }), true);
+  assert.equal(canViewProject(member, { advisorId: "advisor-1", members: [{ userId: "member-1" }] }), true);
+  assert.equal(canViewProject(member, { advisorId: "advisor-1", members: [] }), false);
 });
 
 test("项目预览描述应压缩空白、为空时回退并限制长度", () => {

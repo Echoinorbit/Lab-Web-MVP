@@ -13,6 +13,7 @@ export type ProjectSummary = {
   nodeCount: number;
   description?: string | null;
   canPreview?: boolean;
+  deletedAt?: string | null;
 };
 
 export function ProjectList({ projects }: { projects: readonly ProjectSummary[] }) {
@@ -24,7 +25,7 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-sm">{project.name}</CardTitle>
-                <Badge>{project.status}</Badge>
+                <Badge>{project.deletedAt ? "已软删除" : project.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">

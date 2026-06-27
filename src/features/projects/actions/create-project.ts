@@ -11,6 +11,7 @@ import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
 import { projectInputSchema } from "@/shared/lib/validators/projects";
 
 import { resolveProjectCreationAssignments } from "../lib/create-project";
+import { assertParticipantsBelongToAdvisor, resolveProjectCreationContext } from "../lib/project-governance";
 import { hasGlobalAdvisorTag } from "../lib/visibility";
 import { grantProjectScopedTag } from "../lib/tag-grants";
 
@@ -18,14 +19,23 @@ export async function createProject(input: unknown) {
   const user = await requireActiveUser();
   const data = projectInputSchema.parse(input);
 
+  const permission = user.role === "ADMIN"
+    ? PERMISSIONS.PROJECT_CREATE_ON_BEHALF
+    : PERMISSIONS.PROJECT_CREATE;
   await assertPermissionWithAudit({
     userId: user.id,
-    permission: PERMISSIONS.PROJECT_CREATE,
+    permission,
     entityType: "Project",
   });
 
   const effectiveTags = await getEffectiveTags(user.id);
-  const creatorIsAdvisor = hasGlobalAdvisorTag({ tags: effectiveTags });
+  const creatorIsAdvisor = user.role === "MEMBER" && hasGlobalAdvisorTag({ tags: effectiveTags });
+  const creationContext = resolveProjectCreationContext({
+    actorId: user.id,
+    actorRole: user.role,
+    actorIsAdvisor: creatorIsAdvisor,
+    selectedAdvisorId: data.advisorId,
+  });
   const assignments = resolveProjectCreationAssignments({
     creatorUserId: user.id,
     leadUserId: data.leadUserId,
@@ -33,42 +43,43 @@ export async function createProject(input: unknown) {
     excludeCreatorFromLead: creatorIsAdvisor,
     excludeCreatorFromMembers: creatorIsAdvisor,
   });
-  const advisorId = creatorIsAdvisor ? user.id : data.advisorId;
+  const advisorId = creationContext.advisorId;
 
   const project = await prisma.$transaction(async (tx) => {
     const participantIds = [assignments.leadUserId, ...assignments.memberUserIds];
     const participants = await tx.user.findMany({
-      where: { id: { in: participantIds }, status: "ACTIVE" },
-      select: { id: true },
+      where: { id: { in: participantIds }, role: "MEMBER", status: "ACTIVE" },
+      select: { id: true, advisorId: true },
     });
     if (participants.length !== new Set(participantIds).size) {
       throw new Error("项目组长或成员不存在，或账号不可用。");
     }
 
-    if (advisorId) {
-      const now = new Date();
-      await tx.user.findFirstOrThrow({
-        where: {
-          id: advisorId,
-          status: "ACTIVE",
-          tags: {
-            some: {
-              revokedAt: null,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-              tag: { name: ADVISOR_TAG_NAME },
-            },
+    const now = new Date();
+    const advisor = await tx.user.findFirst({
+      where: {
+        id: advisorId,
+        role: "MEMBER",
+        status: "ACTIVE",
+        tags: {
+          some: {
+            revokedAt: null,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            tag: { name: ADVISOR_TAG_NAME },
           },
         },
-        select: { id: true },
-      });
-    }
+      },
+      select: { id: true },
+    });
+    if (!advisor) throw new Error("所选负责导师不存在、已停用或导师身份已失效。");
+    assertParticipantsBelongToAdvisor(advisorId, participantIds, participants);
 
     const project = await tx.project.create({
       data: {
         name: data.name,
         description: data.description,
-        creatorId: user.id,
-        advisorId: advisorId ?? null,
+        creatorId: creationContext.creatorId,
+        advisorId,
       },
     });
 
@@ -99,7 +110,8 @@ export async function createProject(input: unknown) {
         details: {
           leadUserId: assignments.leadUserId,
           memberUserIds: assignments.memberUserIds,
-          advisorId: advisorId ?? null,
+          advisorId,
+          delegated: creationContext.delegated,
         },
       },
     });
@@ -108,6 +120,7 @@ export async function createProject(input: unknown) {
   });
 
   revalidatePath("/projects");
+  revalidatePath("/");
   return project;
 }
 

@@ -10,7 +10,8 @@ import { projectInputSchema } from "../src/shared/lib/validators/projects";
 
 test("创建项目必须显式选择组长", () => {
   assert.equal(projectInputSchema.safeParse({ name: "新项目" }).success, false);
-  assert.equal(projectInputSchema.safeParse({ name: "新项目", leadUserId: "lead-1" }).success, true);
+  assert.equal(projectInputSchema.safeParse({ name: "新项目", leadUserId: "lead-1", memberUserIds: [] }).success, false);
+  assert.equal(projectInputSchema.safeParse({ name: "新项目", leadUserId: "lead-1", memberUserIds: ["lead-1"] }).success, true);
 });
 
 test("创建项目应去重组员并避免把组长重复授予 member 标签", () => {
@@ -25,7 +26,7 @@ test("创建者不应自动成为组长，除非表单显式选择创建者", ()
     resolveProjectCreationAssignments({
       creatorUserId: "creator-1",
       leadUserId: "lead-1",
-      memberUserIds: [],
+      memberUserIds: ["lead-1"],
     }),
     { leadUserId: "lead-1", memberUserIds: [] },
   );

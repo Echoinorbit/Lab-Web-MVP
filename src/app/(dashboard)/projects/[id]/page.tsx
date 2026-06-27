@@ -4,8 +4,14 @@ import { ProjectDetail } from "@/features/projects";
 import type { ProjectCanvasSourceNode } from "@/features/projects/lib/node-canvas";
 import { canViewProject } from "@/features/projects/lib/visibility";
 import { hasEffectiveProjectLeadTag } from "@/features/projects/lib/tag-grants";
+import {
+  canEditProjectSnapshot,
+  canHardDeleteProjectSnapshot,
+  canRestoreProjectSnapshot,
+  canSoftDeleteProjectSnapshot,
+} from "@/features/projects/lib/project-governance";
 import { FORBIDDEN_ROUTE } from "@/shared/lib/access-denied";
-import { getEffectiveTags, getProjectPermissions, PERMISSIONS } from "@/shared/lib/permissions";
+import { getEffectiveTags, getProjectPermissions, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
@@ -41,8 +47,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const user = await requireActiveUser();
   const [project, effectiveTags] = await Promise.all([
-    prisma.project.findFirst({
-      where: { id, deletedAt: null },
+    prisma.project.findUnique({
+      where: { id },
       include: {
         members: {
           include: { user: { select: { id: true, username: true, displayName: true } } },
@@ -53,30 +59,40 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           include: { author: { select: { displayName: true } } },
         },
+        advisor: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            students: {
+              where: { role: "MEMBER", status: "ACTIVE" },
+              orderBy: [{ grade: "asc" }, { displayName: "asc" }],
+              select: { id: true, username: true, displayName: true, grade: true, studentId: true },
+            },
+          },
+        },
       },
     }),
     getEffectiveTags(user.id),
   ]);
   if (!project) notFound();
+  if (project.deletedAt && user.role !== "ADMIN") notFound();
   if (!canViewProject({ id: user.id, role: user.role, tags: effectiveTags }, project)) {
     redirect(FORBIDDEN_ROUTE);
   }
 
-  const projectPermissions = await getProjectPermissions(user.id, id);
+  const [projectPermissions, globalPermissions] = await Promise.all([
+    getProjectPermissions(user.id, id),
+    getUserPermissions(user.id),
+  ]);
+  const combinedPermissions = new Set([...projectPermissions, ...globalPermissions]);
   const isProjectLead = hasEffectiveProjectLeadTag(effectiveTags, id);
   const isArchived = project.status === "ARCHIVED";
+  const isDeleted = Boolean(project.deletedAt);
   const memberIds = new Set(project.members.map((member) => member.userId));
-  const availableUsers = projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE) && !isArchived
-    ? await prisma.user.findMany({
-        where: {
-          role: "MEMBER",
-          status: "ACTIVE",
-          id: { notIn: [...memberIds] },
-        },
-        orderBy: [{ displayName: "asc" }],
-        select: { id: true, username: true, displayName: true },
-      })
-    : [];
+  const availableAdvisor = projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE) && !isArchived && !isDeleted && project.advisor
+    ? { ...project.advisor, students: project.advisor.students.filter((student) => !memberIds.has(student.id)) }
+    : undefined;
 
   return (
     <ProjectDetail
@@ -85,6 +101,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       status={project.status}
       description={project.description ?? undefined}
       archivedAt={project.archivedAt?.toISOString() ?? null}
+      deletedAt={project.deletedAt?.toISOString() ?? null}
       viewerId={user.id}
       canvasNodes={buildCanvasNodes(project.nodes)}
       members={project.members.map((member) => ({
@@ -92,11 +109,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         username: member.user.username,
         displayName: member.user.displayName,
       }))}
-      availableUsers={availableUsers}
+      availableAdvisor={availableAdvisor}
       parentOptions={project.nodes.map((node) => ({ id: node.id, title: node.title }))}
-      canManageMembers={projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE)}
-      canCreateNode={projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE)}
-      canArchive={isProjectLead}
+      canManageMembers={projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE) && !isDeleted}
+      canCreateNode={projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE) && !isDeleted}
+      canArchive={isProjectLead && projectPermissions.has(PERMISSIONS.PROJECT_MANAGE) && !isDeleted}
+      canEdit={canEditProjectSnapshot(user.id, project, { globalPermissions, projectPermissions })}
+      canSoftDelete={canSoftDeleteProjectSnapshot(user.id, project, combinedPermissions)}
+      canRestore={canRestoreProjectSnapshot(project, combinedPermissions)}
+      canHardDelete={canHardDeleteProjectSnapshot(combinedPermissions)}
     />
   );
 }

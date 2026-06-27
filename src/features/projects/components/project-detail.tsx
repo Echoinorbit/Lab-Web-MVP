@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 
 import { ArchiveProjectButton } from "./archive-project-button";
 import { ProjectArchiveCountdown } from "./project-archive-countdown";
-import { ProjectMemberForm, type ProjectMemberOption } from "./project-member-form";
+import { ProjectMemberForm } from "./project-member-form";
+import type { ProjectAdvisorOption } from "./advisor-student-tree";
+import { ProjectEditForm } from "./project-edit-form";
+import { ProjectLifecycleActions } from "./project-lifecycle-actions";
 import { ProjectNodeViews } from "./project-node-views";
 import { ProjectNodeForm, type ProjectNodeOption } from "./project-node-form";
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
@@ -22,12 +25,17 @@ export function ProjectDetail({
   viewerId,
   canvasNodes,
   members,
-  availableUsers,
+  availableAdvisor,
   parentOptions,
   canManageMembers,
   canCreateNode,
   canArchive,
+  canEdit,
+  canSoftDelete,
+  canRestore,
+  canHardDelete,
   archivedAt,
+  deletedAt,
 }: {
   id: string;
   name: string;
@@ -36,14 +44,20 @@ export function ProjectDetail({
   viewerId: string;
   canvasNodes: readonly ProjectCanvasSourceNode[];
   members: readonly ProjectMemberRow[];
-  availableUsers: readonly ProjectMemberOption[];
+  availableAdvisor?: ProjectAdvisorOption;
   parentOptions: readonly ProjectNodeOption[];
   canManageMembers: boolean;
   canCreateNode: boolean;
   canArchive: boolean;
+  canEdit: boolean;
+  canSoftDelete: boolean;
+  canRestore: boolean;
+  canHardDelete: boolean;
   archivedAt?: string | null;
+  deletedAt?: string | null;
 }) {
   const isArchived = status === "ARCHIVED";
+  const isDeleted = Boolean(deletedAt);
   return (
     <div className="space-y-4">
       <Card>
@@ -52,18 +66,20 @@ export function ProjectDetail({
             <div className="flex flex-wrap items-center gap-3">
               <CardTitle>{name}</CardTitle>
               {isArchived && archivedAt ? <ProjectArchiveCountdown archivedAt={archivedAt} /> : null}
+              {isDeleted ? <Badge className="bg-destructive text-destructive-foreground">已软删除</Badge> : null}
             </div>
             <Badge>{status}</Badge>
           </div>
         </CardHeader>
         {description ? <CardContent className="text-sm text-muted-foreground">{description}</CardContent> : null}
       </Card>
-      {canArchive ? <ArchiveProjectButton projectId={id} status={status} archivedAt={archivedAt} /> : null}
-      <ProjectNodeViews
-        viewerId={viewerId}
-        canvasNodes={canvasNodes}
-        canManageNodeActions={!isArchived}
-      />
+      <div className="flex flex-wrap gap-3">
+        {canArchive ? <ArchiveProjectButton projectId={id} status={status} archivedAt={archivedAt} /> : null}
+        <ProjectLifecycleActions projectId={id} canSoftDelete={canSoftDelete} canRestore={canRestore} canHardDelete={canHardDelete} />
+      </div>
+      {!isDeleted ? (
+        <ProjectNodeViews viewerId={viewerId} canvasNodes={canvasNodes} canManageNodeActions={!isArchived} />
+      ) : null}
       <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <Card>
@@ -80,7 +96,8 @@ export function ProjectDetail({
           </Card>
         </div>
         <div className="space-y-4">
-          {canManageMembers && !isArchived ? <ProjectMemberForm projectId={id} users={availableUsers} /> : null}
+          {canEdit ? <ProjectEditForm projectId={id} name={name} description={description} /> : null}
+          {canManageMembers && !isArchived ? <ProjectMemberForm projectId={id} advisor={availableAdvisor} /> : null}
           {canCreateNode && !isArchived ? <ProjectNodeForm projectId={id} parentOptions={parentOptions} /> : null}
         </div>
       </div>
