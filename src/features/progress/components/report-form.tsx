@@ -10,7 +10,7 @@ import { Label } from "@/shared/components/ui/label";
 
 import { reportFormAction } from "../actions/submit-report";
 import { MAX_SUBMITTED_REPORT_EDITS, remainingSubmittedReportEdits } from "../lib/edit-count";
-import { type ReportFormState } from "../lib/report-form";
+import { describeProgressWriteMode, type ProgressWriteMode, type ReportFormState } from "../lib/report-form";
 
 export type ReportFormInitialValue = {
   studySummary?: string | null;
@@ -28,10 +28,12 @@ export function ReportForm({
   year,
   month,
   initialValue,
+  writeMode,
 }: {
   year: number;
   month: number;
   initialValue?: ReportFormInitialValue | null;
+  writeMode: ProgressWriteMode;
 }) {
   const [studySummary, setStudySummary] = useState(initialValue?.studySummary ?? "");
   const [projectSummary, setProjectSummary] = useState(initialValue?.projectSummary ?? "");
@@ -39,11 +41,13 @@ export function ReportForm({
   const [otherWork, setOtherWork] = useState(initialValue?.otherWork ?? "");
   const [state, formAction, isPending] = useActionState(reportFormAction, initialState);
   const message = state.message;
-  const isSubmitted = initialValue?.status === "SUBMITTED";
+  const isSubmitted = state.status === "SUBMITTED" || initialValue?.status === "SUBMITTED";
+  const editCount = state.editCount ?? initialValue?.editCount ?? 0;
   const remainingEdits = isSubmitted
-    ? remainingSubmittedReportEdits(initialValue?.editCount ?? 0)
+    ? remainingSubmittedReportEdits(editCount)
     : MAX_SUBMITTED_REPORT_EDITS;
-  const canSave = !isPending && (!isSubmitted || remainingEdits > 0);
+  const writeAllowed = writeMode === "regular" || writeMode === "backfill";
+  const canSave = writeAllowed && !isPending && (!isSubmitted || remainingEdits > 0);
 
   return (
     <Card>
@@ -57,25 +61,32 @@ export function ReportForm({
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
           <Label>学习总结</Label>
-          <MarkdownEditor name="studySummary" value={studySummary} onChange={setStudySummary} placeholder="本月学习情况" />
+          <MarkdownEditor name="studySummary" value={studySummary} onChange={setStudySummary} placeholder="本月学习情况" disabled={!writeAllowed} />
           <Label>项目工作总结</Label>
-          <MarkdownEditor name="projectSummary" value={projectSummary} onChange={setProjectSummary} placeholder="本月项目推进" />
+          <MarkdownEditor name="projectSummary" value={projectSummary} onChange={setProjectSummary} placeholder="本月项目推进" disabled={!writeAllowed} />
           <Label>论文工作总结</Label>
-          <MarkdownEditor name="thesisSummary" value={thesisSummary} onChange={setThesisSummary} placeholder="本月论文进展" />
+          <MarkdownEditor name="thesisSummary" value={thesisSummary} onChange={setThesisSummary} placeholder="本月论文进展" disabled={!writeAllowed} />
           <Label>其他工作内容</Label>
-          <MarkdownEditor name="otherWork" value={otherWork} onChange={setOtherWork} placeholder="其他事项" />
+          <MarkdownEditor name="otherWork" value={otherWork} onChange={setOtherWork} placeholder="其他事项" disabled={!writeAllowed} />
           <div className="space-y-2">
             <Label htmlFor="externalDays">外出项目工作天数</Label>
-            <Input id="externalDays" name="externalDays" type="number" min={0} max={31} defaultValue={initialValue?.externalDays ?? 0} />
+            <Input id="externalDays" name="externalDays" type="number" min={0} max={31} defaultValue={initialValue?.externalDays ?? 0} disabled={!writeAllowed} />
           </div>
-          {isSubmitted ? <p className="text-sm text-muted-foreground">提交后剩余修改次数：{remainingEdits}</p> : null}
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {describeProgressWriteMode(writeMode)}
+          </p>
+          {isSubmitted ? (
+            <p className="text-sm text-muted-foreground">
+              报告已提交，不能重复提交；剩余可保存修改 {remainingEdits} 次。
+            </p>
+          ) : null}
+          {message ? <p className={state.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>{message}</p> : null}
           <div className="flex gap-2">
             <Button type="submit" name="intent" value="save" variant="secondary" disabled={!canSave}>
-              {isPending ? "处理中" : isSubmitted ? "保存修改" : "保存草稿"}
+              {isPending ? "处理中" : isSubmitted && remainingEdits === 0 ? "修改次数已用完" : isSubmitted ? "保存修改" : "保存草稿"}
             </Button>
-            <Button type="submit" name="intent" value="submit" disabled={isPending || isSubmitted}>
-              {isSubmitted ? "已提交" : "提交"}
+            <Button type="submit" name="intent" value="submit" disabled={isPending || isSubmitted || !writeAllowed}>
+              {isSubmitted ? "已提交（不可重复）" : "提交"}
             </Button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleAlert, FileText, Flag, GitCommitHorizontal, Lightbulb, Paperclip } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 
 import { Badge } from "@/shared/components/ui/badge";
 import { formatShanghaiDate, formatShanghaiDateTime } from "@/shared/lib/date";
@@ -9,6 +9,18 @@ import { cn } from "@/shared/lib/utils";
 
 import { ProjectNodeActions } from "./project-node-actions";
 import { buildCommitGraph, type CommitGraphRow } from "../lib/commit-graph";
+import {
+  COMMIT_AUTHOR_MAX_WIDTH,
+  COMMIT_AUTHOR_MIN_WIDTH,
+  COMMIT_INSPECTOR_MAX_WIDTH,
+  COMMIT_INSPECTOR_MIN_WIDTH,
+  COMMIT_LAYOUT_STORAGE_KEY,
+  DEFAULT_COMMIT_PANEL_WIDTHS,
+  clampCommitPanelWidths,
+  parseCommitPanelWidths,
+  type CommitPanelWidths,
+} from "../lib/commit-layout";
+import { isCommitRowDimmed, isCommitRowHighlighted } from "../lib/commit-selection";
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
 
 const nodeMeta = {
@@ -51,12 +63,14 @@ function CommitGraphCanvas({
   rows,
   lanes,
   selectedId,
+  selectedAuthorId,
   minWidth,
   laneX,
 }: {
   rows: readonly CommitGraphRow[];
   lanes: readonly { authorId: string; color: string }[];
   selectedId: string | null;
+  selectedAuthorId: string | null;
   minWidth: number;
   laneX: (laneIndex: number) => number;
 }) {
@@ -82,7 +96,7 @@ function CommitGraphCanvas({
           y2={height}
           stroke={lane.color}
           strokeWidth={2}
-          opacity={0.5}
+          opacity={selectedAuthorId ? (lane.authorId === selectedAuthorId ? 0.9 : 0.12) : 0.5}
         />
       ))}
       {rows.map((row, rowIndex) => {
@@ -94,6 +108,7 @@ function CommitGraphCanvas({
         const startY = rowY(rowIndex);
         const endX = laneX(parent.laneIndex);
         const endY = rowY(parentIndex);
+        const opacity = selectedAuthorId ? (row.authorId === selectedAuthorId ? 0.95 : 0.12) : 0.88;
         if (startX === endX) {
           return (
             <line
@@ -104,7 +119,7 @@ function CommitGraphCanvas({
               y2={endY}
               stroke={row.color}
               strokeWidth={2}
-              opacity={0.88}
+              opacity={opacity}
             />
           );
         }
@@ -116,16 +131,17 @@ function CommitGraphCanvas({
             fill="none"
             stroke={row.color}
             strokeWidth={2}
-            opacity={0.88}
+            opacity={opacity}
           />
         );
       })}
       {rows.map((row, rowIndex) => {
-        const selected = row.id === selectedId;
+        const selected = isCommitRowHighlighted(row, { selectedId, selectedAuthorId });
+        const dimmed = isCommitRowDimmed(row, { selectedId, selectedAuthorId });
         const x = laneX(row.laneIndex);
         const y = rowY(rowIndex);
         return (
-          <g key={row.id}>
+          <g key={row.id} opacity={dimmed ? 0.25 : 1}>
             <circle cx={x} cy={y} r={selected ? 10 : 8} fill="hsl(var(--card))" stroke={row.color} strokeWidth={selected ? 3 : 2} />
             <circle cx={x} cy={y} r={5} fill={row.color} />
             {selected ? <circle cx={x} cy={y} r={14} fill="none" stroke={row.color} strokeWidth={1.5} opacity={0.35} /> : null}
@@ -139,12 +155,14 @@ function CommitGraphCanvas({
 function CommitGraphRowButton({
   row,
   selected,
+  dimmed,
   onSelect,
   index,
   detailOffset,
 }: {
   row: CommitGraphRow;
   selected: boolean;
+  dimmed: boolean;
   onSelect: () => void;
   index: number;
   detailOffset: number;
@@ -162,6 +180,7 @@ function CommitGraphRowButton({
       className={cn(
         "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected ? "bg-primary/10" : "bg-transparent",
+        dimmed && "opacity-35",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3 pr-3" style={{ paddingLeft: detailOffset }}>
@@ -182,6 +201,66 @@ function CommitGraphRowButton({
         <span className="shrink-0 text-xs text-muted-foreground">{formatNodeDate(row.createdAt)}</span>
       </div>
     </button>
+  );
+}
+
+function CommitColumnResizer({
+  panel,
+  widths,
+  containerRef,
+  onChange,
+}: {
+  panel: "author" | "inspector";
+  widths: CommitPanelWidths;
+  containerRef: RefObject<HTMLDivElement | null>;
+  onChange: (widths: CommitPanelWidths) => void;
+}) {
+  const dragStart = useRef<{ clientX: number; widths: CommitPanelWidths } | null>(null);
+  const min = panel === "author" ? COMMIT_AUTHOR_MIN_WIDTH : COMMIT_INSPECTOR_MIN_WIDTH;
+  const max = panel === "author" ? COMMIT_AUTHOR_MAX_WIDTH : COMMIT_INSPECTOR_MAX_WIDTH;
+  const value = widths[panel];
+
+  function resize(boundaryDelta: number) {
+    const base = dragStart.current?.widths ?? widths;
+    const next = panel === "author"
+      ? { ...base, author: base.author + boundaryDelta }
+      : { ...base, inspector: base.inspector - boundaryDelta };
+    onChange(clampCommitPanelWidths(next, containerRef.current?.getBoundingClientRect().width));
+  }
+
+  return (
+    <div
+      role="separator"
+      aria-label={panel === "author" ? "调整作者栏宽度" : "调整节点详情栏宽度"}
+      aria-orientation="vertical"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={Math.round(value)}
+      tabIndex={0}
+      className="group relative hidden cursor-col-resize touch-none bg-border/60 outline-none hover:bg-primary/40 focus-visible:bg-primary/50 lg:block"
+      onDoubleClick={() => onChange(DEFAULT_COMMIT_PANEL_WIDTHS)}
+      onKeyDown={(event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const delta = event.key === "ArrowRight" ? 12 : -12;
+        resize(delta);
+      }}
+      onPointerDown={(event) => {
+        dragStart.current = { clientX: event.clientX, widths };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (!dragStart.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        resize(event.clientX - dragStart.current.clientX);
+      }}
+      onPointerUp={(event) => {
+        dragStart.current = null;
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => { dragStart.current = null; }}
+    >
+      <span className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-border group-hover:bg-primary" aria-hidden="true" />
+    </div>
   );
 }
 
@@ -245,9 +324,21 @@ export function CommitGraphView({
 }) {
   const graph = useMemo(() => buildCommitGraph(nodes), [nodes]);
   const [selectedId, setSelectedId] = useState<string | null>(graph.rows[0]?.id ?? null);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null);
+  const [panelWidths, setPanelWidths] = useState(DEFAULT_COMMIT_PANEL_WIDTHS);
+  const containerRef = useRef<HTMLDivElement>(null);
   const selectedRow = graph.rows.find((row) => row.id === selectedId) ?? graph.rows[0] ?? null;
   const metrics = getCommitGraphMetrics(Math.max(graph.lanes.length, 1));
   const graphHeight = graph.rows.length * rowHeight;
+
+  useEffect(() => {
+    setPanelWidths(parseCommitPanelWidths(window.localStorage.getItem(COMMIT_LAYOUT_STORAGE_KEY)));
+  }, []);
+
+  function updatePanelWidths(next: CommitPanelWidths) {
+    setPanelWidths(next);
+    window.localStorage.setItem(COMMIT_LAYOUT_STORAGE_KEY, JSON.stringify(next));
+  }
 
   if (graph.rows.length === 0) {
     return (
@@ -258,13 +349,23 @@ export function CommitGraphView({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border bg-card" data-project-commit-graph>
-      <div className="grid border-b bg-muted/40 text-xs text-muted-foreground lg:grid-cols-[156px_minmax(0,1fr)_320px]">
+    <div
+      ref={containerRef}
+      className="overflow-x-auto rounded-md border bg-card"
+      data-project-commit-graph
+      style={{
+        "--project-author-width": `${panelWidths.author}px`,
+        "--project-inspector-width": `${panelWidths.inspector}px`,
+      } as CSSProperties}
+    >
+      <div className="grid grid-cols-[156px_minmax(0,1fr)] border-b bg-muted/40 text-xs text-muted-foreground lg:grid-cols-[var(--project-author-width)_8px_minmax(360px,1fr)_8px_var(--project-inspector-width)]">
         <div className="border-r px-3 py-2">作者</div>
+        <div className="hidden lg:block" aria-hidden="true" />
         <div className="px-3 py-2">提交详情</div>
+        <div className="hidden lg:block" aria-hidden="true" />
         <div className="hidden border-l px-3 py-2 lg:block">节点详情</div>
       </div>
-      <div className="grid lg:grid-cols-[156px_minmax(0,1fr)_320px]">
+      <div className="grid lg:grid-cols-[var(--project-author-width)_8px_minmax(360px,1fr)_8px_var(--project-inspector-width)]">
         <div className="border-b bg-muted/20 p-2 lg:border-b-0 lg:border-r">
           <div className="space-y-2">
             {graph.lanes.map((lane, index) => (
@@ -272,11 +373,16 @@ export function CommitGraphView({
                 key={lane.authorId}
                 type="button"
                 data-project-author-lane
+                aria-pressed={selectedAuthorId === lane.authorId}
                 onClick={() => {
                   const firstRow = graph.rows.find((row) => row.authorId === lane.authorId);
                   if (firstRow) setSelectedId(firstRow.id);
+                  setSelectedAuthorId((current) => current === lane.authorId ? null : lane.authorId);
                 }}
-                className="flex w-full items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selectedAuthorId === lane.authorId && "border-primary bg-primary/10",
+                )}
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: lane.color }}>
                   {index + 1}
@@ -286,12 +392,14 @@ export function CommitGraphView({
             ))}
           </div>
         </div>
+        <CommitColumnResizer panel="author" widths={panelWidths} containerRef={containerRef} onChange={updatePanelWidths} />
         <div className="min-w-0 overflow-auto">
           <div className="relative" style={{ minWidth: metrics.minWidth, height: graphHeight }}>
             <CommitGraphCanvas
               rows={graph.rows}
               lanes={graph.lanes}
               selectedId={selectedRow?.id ?? null}
+              selectedAuthorId={selectedAuthorId}
               minWidth={metrics.minWidth}
               laneX={metrics.laneX}
             />
@@ -299,14 +407,19 @@ export function CommitGraphView({
               <CommitGraphRowButton
                 key={row.id}
                 row={row}
-                selected={row.id === selectedRow?.id}
-                onSelect={() => setSelectedId(row.id)}
+                selected={isCommitRowHighlighted(row, { selectedId: selectedRow?.id ?? null, selectedAuthorId })}
+                dimmed={isCommitRowDimmed(row, { selectedId: selectedRow?.id ?? null, selectedAuthorId })}
+                onSelect={() => {
+                  setSelectedId(row.id);
+                  setSelectedAuthorId(null);
+                }}
                 index={index}
                 detailOffset={metrics.detailOffset}
               />
             ))}
           </div>
         </div>
+        <CommitColumnResizer panel="inspector" widths={panelWidths} containerRef={containerRef} onChange={updatePanelWidths} />
         {selectedRow ? (
           <CommitInspector row={selectedRow} viewerId={viewerId} canManageNodeActions={canManageNodeActions} />
         ) : null}

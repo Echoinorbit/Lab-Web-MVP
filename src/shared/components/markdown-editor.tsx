@@ -7,11 +7,13 @@ export function MarkdownEditor({
   onChange,
   placeholder,
   name,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   name?: string;
+  disabled?: boolean;
 }) {
   return (
     <Textarea
@@ -20,6 +22,7 @@ export function MarkdownEditor({
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       spellCheck={false}
+      disabled={disabled}
     />
   );
 }

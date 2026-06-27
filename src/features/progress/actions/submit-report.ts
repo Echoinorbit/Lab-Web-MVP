@@ -7,6 +7,7 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { progressReportInputSchema } from "@/shared/lib/validators/progress";
 
 import { consumeBackfillWindow, resolveProgressWriteWindow } from "../lib/backfill";
+import { MAX_SUBMITTED_REPORT_EDITS, remainingSubmittedReportEdits } from "../lib/edit-count";
 import { reportInputFromForm, type ReportFormState } from "../lib/report-form";
 import { writeProgressReport } from "../lib/report-write";
 import { saveProgressReport } from "./save-report";
@@ -21,7 +22,7 @@ export async function submitProgressReport(year: number, month: number) {
 
   const writeWindow = await resolveProgressWriteWindow(user.id, year, month);
   if (!writeWindow.allowed) {
-    throw new Error("Progress reports can only be submitted during the 25-27 Shanghai-time window.");
+    throw new Error("进度报告仅可在北京时间每月 25–27 日提交；历史月份需由管理员开启补填窗口。");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -72,10 +73,10 @@ async function saveAndSubmitProgressReport(input: unknown) {
 
   const writeWindow = await resolveProgressWriteWindow(user.id, data.year, data.month);
   if (!writeWindow.allowed) {
-    throw new Error("Progress reports can only be submitted during the 25-27 Shanghai-time window.");
+    throw new Error("进度报告仅可在北京时间每月 25–27 日提交；历史月份需由管理员开启补填窗口。");
   }
 
-  await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const now = new Date();
     const report = await writeProgressReport(tx, user.id, data);
     const submitted = await tx.progressReport.updateMany({
@@ -90,7 +91,7 @@ async function saveAndSubmitProgressReport(input: unknown) {
       data: { status: "SUBMITTED", submittedAt: now },
     });
     if (submitted.count !== 1) {
-      throw new Error("Only draft progress reports can be submitted.");
+      throw new Error("只有草稿状态的进度报告可以提交，已提交报告不能重复提交。");
     }
 
     await consumeBackfillWindow(tx, writeWindow.backfillWindowId, now);
@@ -104,6 +105,7 @@ async function saveAndSubmitProgressReport(input: unknown) {
         details: { status: "SUBMITTED", year: data.year, month: data.month },
       },
     });
+    return { status: "SUBMITTED" as const, editCount: report.editCount };
   });
 }
 
@@ -111,18 +113,34 @@ async function saveAndSubmitProgressReport(input: unknown) {
 // carries name="intent" with value "save" or "submit"; native form submission
 // includes the clicked button's value, so this works without client hydration.
 export async function reportFormAction(
-  _prevState: ReportFormState,
+  previousState: ReportFormState,
   formData: FormData,
 ): Promise<ReportFormState> {
   const payload = reportInputFromForm(formData);
   try {
     if (formData.get("intent") === "submit") {
-      await saveAndSubmitProgressReport(payload);
-      return { ok: true, message: "已提交" };
+      const report = await saveAndSubmitProgressReport(payload);
+      return {
+        ok: true,
+        message: `报告已提交，不能重复提交；仍可保存修改 ${remainingSubmittedReportEdits(report.editCount)} 次。`,
+        ...report,
+      };
     }
-    await saveProgressReport(payload);
-    return { ok: true, message: "草稿已保存" };
+    const report = await saveProgressReport(payload);
+    const remaining = report.status === "SUBMITTED"
+      ? remainingSubmittedReportEdits(report.editCount)
+      : MAX_SUBMITTED_REPORT_EDITS;
+    return {
+      ok: true,
+      message: report.status === "SUBMITTED" ? `修改已保存，剩余可修改 ${remaining} 次。` : "草稿已保存。",
+      status: report.status,
+      editCount: report.editCount,
+    };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "操作失败" };
+    return {
+      ...previousState,
+      ok: false,
+      message: error instanceof Error ? error.message : "操作失败",
+    };
   }
 }

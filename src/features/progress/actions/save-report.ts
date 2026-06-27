@@ -21,7 +21,7 @@ export async function saveProgressReport(input: unknown) {
 
   const writeWindow = await resolveProgressWriteWindow(user.id, data.year, data.month);
   if (!writeWindow.allowed) {
-    throw new Error("Progress reports can only be edited during the 25-27 Shanghai-time window.");
+    throw new Error("进度报告仅可在北京时间每月 25–27 日编辑；历史月份需由管理员开启补填窗口。");
   }
   // Saving remains gated by the current/backfill window but intentionally does
   // not consume the one-use backfill token; submit consumes it transactionally.
