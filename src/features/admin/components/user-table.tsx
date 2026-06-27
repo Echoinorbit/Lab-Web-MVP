@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { ChevronDown, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -63,113 +63,121 @@ function UserGovernanceActions({
   }
 
   return (
-    <div className="grid min-w-64 gap-2">
-      <div className="grid gap-2 rounded-md border p-2">
-        <label className="grid gap-1 text-xs">
-          <span className="text-muted-foreground">用户名</span>
-          <Input className="h-8" value={username} onChange={(event) => setUsername(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-xs">
-          <span className="text-muted-foreground">姓名</span>
-          <Input className="h-8" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-xs">
-          <span className="text-muted-foreground">学号</span>
-          <Input className="h-8" value={studentId} onChange={(event) => setStudentId(event.target.value)} />
-        </label>
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-8 w-fit px-2"
-          disabled={isPending || !username.trim() || !displayName.trim()}
-          onClick={() => run(() => updateUserIdentity({
-            userId: user.id,
-            username,
-            displayName,
-            studentId,
-          }))}
-        >
-          保存身份信息
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <select
-          className="h-8 rounded-md border bg-background px-2 text-xs"
-          value={selectedStatus}
-          onChange={(event) => {
-            const nextStatus = event.target.value as UserRow["status"];
-            if (
-              nextStatus === "GRADUATED"
-              && !window.confirm("毕业操作不可撤销，将立即吊销会话并撤销该用户全部有效 Tag。确认继续？")
-            ) {
-              setSelectedStatus(user.status);
-              return;
-            }
-            setSelectedStatus(nextStatus);
-            run(
-              () => updateUserStatus({ userId: user.id, status: nextStatus }),
-              () => setSelectedStatus(user.status),
-            );
-          }}
-          disabled={isPending || user.status === "GRADUATED"}
-        >
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="SUSPENDED">SUSPENDED</option>
-          <option value="GRADUATED">GRADUATED</option>
-        </select>
-        <select
-          className="h-8 rounded-md border bg-background px-2 text-xs"
-          defaultValue={user.role}
-          onChange={(event) => run(() => updateUserRole({ userId: user.id, role: event.target.value }))}
-          disabled={isPending}
-        >
-          <option value="MEMBER">MEMBER</option>
-          <option value="ADMIN">ADMIN</option>
-        </select>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <select
-          className="h-8 rounded-md border bg-background px-2 text-xs"
-          defaultValue={selectableGrade ? user.computedGrade : ""}
-          onChange={(event) => run(() => updateUserGrade({ userId: user.id, grade: event.target.value }))}
-          disabled={isPending || user.status === "GRADUATED" || !user.gradeTrack}
-        >
-          <option value="" disabled>
-            {user.gradeTrack ? user.computedGrade : "年级不可直接选择"}
-          </option>
-          {gradeOptions.map((grade) => (
-            <option key={grade} value={grade}>
-              {grade}
-            </option>
-          ))}
-        </select>
-        {user.role === "MEMBER" && !user.isAdvisor ? (
-          <select
-            className="h-8 rounded-md border bg-background px-2 text-xs"
-            defaultValue={user.advisorId ?? ""}
-            onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
-            disabled={isPending}
+    <div className="grid min-w-72 gap-2">
+      <details className="group rounded-md border bg-background">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2 py-1.5 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          编辑用户
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="grid gap-2 border-t p-2">
+          <label className="grid gap-1 text-xs">
+            <span className="text-muted-foreground">用户名</span>
+            <Input className="h-8" value={username} onChange={(event) => setUsername(event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="text-muted-foreground">姓名</span>
+            <Input className="h-8" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="text-muted-foreground">学号</span>
+            <Input className="h-8" value={studentId} onChange={(event) => setStudentId(event.target.value)} />
+          </label>
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-8 w-fit px-2"
+            disabled={isPending || !username.trim() || !displayName.trim()}
+            onClick={() => run(() => updateUserIdentity({
+              userId: user.id,
+              username,
+              displayName,
+              studentId,
+            }))}
           >
-            <option value="">无导师</option>
-            {advisors.map((advisor) => (
-              <option key={advisor.id} value={advisor.id}>
-                {advisor.displayName}
+            保存身份信息
+          </Button>
+          <div className="flex flex-wrap gap-2 border-t pt-2">
+            <select
+              aria-label={`${user.displayName}的状态`}
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              value={selectedStatus}
+              onChange={(event) => {
+                const nextStatus = event.target.value as UserRow["status"];
+                if (
+                  nextStatus === "GRADUATED"
+                  && !window.confirm("毕业操作不可撤销，将立即吊销会话并撤销该用户全部有效 Tag。确认继续？")
+                ) {
+                  setSelectedStatus(user.status);
+                  return;
+                }
+                setSelectedStatus(nextStatus);
+                run(
+                  () => updateUserStatus({ userId: user.id, status: nextStatus }),
+                  () => setSelectedStatus(user.status),
+                );
+              }}
+              disabled={isPending || user.status === "GRADUATED"}
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+              <option value="GRADUATED">GRADUATED</option>
+            </select>
+            <select
+              aria-label={`${user.displayName}的角色`}
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              defaultValue={user.role}
+              onChange={(event) => run(() => updateUserRole({ userId: user.id, role: event.target.value }))}
+              disabled={isPending}
+            >
+              <option value="MEMBER">MEMBER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <select
+              aria-label={`${user.displayName}的年级`}
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              defaultValue={selectableGrade ? user.computedGrade : ""}
+              onChange={(event) => run(() => updateUserGrade({ userId: user.id, grade: event.target.value }))}
+              disabled={isPending || user.status === "GRADUATED" || !user.gradeTrack}
+            >
+              <option value="" disabled>
+                {user.gradeTrack ? user.computedGrade : "年级不可直接选择"}
               </option>
-            ))}
-          </select>
-        ) : null}
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-8 px-2"
-          onClick={() => run(() => revokeUserSessions({ userId: user.id }))}
-          disabled={isPending}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          吊销
-        </Button>
-      </div>
-      {message ? <span className="text-xs text-destructive">{message}</span> : null}
+              {gradeOptions.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
+            {user.role === "MEMBER" && !user.isAdvisor ? (
+              <select
+                aria-label={`${user.displayName}的导师`}
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+                defaultValue={user.advisorId ?? ""}
+                onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
+                disabled={isPending}
+              >
+                <option value="">无导师</option>
+                {advisors.map((advisor) => (
+                  <option key={advisor.id} value={advisor.id}>
+                    {advisor.displayName}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-8 px-2"
+              onClick={() => run(() => revokeUserSessions({ userId: user.id }))}
+              disabled={isPending}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              吊销
+            </Button>
+          </div>
+          {message ? <span className="text-xs text-destructive">{message}</span> : null}
+        </div>
+      </details>
     </div>
   );
 }
@@ -185,9 +193,9 @@ export function UserTable({
     <DataTable
       rows={users}
       columns={[
-        { key: "username", header: "用户名", cell: (row) => <span className="font-mono text-xs">{row.username}</span> },
-        { key: "name", header: "姓名", cell: (row) => row.displayName },
-        { key: "studentId", header: "学号", cell: (row) => row.studentId ?? "-" },
+        { key: "username", header: "用户名", cell: (row) => <span className="whitespace-nowrap font-mono text-xs">{row.username}</span> },
+        { key: "name", header: "姓名", cell: (row) => <span className="whitespace-nowrap">{row.displayName}</span> },
+        { key: "studentId", header: "学号", cell: (row) => <span className="whitespace-nowrap">{row.studentId ?? "-"}</span> },
         { key: "role", header: "角色", cell: (row) => <Badge>{row.role}</Badge> },
         { key: "status", header: "状态", cell: (row) => <Badge>{row.status}</Badge> },
         { key: "grade", header: "年级", cell: (row) => <Badge className="bg-muted">{row.computedGrade}</Badge> },

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { ADMIN_USERS_PAGE_SIZE } from "../src/features/admin/lib/pagination";
 import { DEFAULT_PAGE_SIZE, getPaginationState, getTotalPages, parsePageParam } from "../src/shared/lib/pagination";
 
 test("分页页码解析应拒绝空值、负数、小数和非数字", () => {
@@ -37,4 +38,9 @@ test("分页状态应夹紧越界页并给出 skip 与边界状态", () => {
     canPrevious: true,
     canNext: false,
   });
+});
+
+test("管理员用户列表固定为每页 5 个用户", () => {
+  assert.equal(ADMIN_USERS_PAGE_SIZE, 5);
+  assert.equal(getTotalPages(11, ADMIN_USERS_PAGE_SIZE), 3);
 });

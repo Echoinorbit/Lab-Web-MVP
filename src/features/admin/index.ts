@@ -6,6 +6,7 @@ export { AuditLogTable, type AuditLogRow } from "./components/audit-log-table";
 export { SettingsForm } from "./components/settings-form";
 export { createUser } from "./actions/create-user";
 export { importUsers, type ImportUsersResult } from "./actions/import-users";
+export { ADMIN_USERS_PAGE_SIZE } from "./lib/pagination";
 export { updateUserStatus } from "./actions/update-user-status";
 export { updateUserRole } from "./actions/update-user-role";
 export { updateUserAdvisor } from "./actions/update-user-advisor";
