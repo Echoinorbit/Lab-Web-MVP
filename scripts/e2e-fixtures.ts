@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { loadEnvConfig } from "@next/env";
 import bcrypt from "bcryptjs";
 
+import { getShanghaiDateParts } from "../src/shared/lib/date";
 import { PERMISSIONS } from "../src/shared/lib/permissions";
 
 loadEnvConfig(process.cwd());
@@ -11,8 +12,8 @@ const fixturePassword = process.env.E2E_FIXTURE_PASSWORD ?? "Test.pass.123";
 const adminUsername = process.env.E2E_ADMIN_USERNAME ?? process.env.ADMIN_USERNAME ?? "admin";
 const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD ?? fixturePassword;
 const adminDisplayName = process.env.ADMIN_DISPLAY_NAME ?? "系统管理员";
-const year = 2026;
-const month = 6;
+const { year, month } = getShanghaiDateParts();
+const fixtureStartedAt = new Date();
 
 const actorSpecs = [
   {
@@ -62,13 +63,21 @@ const actorSpecs = [
     grade: "2026级",
     tags: ["grad-master"],
   },
+  {
+    username: "e2e-graduated",
+    displayName: "已毕业登录拒绝测试员 孙予安",
+    studentId: "LAB2026-G001",
+    grade: "2026级",
+    status: "GRADUATED",
+    tags: ["graduated"],
+  },
 ] as const;
 
 type ActorSpec = (typeof actorSpecs)[number];
 type FixtureUser = Awaited<ReturnType<typeof ensureMember>>;
 
 function utcDate(day: number, hour = 2) {
-  return new Date(Date.UTC(2026, 5, day, hour, 0, 0));
+  return new Date(Date.UTC(year, month - 1, day, hour, 0, 0));
 }
 
 async function ensureAdmin() {
@@ -96,6 +105,8 @@ async function ensureAdmin() {
 }
 
 async function ensureMember(input: ActorSpec, passwordHash: string, adminId: string) {
+  const existing = await prisma.user.findUnique({ where: { username: input.username }, select: { id: true } });
+  const status = "status" in input ? input.status : "ACTIVE";
   const user = await prisma.user.upsert({
     where: { username: input.username },
     update: {
@@ -104,7 +115,7 @@ async function ensureMember(input: ActorSpec, passwordHash: string, adminId: str
       grade: "grade" in input ? input.grade : null,
       passwordHash,
       role: "MEMBER",
-      status: "ACTIVE",
+      status,
       mustChangePassword: false,
       loginAttempts: 0,
       lockedUntil: null,
@@ -116,20 +127,22 @@ async function ensureMember(input: ActorSpec, passwordHash: string, adminId: str
       grade: "grade" in input ? input.grade : null,
       passwordHash,
       role: "MEMBER",
-      status: "ACTIVE",
+      status,
       mustChangePassword: false,
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: adminId,
-      action: "CREATE",
-      entityType: "User",
-      entityId: user.id,
-      details: { fixture: true, username: input.username },
-    },
-  });
+  if (!existing) {
+    await prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action: "CREATE",
+        entityType: "User",
+        entityId: user.id,
+        details: { fixture: true, username: input.username },
+      },
+    });
+  }
 
   return user;
 }
@@ -184,7 +197,7 @@ async function ensureNotification(
   });
 }
 
-async function ensureProject(leadId: string) {
+async function ensureProject(advisorId: string) {
   const name = "图像识别误检分析项目";
   const description =
     "用于人工审查项目 commit tree 的测试项目：围绕低照度图像识别误检、数据清洗、模型基线和复核流程展开。";
@@ -195,7 +208,8 @@ async function ensureProject(leadId: string) {
       where: { id: existing.id },
       data: {
         description,
-        creatorId: leadId,
+        creatorId: advisorId,
+        advisorId,
         status: "IN_PROGRESS",
         deletedAt: null,
         archivedAt: null,
@@ -208,14 +222,14 @@ async function ensureProject(leadId: string) {
       name,
       description,
       status: "IN_PROGRESS",
-      creatorId: leadId,
-      members: { create: { userId: leadId } },
+      creatorId: advisorId,
+      advisorId,
     },
   });
 
   await prisma.auditLog.create({
     data: {
-      userId: leadId,
+      userId: advisorId,
       action: "CREATE",
       entityType: "Project",
       entityId: project.id,
@@ -323,15 +337,17 @@ async function ensureProjectNode(input: {
 
   const node = existing ? await prisma.projectNode.update({ where: { id: existing.id }, data }) : await prisma.projectNode.create({ data });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: input.authorId,
-      action: "CREATE",
-      entityType: "ProjectNode",
-      entityId: node.id,
-      details: { fixture: true, projectId: input.projectId, nodeType: input.nodeType },
-    },
-  });
+  if (!existing) {
+    await prisma.auditLog.create({
+      data: {
+        userId: input.authorId,
+        action: "CREATE",
+        entityType: "ProjectNode",
+        entityId: node.id,
+        details: { fixture: true, projectId: input.projectId, nodeType: input.nodeType },
+      },
+    });
+  }
 
   return node;
 }
@@ -356,15 +372,17 @@ async function ensurePost(input: {
   };
   const post = existing ? await prisma.post.update({ where: { id: existing.id }, data }) : await prisma.post.create({ data });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: input.authorId,
-      action: "CREATE",
-      entityType: "Post",
-      entityId: post.id,
-      details: { fixture: true, title: input.title },
-    },
-  });
+  if (!existing) {
+    await prisma.auditLog.create({
+      data: {
+        userId: input.authorId,
+        action: "CREATE",
+        entityType: "Post",
+        entityId: post.id,
+        details: { fixture: true, title: input.title },
+      },
+    });
+  }
 
   return post;
 }
@@ -390,15 +408,17 @@ async function ensureComment(input: {
   };
   const comment = existing ? await prisma.comment.update({ where: { id: existing.id }, data }) : await prisma.comment.create({ data });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: input.authorId,
-      action: "CREATE",
-      entityType: "Comment",
-      entityId: comment.id,
-      details: { fixture: true, postId: input.postId },
-    },
-  });
+  if (!existing) {
+    await prisma.auditLog.create({
+      data: {
+        userId: input.authorId,
+        action: "CREATE",
+        entityType: "Comment",
+        entityId: comment.id,
+        details: { fixture: true, postId: input.postId },
+      },
+    });
+  }
   if (input.postAuthorId !== input.authorId) {
     await ensureNotification(input.postAuthorId, "POST_COMMENT", "帖子收到新评论", input.content, "POST", input.postId);
   }
@@ -430,58 +450,93 @@ async function ensureProgressReport(input: {
     ? await prisma.progressReport.update({ where: { id: existing.id }, data })
     : await prisma.progressReport.create({ data: { userId: input.userId, year, month, ...data } });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: input.userId,
-      action: "UPDATE",
-      entityType: "ProgressReport",
-      entityId: report.id,
-      details: { fixture: true, year, month, status: input.status },
-    },
-  });
+  if (!existing) {
+    await prisma.auditLog.create({
+      data: {
+        userId: input.userId,
+        action: "CREATE",
+        entityType: "ProgressReport",
+        entityId: report.id,
+        details: { fixture: true, year, month, status: input.status },
+      },
+    });
+  }
 
   return report;
 }
 
-async function ensureAnnouncement(authorId: string, recipientIds: string[]) {
-  const title = "组会通知：图像识别项目误检样例复盘";
-  const content =
-    "请项目组在本周五组会前阅读 commit tree 中的数据清洗和夜间场景误检节点，发帖测试成员可在讨论区补充复现实验问题。";
-  const existing = await prisma.announcement.findFirst({ where: { authorId, title } });
-  const announcement =
-    existing ??
-    (await prisma.announcement.create({
-      data: {
-        authorId,
-        title,
-        content,
-        targetType: "ALL",
-        isPinned: true,
-      },
-    }));
+async function ensureAnnouncements(authorId: string, recipientIds: string[]) {
+  const legacy = await prisma.announcement.findFirst({
+    where: { authorId, title: "组会通知：图像识别项目误检样例复盘" },
+  });
+  const currentLatest = await prisma.announcement.findFirst({
+    where: { authorId, title: "E2E 公告 15：图像识别项目验收通知" },
+  });
+  const reusableLegacy = currentLatest ? null : legacy;
+  if (legacy && currentLatest && legacy.id !== currentLatest.id) {
+    await prisma.$transaction([
+      prisma.notification.deleteMany({
+        where: { relatedType: "ANNOUNCEMENT", relatedId: legacy.id },
+      }),
+      prisma.announcement.update({
+        where: { id: legacy.id },
+        data: { deletedAt: fixtureStartedAt },
+      }),
+    ]);
+  }
+  const announcements = [];
 
-  if (existing) {
-    await prisma.announcement.update({
-      where: { id: existing.id },
-      data: { content, targetType: "ALL", isPinned: true, deletedAt: null },
-    });
-  } else {
-    await prisma.auditLog.create({
-      data: {
-        userId: authorId,
-        action: "CREATE",
-        entityType: "Announcement",
-        entityId: announcement.id,
-        details: { fixture: true, recipientCount: recipientIds.length },
-      },
-    });
+  for (let sequence = 1; sequence <= 15; sequence += 1) {
+    const number = String(sequence).padStart(2, "0");
+    const title = `E2E 公告 ${number}：图像识别项目验收通知`;
+    const content = `这是用于验证首页 5 条、公告页 10 条和翻页行为的第 ${number} 条公告。请项目组结合 commit tree 复核误检样例。`;
+    const createdAt = new Date(fixtureStartedAt.getTime() - (15 - sequence) * 60_000);
+    const existing = await prisma.announcement.findFirst({ where: { authorId, title } });
+    const prior = existing ?? (sequence === 15 ? reusableLegacy : null);
+    const announcement = prior
+      ? await prisma.announcement.update({
+          where: { id: prior.id },
+          data: {
+            title,
+            content,
+            targetType: "ALL",
+            targetIds: [],
+            isPinned: false,
+            isUrgent: false,
+            expiresAt: null,
+            createdAt,
+            deletedAt: null,
+          },
+        })
+      : await prisma.announcement.create({
+          data: {
+            authorId,
+            title,
+            content,
+            targetType: "ALL",
+            createdAt,
+          },
+        });
+
+    if (!prior) {
+      await prisma.auditLog.create({
+        data: {
+          userId: authorId,
+          action: "CREATE",
+          entityType: "Announcement",
+          entityId: announcement.id,
+          details: { fixture: true, sequence, recipientCount: recipientIds.length },
+        },
+      });
+    }
+
+    for (const recipientId of recipientIds) {
+      await ensureNotification(recipientId, "ANNOUNCEMENT_NEW", title, content, "ANNOUNCEMENT", announcement.id);
+    }
+    announcements.push(announcement);
   }
 
-  for (const recipientId of recipientIds) {
-    await ensureNotification(recipientId, "ANNOUNCEMENT_NEW", title, content, "ANNOUNCEMENT", announcement.id);
-  }
-
-  return announcement;
+  return announcements;
 }
 
 function requireActor(actors: Map<string, FixtureUser>, username: string) {
@@ -516,7 +571,7 @@ async function main() {
     data: { advisorId: advisor.id },
   });
 
-  const project = await ensureProject(visionLead.id);
+  const project = await ensureProject(advisor.id);
   await ensureProjectMember(project.id, visionLead.id, admin.id, "lead");
   await ensureProjectMember(project.id, visionMemberA.id, admin.id, "member");
   await ensureProjectMember(project.id, visionMemberB.id, admin.id, "member");
@@ -694,9 +749,9 @@ async function main() {
     status: "DRAFT",
   });
 
-  await ensureAnnouncement(
+  const announcements = await ensureAnnouncements(
     advisor.id,
-    [master, phd, progressMgr, visionLead, visionMemberA, visionMemberB].map((actor) => actor.id),
+    [admin, master, phd, progressMgr, visionLead, visionMemberA, visionMemberB].map((actor) => actor.id),
   );
 
   console.log(
@@ -708,6 +763,7 @@ async function main() {
         actors: Object.fromEntries(Array.from(actors.entries()).map(([username, user]) => [username, user.id])),
         project: { id: project.id, name: project.name },
         posts: [masterPost.title, phdPost.title, advisorPost.title],
+        announcements: announcements.length,
         progressPeriod: `${year}-${String(month).padStart(2, "0")}`,
       },
       null,

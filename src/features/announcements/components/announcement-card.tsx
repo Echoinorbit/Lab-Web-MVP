@@ -17,7 +17,7 @@ export function AnnouncementCard({
   linkToDetail?: boolean;
 }) {
   return (
-    <Card className={linkToDetail ? "transition hover:border-primary" : undefined}>
+    <Card data-announcement-row className={linkToDetail ? "transition hover:border-primary" : undefined}>
       <CardHeader className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">

@@ -40,7 +40,7 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
             </CardContent>
           </Card>
           {project.canPreview ? (
-            <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 rounded-md border bg-card p-3 text-sm shadow-md group-hover:block">
+            <div data-project-preview className="absolute left-0 top-full z-20 mt-2 hidden w-72 rounded-md border bg-card p-3 text-sm shadow-md group-hover:block">
               <div className="font-medium">{project.name}</div>
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                 <div>

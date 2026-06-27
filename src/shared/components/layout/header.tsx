@@ -1,8 +1,7 @@
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/shared/components/ui/badge";
-import { Input } from "@/shared/components/ui/input";
 
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
@@ -17,12 +16,7 @@ type HeaderProps = {
 export function Header({ displayName, role, unreadCount, logoutAction }: HeaderProps) {
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
-      <div className="min-w-0 flex-1">
-        <div className="relative max-w-lg">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜索公告、项目、成员" />
-        </div>
-      </div>
+      <div className="min-w-0 flex-1" />
       <Link
         href="/notifications"
         className="relative flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted"

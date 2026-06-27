@@ -70,6 +70,7 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
           {rows.map((notification) => (
             <Card
               key={notification.id}
+              data-notification-row
               role="button"
               tabIndex={0}
               onClick={() => {
