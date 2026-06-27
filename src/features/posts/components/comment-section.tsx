@@ -56,7 +56,10 @@ function CommentItem({
   }, [replyState, router]);
 
   return (
-    <div className={cn("space-y-2 rounded-md border p-3", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}>
+    <div
+      data-comment-row
+      className={cn("space-y-2 rounded-md border p-3", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}
+    >
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
           {isDeleted ? `该评论已删除 · ${comment.createdAt}` : `${comment.authorName} · ${comment.createdAt}`}
@@ -74,7 +77,7 @@ function CommentItem({
       {isDeleted ? (
         <p className="text-sm text-muted-foreground">该评论已被删除</p>
       ) : (
-        <p className="whitespace-pre-wrap text-sm">
+        <p data-comment-content className="whitespace-pre-wrap text-sm">
           {isFlattenedReply ? <span className="mr-1 font-medium text-primary">回复 @{replyToName}</span> : null}
           {comment.content}
         </p>
@@ -85,7 +88,7 @@ function CommentItem({
             回复
           </Button>
           {isReplying ? (
-            <form action={replyAction} className="grid gap-2">
+            <form data-comment-reply-form action={replyAction} className="grid gap-2">
               <input type="hidden" name="postId" value={postId} />
               <input type="hidden" name="parentId" value={comment.id} />
               <Textarea

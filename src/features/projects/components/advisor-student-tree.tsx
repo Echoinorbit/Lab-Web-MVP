@@ -53,7 +53,7 @@ export function AdvisorStudentTree({
           {advisor.students.map((student) => {
             const checked = selected.has(student.id);
             return (
-              <div key={student.id} className="rounded-md border p-3">
+              <div key={student.id} data-project-student-row className="rounded-md border p-3">
                 <div className="flex items-start gap-2">
                   <input
                     id={`student-${student.id}`}
