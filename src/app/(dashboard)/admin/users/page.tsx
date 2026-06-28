@@ -98,11 +98,11 @@ export default async function AdminUsersPage({
               gradeTrack: resolveGradeTrackFromTagNames(globalTagNames),
               advisorId: user.advisorId,
               isAdvisor: globalTagNames.includes("advisor"),
-              tags: user.tags.map((userTag) =>
-                userTag.projectId
-                  ? `${userTag.tag.displayName}@${userTag.project?.name ?? "未知项目"}`
-                  : userTag.tag.displayName,
-              ),
+              tags: user.tags.map((userTag) => ({
+                name: userTag.tag.name,
+                displayName: userTag.tag.displayName,
+                projectName: userTag.projectId ? userTag.project?.name ?? "未知项目" : null,
+              })),
             };
           })}
           advisors={advisorOptions}

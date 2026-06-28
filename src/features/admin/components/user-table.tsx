@@ -27,7 +27,11 @@ export type UserRow = {
   status: "ACTIVE" | "SUSPENDED" | "GRADUATED";
   computedGrade: string;
   gradeTrack: GradeTrack | null;
-  tags: string[];
+  tags: Array<{
+    name: string;
+    displayName: string;
+    projectName: string | null;
+  }>;
   advisorId?: string | null;
   isAdvisor: boolean;
 };
@@ -206,7 +210,14 @@ export function UserTable({
             ? (
                 <div className="flex min-w-48 flex-wrap gap-1">
                   {row.tags.map((tag) => (
-                    <Badge key={tag} className="bg-muted">{tag}</Badge>
+                    <Badge
+                      key={tag.name}
+                      className={tag.projectName ? "bg-secondary" : "bg-muted"}
+                      title={tag.projectName ? `所属项目：${tag.projectName}` : undefined}
+                    >
+                      {tag.displayName}
+                      {tag.projectName ? <span className="sr-only">，所属项目：{tag.projectName}</span> : null}
+                    </Badge>
                   ))}
                 </div>
               )
