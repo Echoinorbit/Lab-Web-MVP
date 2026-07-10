@@ -45,3 +45,11 @@ The Next.js App Router tree: the root layout/providers, two route groups (`(auth
 - Next.js App Router, NextAuth route handlers, React Query (client polling).
 
 <!-- MANUAL: -->
+
+## Frontend Composition Rules
+
+- Every primary page should expose one clear task through the shared page-header and section vocabulary; avoid page-specific title spacing and ad-hoc CTA styling.
+- Route files may reorganize presentation markup and content order, but must leave `requireActiveUser`, permission checks, Prisma filters, redirects, and action contracts intact.
+- Prefer flat sections, typographic hierarchy, and dividers over repeated cards. Use cards only for independently actionable objects or bounded tools.
+- Auth, dashboard, list, detail, form, governance, and denied-state routes must remain visually coherent at 390/768/1024/1440 widths.
+- Browser QA is required for both light and dark themes on representative auth, dashboard, data-table, form, and project-graph routes.

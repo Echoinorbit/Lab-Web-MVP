@@ -58,3 +58,18 @@ A lab collaboration management platform built as a runnable MVP base (not a stat
 - Tailwind CSS, `clsx`, `tailwind-merge`, `lucide-react`, `react-markdown` + `remark-gfm` — UI
 
 <!-- MANUAL: Custom project notes can be added below this line. -->
+
+## Frontend Rebuild Rules
+
+- Frontend redesigns are system changes, not isolated style patches. Start with a complete route/page inventory and identify the shared shell, page templates, states, and primitives before editing screens.
+- For an explicitly requested whole-site rebuild, replacing obsolete presentation-layer markup and components is allowed. Preserve server actions, Prisma query semantics, authorization gates, URL contracts, and business-state meanings.
+- Do not claim a whole-site redesign after changing only the home page, navigation, colors, radii, shadows, tokens, or a small subset of routes.
+- `awesome-design-md` is the primary visual reference skill for design-led work in this repository. For the Apple-inspired system, apply its hierarchy, whitespace, restrained color, typography, and interaction principles without copying Apple assets, content, or trade dress.
+- All primary authenticated and unauthenticated pages must use the shared design system and page templates. Data-heavy tools may remain dense; marketing-style hero layouts must not be forced onto operational screens.
+- Every data or form surface must account for the applicable loading, empty, error, success, pending, disabled, and permission-denied states. Do not design only the populated happy path.
+- Verify 390px, 768px, 1024px, and 1440px layouts. Tables need an explicit small-screen overflow or reflow strategy; forms must remain completable on mobile.
+- Preserve semantic HTML, visible keyboard focus, labels, accessible names for icon buttons, minimum practical touch targets, and `prefers-reduced-motion` behavior.
+- Perform real-browser visual QA for major routes in at least two passes: first for information architecture and responsive structure, then for typography, spacing, interaction states, and visual residue.
+- Before completion, run `npm run verify` and `npm run build`. Do not weaken lint, types, tests, or security controls to manufacture a passing result.
+- Do not discard user changes. Keep frontend rebuilds on a dedicated branch, review every staged diff, and use meaningful phase commits.
+- Record major design and frontend architecture decisions in repository documentation. Runtime screenshots, temporary probes, and one-off progress logs do not belong in `AGENTS.md`.

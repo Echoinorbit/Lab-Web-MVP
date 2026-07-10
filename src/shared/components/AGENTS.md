@@ -39,3 +39,11 @@ Reusable, feature-agnostic UI: low-level primitives (`ui/`), the authenticated a
 - React 19, Tailwind, `clsx` + `tailwind-merge`, `lucide-react`, `react-markdown` + `remark-gfm`.
 
 <!-- MANUAL: -->
+
+## Design System Rules
+
+- Shared primitives are the only source for recurring control height, radius, focus ring, disabled state, typography, and transition timing. Reuse them instead of duplicating long Tailwind strings in pages.
+- Keep the product palette restrained: neutral surfaces and one blue interaction accent, with semantic colors reserved for real status meaning.
+- Do not pair wide decorative shadows with borders, nest cards, or use oversized radii. Elevation is functional and rare.
+- New shared components must have clear multi-page reuse or state-consistency value; do not create configurable wrappers for one-off layout.
+- Interactive primitives must cover hover, focus-visible, active, disabled, and pending usage while respecting reduced motion.
