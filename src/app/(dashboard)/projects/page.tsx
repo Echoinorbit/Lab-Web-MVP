@@ -36,9 +36,9 @@ export default async function ProjectsPage({
   });
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-      <div className="space-y-3">
-        <div className="flex gap-2">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
           {(
             [
               ["all", "可见项目"],
@@ -50,8 +50,8 @@ export default async function ProjectsPage({
               key={value}
               href={`/projects?tab=${value}`}
               className={cn(
-                "rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-                tab === value && "bg-primary text-primary-foreground hover:bg-primary/90",
+                "inline-flex h-10 items-center rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted",
+                tab === value && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
               {label}
@@ -72,14 +72,14 @@ export default async function ProjectsPage({
         />
       </div>
       {permissions.has(PERMISSIONS.PROJECT_CREATE) || permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF) ? (
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle>项目创建</CardTitle>
           </CardHeader>
           <CardContent>
             <Link
               href="/projects/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
             >
               创建项目
             </Link>

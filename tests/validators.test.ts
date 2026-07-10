@@ -10,7 +10,6 @@ import { createUserInputSchema, updateUserGradeInputSchema, updateUserIdentityIn
 import { announcementInputSchema } from "../src/shared/lib/validators/announcements";
 import { commentInputSchema, postInputSchema } from "../src/shared/lib/validators/posts";
 import {
-  projectMemberInputSchema,
   projectMembersInputSchema,
   updateProjectInputSchema,
 } from "../src/shared/lib/validators/projects";
@@ -189,8 +188,7 @@ test("管理员状态更新应拒绝已毕业目标且不写入审计", async ()
   assert.equal(auditCalled, false);
 });
 
-test("项目成员添加与 Tag 授予的输入契约必须保留显式的 ID 字段", () => {
-  assert.equal(projectMemberInputSchema.safeParse({ projectId: "p1", userId: "u1" }).success, true);
+test("Tag 授予输入契约必须保留显式的 ID 字段", () => {
   assert.equal(grantTagInputSchema.safeParse({ userId: "u1", tagId: "t1" }).success, true);
 });
 

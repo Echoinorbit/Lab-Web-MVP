@@ -65,7 +65,7 @@ export default async function AdminUsersPage({
   const lastVisibleUser = Math.min(pagination.skip + users.length, totalUsers);
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">用户管理</h1>
@@ -76,7 +76,7 @@ export default async function AdminUsersPage({
         </p>
       </header>
 
-      <section aria-label="用户列表" className="space-y-3">
+      <section aria-label="用户列表" className="min-w-0 space-y-3">
         <UserTable
           users={users.map((user) => {
             const globalTagNames = user.tags.filter((userTag) => !userTag.projectId).map((userTag) => userTag.tag.name);

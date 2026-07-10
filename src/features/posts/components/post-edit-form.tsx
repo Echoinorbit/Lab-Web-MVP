@@ -8,7 +8,6 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 
 import { updatePostFormAction, type UpdatePostFormState } from "../actions/update-post";
-import { joinPostTagLabels } from "../lib/post-tags";
 
 const initialState: UpdatePostFormState = { ok: false, message: null };
 
@@ -50,7 +49,7 @@ export function PostEditForm({
           id="post-category"
           name="category"
           defaultValue={category}
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
         >
           {categoryOptions.map(([value, label]) => (
             <option key={value} value={value}>
@@ -64,7 +63,7 @@ export function PostEditForm({
         <Input
           id="post-tags"
           name="tags"
-          defaultValue={joinPostTagLabels(tags)}
+          defaultValue={tags.join("，")}
           placeholder="多个标签用逗号分隔（中英文逗号均可）"
         />
       </div>

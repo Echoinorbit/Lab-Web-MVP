@@ -16,14 +16,14 @@ export type PostSummary = {
 
 export function PostList({ posts }: { posts: readonly PostSummary[] }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       {posts.map((post) => (
         <Link key={post.id} href={(post.href ?? `/posts/${post.id}`) as Route}>
-          <Card className="h-full transition hover:border-primary">
+          <Card className="h-full transition-[border-color,background-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-muted/20">
             <CardHeader>
               <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                 <span>{post.authorName}</span>
-                <span>{post.createdAt}</span>
+                <span className="tabular-nums">{post.createdAt}</span>
               </div>
               <CardTitle className="text-sm">{post.title}</CardTitle>
             </CardHeader>

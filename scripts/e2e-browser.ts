@@ -613,8 +613,35 @@ async function submitIdentityField(page: CdpClient, targetUsername: string, labe
   );
 }
 
+async function navigateToAdminUserRow(page: CdpClient, targetUsername: string) {
+  let path = "/admin/users";
+  const visited = new Set<string>();
+
+  for (let pageCount = 0; pageCount < 100; pageCount += 1) {
+    if (visited.has(path)) break;
+    visited.add(path);
+    await navigate(page, path);
+    await waitUntil(page, () => Boolean(document.querySelector("table")), [], 15000);
+    const result = await evaluate(page, (user) => {
+      const found = Array.from(document.querySelectorAll<HTMLTableRowElement>("tr"))
+        .some((candidate) => candidate.textContent?.includes(user));
+      const nextHref = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="/admin/users?page="]'))
+        .find((candidate) => candidate.textContent?.trim() === "下一页")
+        ?.getAttribute("href") ?? null;
+      return { found, nextHref };
+    }, [targetUsername]) as { found: boolean; nextHref: string | null };
+
+    if (result.found) return;
+    if (!result.nextHref) break;
+    path = result.nextHref;
+  }
+
+  throw new Error(`Missing admin user row for ${targetUsername} across pagination`);
+}
+
 async function editCreatedMemberIdentity(page: CdpClient) {
   stage("admin edit member identity");
+  await navigateToAdminUserRow(page, username);
   const editedDisplayName = `UI 真实用户 ${username} 已编辑`;
   await submitIdentityField(page, username, "姓名", editedDisplayName);
   await waitUntil(page, (displayName) => (document.body?.innerText ?? "").includes(displayName), [editedDisplayName], 20000);
@@ -632,8 +659,7 @@ async function verifyGraduationLifecycle(page: CdpClient) {
   stage("admin graduation confirmation and login rejection");
   await clearSession(page);
   await login(page, adminUsername, adminPassword);
-  await navigate(page, "/admin/users");
-  await waitUntil(page, (user) => (document.body?.innerText ?? "").includes(user), [username]);
+  await navigateToAdminUserRow(page, username);
   await evaluate(page, (targetUsername) => {
     Reflect.set(window, "__e2eGraduationConfirmSeen", false);
     window.confirm = (message) => {

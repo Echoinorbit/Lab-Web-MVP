@@ -44,7 +44,7 @@ export function ProjectNodeForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="node-type">类型</Label>
-            <select id="node-type" name="nodeType" className="h-9 rounded-md border bg-background px-3 text-sm">
+            <select id="node-type" name="nodeType" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20">
               <option value="MILESTONE">里程碑</option>
               <option value="UPDATE">更新</option>
               <option value="DECISION">决策</option>
@@ -57,7 +57,7 @@ export function ProjectNodeForm({
             <select
               id="parent-node"
               name="parentId"
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
               defaultValue={defaultParentId}
             >
               <option value={PROJECT_NODE_ROOT_PARENT_VALUE}>根节点</option>

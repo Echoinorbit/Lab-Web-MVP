@@ -25,7 +25,6 @@ model User {
 
   announcements   Announcement[]
   posts           Post[]
-  postTags        UserPostTag[]    @relation("UserPostTags")
   comments        Comment[]
   projectMembers  ProjectMember[]
   createdProjects Project[]        @relation("ProjectCreator")
@@ -345,17 +344,6 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
-}
-
-model UserPostTag {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("UserPostTags", fields: [userId], references: [id], onDelete: Cascade)
-  label     String
-  createdAt DateTime @default(now())
-
-  @@unique([userId, label])
-  @@index([userId])
 }
 
 model AuditExportArchive {

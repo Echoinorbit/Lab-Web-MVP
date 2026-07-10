@@ -17,21 +17,21 @@ export function AnnouncementCard({
   linkToDetail?: boolean;
 }) {
   return (
-    <Card data-announcement-row className={linkToDetail ? "transition hover:border-primary" : undefined}>
-      <CardHeader className="space-y-2">
+    <Card data-announcement-row className={linkToDetail ? "transition-[border-color,background-color] duration-200 hover:border-foreground/20 hover:bg-muted/25" : undefined}>
+      <CardHeader className="space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {announcement.isPinned ? <Badge className="bg-secondary">置顶</Badge> : null}
             {announcement.isUrgent ? <Badge className="bg-destructive text-destructive-foreground">紧急</Badge> : null}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs leading-5 tabular-nums text-muted-foreground">
               {announcement.authorName} · {announcement.createdAt}
             </span>
           </div>
           {canDelete ? <AnnouncementDeleteButton announcementId={announcement.id} /> : null}
         </div>
-        <CardTitle>
+        <CardTitle className="leading-6">
           {linkToDetail ? (
-            <Link href={`/announcements/${announcement.id}`} className="hover:underline">
+            <Link href={`/announcements/${announcement.id}`} className="transition-colors hover:text-primary">
               {announcement.title}
             </Link>
           ) : (

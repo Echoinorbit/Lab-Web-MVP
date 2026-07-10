@@ -59,19 +59,19 @@ export function ProjectDetail({
   const isArchived = status === "ARCHIVED";
   const isDeleted = Boolean(deletedAt);
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="px-6 py-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <CardTitle>{name}</CardTitle>
+              <CardTitle className="text-xl tracking-[-0.025em]">{name}</CardTitle>
               {isArchived && archivedAt ? <ProjectArchiveCountdown archivedAt={archivedAt} /> : null}
               {isDeleted ? <Badge className="bg-destructive text-destructive-foreground">已软删除</Badge> : null}
             </div>
             <Badge>{status}</Badge>
           </div>
         </CardHeader>
-        {description ? <CardContent className="text-sm text-muted-foreground">{description}</CardContent> : null}
+        {description ? <CardContent className="max-w-[75ch] px-6 py-5 text-sm leading-7 text-muted-foreground">{description}</CardContent> : null}
       </Card>
       <div className="flex flex-wrap gap-3">
         {canArchive ? <ArchiveProjectButton projectId={id} status={status} archivedAt={archivedAt} /> : null}
@@ -80,8 +80,8 @@ export function ProjectDetail({
       {!isDeleted ? (
         <ProjectNodeViews viewerId={viewerId} canvasNodes={canvasNodes} canManageNodeActions={!isArchived} />
       ) : null}
-      <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">成员</CardTitle>
@@ -95,7 +95,7 @@ export function ProjectDetail({
             </CardContent>
           </Card>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {canEdit ? <ProjectEditForm projectId={id} name={name} description={description} /> : null}
           {canManageMembers && !isArchived ? <ProjectMemberForm projectId={id} advisor={availableAdvisor} /> : null}
           {canCreateNode && !isArchived ? <ProjectNodeForm projectId={id} parentOptions={parentOptions} /> : null}

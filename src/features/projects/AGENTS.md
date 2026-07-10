@@ -15,8 +15,8 @@ Project lifecycle and project-scoped collaboration: create projects, add timelin
 | `components/project-list.tsx` | Project listing |
 | `components/project-form.tsx` | Create/edit form |
 | `components/project-detail.tsx` | Project detail view |
-| `components/timeline.tsx` | Node timeline |
-| `components/node-card.tsx` | Single node display |
+| `components/commit-graph-view.tsx` | Active project-node graph view |
+| `components/project-node-views.tsx` | Project-node view composition |
 | `index.ts` | Barrel export |
 
 ## For AI Agents

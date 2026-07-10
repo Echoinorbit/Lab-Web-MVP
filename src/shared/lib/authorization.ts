@@ -5,6 +5,7 @@ import { auditPermissionDenied } from "./audit";
 import {
   assertPermission,
   assertProjectPermission,
+  getUserPermissions,
   type Permission,
   PermissionDeniedError,
 } from "./permissions";
@@ -29,6 +30,25 @@ export async function assertPermissionWithAudit(input: {
     }
     throw error;
   }
+}
+
+export async function assertAnyPermissionWithAudit(input: {
+  userId: string;
+  permissions: readonly [Permission, ...Permission[]];
+  entityType: string;
+  entityId?: string | null;
+}) {
+  const granted = await getUserPermissions(input.userId);
+  if (input.permissions.some((permission) => granted.has(permission))) return;
+
+  const permission = input.permissions[0];
+  await auditPermissionDenied({
+    userId: input.userId,
+    permission,
+    entityType: input.entityType,
+    entityId: input.entityId,
+  });
+  throw new PermissionDeniedError(permission);
 }
 
 export async function assertProjectPermissionWithAudit(input: {

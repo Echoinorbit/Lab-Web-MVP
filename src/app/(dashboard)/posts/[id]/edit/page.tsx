@@ -35,9 +35,9 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
       : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">编辑帖子</h1>
+    <div className="mx-auto max-w-3xl space-y-6 py-2">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">编辑帖子</h1>
         <p className="text-sm text-muted-foreground">只会修改当前帖子，历史标签以文本快照保留。</p>
       </div>
       {post.status === "DRAFT" ? (

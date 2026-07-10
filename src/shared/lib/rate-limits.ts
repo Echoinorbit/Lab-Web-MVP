@@ -161,33 +161,3 @@ export async function getRateLimitStatus(userId: string, action: string): Promis
 
   return resolveRateLimitResult(selection, counter?.count ?? 0);
 }
-
-export async function checkRateLimit(userId: string, action: string) {
-  const tagNames = await getEffectiveTagNames(userId);
-  const selection = selectRateLimit(action, tagNames);
-
-  if (selection.kind !== "limited") return resolveRateLimitResult(selection, 0);
-
-  const windowStart = getShanghaiDayWindowStart();
-  const counter = await prisma.rateLimitCounter.upsert({
-    where: {
-      userId_action_windowStart: {
-        userId,
-        action,
-        windowStart,
-      },
-    },
-    create: {
-      userId,
-      action,
-      windowStart,
-      count: 1,
-    },
-    update: {
-      count: { increment: 1 },
-    },
-    select: { count: true },
-  });
-
-  return resolveRateLimitResult(selection, counter.count);
-}

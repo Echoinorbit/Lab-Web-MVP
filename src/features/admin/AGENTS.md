@@ -12,7 +12,6 @@ Governance console widgets used by the `/admin/*` pages: user management, audit-
 | `components/user-table.tsx` | User listing/management |
 | `components/user-create-form.tsx` | Create a single user |
 | `components/excel-import.tsx` | Bulk user import via Excel upload |
-| `components/import-result.tsx` | Renders import outcome (successes/errors) |
 | `components/audit-log-table.tsx` | Audit log viewer (`admin.audit.view`) |
 | `components/settings-form.tsx` | System settings (`admin.settings`) |
 | `index.ts` | Barrel export |

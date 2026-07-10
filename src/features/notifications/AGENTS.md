@@ -4,13 +4,12 @@
 # notifications (feature)
 
 ## Purpose
-In-app notifications: an unread badge, a notification list, and a client hook that polls the API every 30 seconds. Notifications are produced as a side effect of other features' transactions (announcements, comments, project nodes, tag grants).
+In-app notifications: a notification list and a client hook that polls the API every 30 seconds. Notifications are produced as a side effect of other features' transactions (announcements, comments, project nodes, tag grants).
 
 ## Key Files
 | File | Description |
 |------|-------------|
 | `hooks/use-notifications.ts` | React Query hook polling `/api/notifications` on a 30s interval |
-| `components/notification-badge.tsx` | Unread-count indicator |
 | `components/notification-list.tsx` | Notification feed |
 | `index.ts` | Barrel export |
 

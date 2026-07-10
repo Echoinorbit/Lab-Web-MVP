@@ -30,7 +30,7 @@ export default async function PostsPage() {
   ]);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       <div className="space-y-6">
         <PostList
           posts={posts.map((post) => ({
@@ -43,8 +43,8 @@ export default async function PostsPage() {
           }))}
         />
         {drafts.length > 0 ? (
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold">我的草稿</h2>
+          <section className="space-y-4">
+            <h2 className="text-base font-semibold tracking-tight">我的草稿</h2>
             <PostList
               posts={drafts.map((post) => ({
                 id: post.id,

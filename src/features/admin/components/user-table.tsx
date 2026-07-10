@@ -68,12 +68,12 @@ function UserGovernanceActions({
 
   return (
     <div className="grid min-w-72 gap-2">
-      <details className="group rounded-md border bg-background">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2 py-1.5 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <details className="group rounded-lg border border-border/80 bg-card">
+        <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-medium outline-none transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
           编辑用户
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-        <div className="grid gap-2 border-t p-2">
+        <div className="grid gap-2 border-t border-border/70 p-3">
           <label className="grid gap-1 text-xs">
             <span className="text-muted-foreground">用户名</span>
             <Input className="h-8" value={username} onChange={(event) => setUsername(event.target.value)} />
@@ -100,10 +100,10 @@ function UserGovernanceActions({
           >
             保存身份信息
           </Button>
-          <div className="flex flex-wrap gap-2 border-t pt-2">
+          <div className="flex flex-wrap gap-2 border-t border-border/70 pt-3">
             <select
               aria-label={`${user.displayName}的状态`}
-              className="h-8 rounded-md border bg-background px-2 text-xs"
+              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
               value={selectedStatus}
               onChange={(event) => {
                 const nextStatus = event.target.value as UserRow["status"];
@@ -128,7 +128,7 @@ function UserGovernanceActions({
             </select>
             <select
               aria-label={`${user.displayName}的角色`}
-              className="h-8 rounded-md border bg-background px-2 text-xs"
+              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
               defaultValue={user.role}
               onChange={(event) => run(() => updateUserRole({ userId: user.id, role: event.target.value }))}
               disabled={isPending}
@@ -138,7 +138,7 @@ function UserGovernanceActions({
             </select>
             <select
               aria-label={`${user.displayName}的年级`}
-              className="h-8 rounded-md border bg-background px-2 text-xs"
+              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
               defaultValue={selectableGrade ? user.computedGrade : ""}
               onChange={(event) => run(() => updateUserGrade({ userId: user.id, grade: event.target.value }))}
               disabled={isPending || user.status === "GRADUATED" || !user.gradeTrack}
@@ -155,7 +155,7 @@ function UserGovernanceActions({
             {user.role === "MEMBER" && !user.isAdvisor ? (
               <select
                 aria-label={`${user.displayName}的导师`}
-                className="h-8 rounded-md border bg-background px-2 text-xs"
+                className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
                 defaultValue={user.advisorId ?? ""}
                 onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
                 disabled={isPending}

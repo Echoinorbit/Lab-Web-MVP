@@ -40,8 +40,8 @@ export default async function AnnouncementsPage({
   });
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-      <div className="space-y-3">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="space-y-4">
         <AnnouncementList
           announcements={announcements.map((announcement) => ({
             id: announcement.id,
@@ -57,14 +57,14 @@ export default async function AnnouncementsPage({
         <Pagination basePath="/announcements" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
       </div>
       {permissions.has(PERMISSIONS.ANNOUNCEMENT_CREATE) ? (
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle>公告发布</CardTitle>
           </CardHeader>
           <CardContent>
             <Link
               href={ANNOUNCEMENT_CREATE_ROUTE}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
             >
               发布公告
             </Link>

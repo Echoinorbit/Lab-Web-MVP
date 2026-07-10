@@ -37,14 +37,6 @@ export async function resolveProgressWriteWindow(
   };
 }
 
-export async function markBackfillWindowUsed(backfillWindowId: string | null) {
-  if (!backfillWindowId) return;
-  await prisma.progressBackfillWindow.update({
-    where: { id: backfillWindowId },
-    data: { usedAt: new Date() },
-  });
-}
-
 export function buildBackfillWindowConsumeWhere(backfillWindowId: string, now = new Date()) {
   return {
     id: backfillWindowId,

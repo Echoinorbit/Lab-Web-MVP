@@ -28,7 +28,7 @@ export function TargetSelector({ projects = [] }: { projects?: readonly Announce
             <button
               key={option.value}
               type="button"
-              className="rounded-md border px-3 py-1.5 text-sm transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-input px-3.5 py-2 text-sm font-medium transition-[color,background-color,border-color] duration-200 hover:border-foreground/20 hover:bg-muted data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
               data-active={targetType === option.value}
               disabled={disabled}
               onClick={() => setTargetType(option.value)}
@@ -42,7 +42,7 @@ export function TargetSelector({ projects = [] }: { projects?: readonly Announce
       {targetType === "ALL" ? (
         <Badge className="bg-muted">{ALL_TARGET_LABEL}</Badge>
       ) : targetType === "PROJECT" ? (
-        <select name="targetIds" className="h-9 rounded-md border bg-background px-3 text-sm" required>
+        <select name="targetIds" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
           <option value="">选择项目</option>
           {projects.map((project) => (
             <option key={project.id} value={project.id}>

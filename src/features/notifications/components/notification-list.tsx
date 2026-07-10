@@ -57,9 +57,9 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">通知</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.025em]">通知</h1>
         <Button type="button" variant="secondary" disabled={unreadCount === 0 || mutation.isPending} onClick={markAllRead}>
           <CheckCheck className="h-4 w-4" />
           全部已读
@@ -78,8 +78,8 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
               }}
               onKeyDown={(event) => handleCardKeyDown(event, notification)}
               className={cn(
-                "cursor-pointer transition hover:border-primary",
-                notification.isRead ? "opacity-75" : "border-primary",
+                "cursor-pointer transition-[border-color,background-color,opacity] duration-200 hover:border-foreground/20 hover:bg-muted/25",
+                notification.isRead ? "opacity-75" : "border-primary/50 bg-primary/5",
               )}
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3">

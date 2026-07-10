@@ -87,8 +87,15 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-4">
+    <div className="space-y-10">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-[34px]">协作总览</h1>
+        <p className="max-w-2xl text-[15px] leading-6 text-muted-foreground sm:text-base">
+          集中查看实验室成员、项目、公告与本月进度。
+        </p>
+      </header>
+
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-border bg-border md:grid-cols-4">
         {(
           [
             ["成员", memberCount, "/admin/users"],
@@ -97,22 +104,23 @@ export default async function DashboardPage() {
             ["未读通知", unreadNotificationCount, "/notifications"],
           ] satisfies Array<[string, number, Route]>
         ).map(([label, value, href]) => (
-          <Link key={label} href={href}>
-            <Card className="transition hover:border-primary">
-              <CardHeader className="py-3">
-                <CardTitle className="text-xs text-muted-foreground">{label}</CardTitle>
+          <Link key={label} href={href} aria-label={`${label}：${value}`}>
+            <Card className="h-full min-h-28 rounded-none border-0 bg-card transition-colors duration-200 hover:bg-muted/45">
+              <CardHeader className="border-0 px-5 pb-2 pt-5">
+                <CardTitle className="text-[13px] font-medium text-muted-foreground">{label}</CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 text-2xl font-semibold">{value}</CardContent>
+              <CardContent className="px-5 pb-5 pt-0 text-[28px] font-semibold tabular-nums tracking-[-0.035em]">{value}</CardContent>
             </Card>
           </Link>
         ))}
       </div>
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
-          <section className="space-y-3">
+
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)]">
+        <div className="min-w-0 space-y-10">
+          <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">公告中心</h2>
-              <Link href="/announcements" className="text-sm text-muted-foreground hover:text-foreground">
+              <h2 className="text-xl font-semibold tracking-[-0.025em]">最新公告</h2>
+              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors after:ml-1 after:content-['›'] hover:text-primary/80">
                 查看全部
               </Link>
             </div>
@@ -129,19 +137,35 @@ export default async function DashboardPage() {
               linkToDetail
             />
           </section>
-          <ProjectList
-            projects={projects.map((project) => ({
-              id: project.id,
-              name: project.name,
-              status: project.status,
-              memberCount: project._count.members,
-              nodeCount: project._count.nodes,
-              description: project.description,
-              canPreview: canViewProject(projectViewer, project),
-            }))}
-          />
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold tracking-[-0.025em]">最近项目</h2>
+              <Link href="/projects" className="text-sm font-medium text-primary transition-colors after:ml-1 after:content-['›'] hover:text-primary/80">
+                查看全部
+              </Link>
+            </div>
+            <ProjectList
+              projects={projects.map((project) => ({
+                id: project.id,
+                name: project.name,
+                status: project.status,
+                memberCount: project._count.members,
+                nodeCount: project._count.nodes,
+                description: project.description,
+                canPreview: canViewProject(projectViewer, project),
+              }))}
+            />
+          </section>
         </div>
-        <SummaryTable rows={progressRows} />
+
+        <section className="min-w-0 space-y-4 xl:sticky xl:top-24">
+          <div>
+            <h2 className="text-xl font-semibold tracking-[-0.025em]">本月进度</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{year} 年 {month} 月提交状态</p>
+          </div>
+          <SummaryTable rows={progressRows} />
+        </section>
       </section>
     </div>
   );

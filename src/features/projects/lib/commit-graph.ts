@@ -1,12 +1,6 @@
 import { buildAuthorLegend, resolveAuthorColor } from "./author-color";
 import type { ProjectCanvasSourceNode } from "./node-canvas";
 
-export type CommitGraphLane = {
-  authorId: string;
-  authorName: string;
-  color: string;
-};
-
 export type CommitGraphRow = ProjectCanvasSourceNode & {
   laneIndex: number;
   parentLaneIndex: number | null;

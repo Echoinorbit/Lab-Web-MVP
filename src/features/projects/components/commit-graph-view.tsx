@@ -178,8 +178,8 @@ function CommitGraphRowButton({
       onClick={onSelect}
       style={{ top: index * rowHeight, height: rowHeight }}
       className={cn(
-        "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        selected ? "bg-primary/10" : "bg-transparent",
+        "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-colors duration-200 hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        selected ? "bg-primary/[0.08]" : "bg-transparent",
         dimmed && "opacity-35",
       )}
     >
@@ -278,8 +278,8 @@ function CommitInspector({
   const canManageNode = canManageNodeActions && row.authorId === viewerId;
 
   return (
-    <aside className="flex min-h-[520px] flex-col border-l bg-muted/20" data-project-commit-inspector>
-      <div className="border-b px-4 py-3">
+    <aside className="flex min-h-[520px] flex-col border-l border-border/80 bg-muted/15" data-project-commit-inspector>
+      <div className="border-b border-border/80 px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <Badge className={meta.className}>
             <Icon className="mr-1 h-3 w-3" />
@@ -287,7 +287,7 @@ function CommitInspector({
           </Badge>
           <span className="text-xs text-muted-foreground">{formatNodeDateTime(row.createdAt)}</span>
         </div>
-        <h3 className="mt-3 text-base font-semibold leading-6">{row.title}</h3>
+        <h3 className="mt-3 text-base font-semibold leading-6 tracking-[-0.015em]">{row.title}</h3>
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
           {row.authorName}
@@ -302,7 +302,7 @@ function CommitInspector({
           {row.description || "暂无说明。"}
         </p>
       </div>
-      <div className="border-t px-4 py-3">
+      <div className="border-t border-border/80 px-4 py-3">
         {canManageNode ? (
           <ProjectNodeActions projectId={row.projectId} nodeId={row.id} />
         ) : (
@@ -342,7 +342,7 @@ export function CommitGraphView({
 
   if (graph.rows.length === 0) {
     return (
-      <div className="rounded-md border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border/80 bg-card px-4 py-12 text-center text-sm text-muted-foreground">
         暂无项目节点。
       </div>
     );
@@ -351,22 +351,22 @@ export function CommitGraphView({
   return (
     <div
       ref={containerRef}
-      className="overflow-x-auto rounded-md border bg-card"
+      className="overflow-x-auto rounded-xl border border-border/80 bg-card shadow-[var(--shadow-card)]"
       data-project-commit-graph
       style={{
         "--project-author-width": `${panelWidths.author}px`,
         "--project-inspector-width": `${panelWidths.inspector}px`,
       } as CSSProperties}
     >
-      <div className="grid grid-cols-[156px_minmax(0,1fr)] border-b bg-muted/40 text-xs text-muted-foreground lg:grid-cols-[var(--project-author-width)_8px_minmax(360px,1fr)_8px_var(--project-inspector-width)]">
-        <div className="border-r px-3 py-2">作者</div>
+      <div className="grid grid-cols-[156px_minmax(0,1fr)] border-b border-border/80 bg-muted/60 text-xs font-medium text-muted-foreground lg:grid-cols-[var(--project-author-width)_8px_minmax(360px,1fr)_8px_var(--project-inspector-width)]">
+        <div className="border-r border-border/80 px-3 py-2.5">作者</div>
         <div className="hidden lg:block" aria-hidden="true" />
-        <div className="px-3 py-2">提交详情</div>
+        <div className="px-3 py-2.5">提交详情</div>
         <div className="hidden lg:block" aria-hidden="true" />
-        <div className="hidden border-l px-3 py-2 lg:block">节点详情</div>
+        <div className="hidden border-l border-border/80 px-3 py-2.5 lg:block">节点详情</div>
       </div>
       <div className="grid lg:grid-cols-[var(--project-author-width)_8px_minmax(360px,1fr)_8px_var(--project-inspector-width)]">
-        <div className="border-b bg-muted/20 p-2 lg:border-b-0 lg:border-r">
+        <div className="border-b border-border/80 bg-muted/20 p-2.5 lg:border-b-0 lg:border-r">
           <div className="space-y-2">
             {graph.lanes.map((lane, index) => (
               <button
@@ -380,8 +380,8 @@ export function CommitGraphView({
                   setSelectedAuthorId((current) => current === lane.authorId ? null : lane.authorId);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  selectedAuthorId === lane.authorId && "border-primary bg-primary/10",
+                  "flex min-h-9 w-full items-center gap-2 rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-left text-xs transition-[border-color,background-color] duration-200 hover:border-foreground/20 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selectedAuthorId === lane.authorId && "border-primary/60 bg-primary/[0.08] text-primary",
                 )}
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: lane.color }}>

@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 
 export default function ForbiddenPage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="flex min-h-[65vh] items-center justify-center py-12">
       <Card className="w-full max-w-xl">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
               <ShieldAlert className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
@@ -24,7 +24,7 @@ export default function ForbiddenPage() {
           </p>
           <Link
             href="/"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             返回首页

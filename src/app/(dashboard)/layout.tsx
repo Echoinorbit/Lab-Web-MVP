@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { logout } from "@/features/auth";
 import { Header } from "@/shared/components/layout/header";
-import { MobileNav } from "@/shared/components/layout/mobile-nav";
 import { Sidebar } from "@/shared/components/layout/sidebar";
 import { buildNavigationAccess } from "@/shared/lib/navigation-access";
 import { getUserPermissions } from "@/shared/lib/permissions";
@@ -23,15 +22,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const navigationAccess = buildNavigationAccess(permissions);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       <Sidebar access={navigationAccess} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center border-b px-2 md:hidden">
-          <MobileNav access={navigationAccess} />
-          <div className="px-2 text-sm font-semibold">实验室协作</div>
-        </div>
-        <Header displayName={displayName} role={user.role} unreadCount={unreadCount} logoutAction={logout} />
-        <main className="mx-auto w-full max-w-7xl px-4 py-5">{children}</main>
+      <div className="min-w-0 flex-1 overflow-x-hidden">
+        <Header
+          displayName={displayName}
+          role={user.role}
+          unreadCount={unreadCount}
+          navigationAccess={navigationAccess}
+          logoutAction={logout}
+        />
+        <main className="mx-auto min-w-0 w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-10 lg:py-10">{children}</main>
       </div>
     </div>
   );

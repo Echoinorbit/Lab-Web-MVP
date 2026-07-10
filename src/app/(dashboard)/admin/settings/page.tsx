@@ -7,7 +7,7 @@ export default async function AdminSettingsPage() {
   await requirePermission({ permission: PERMISSIONS.ADMIN_SETTINGS, entityType: "SystemSettings" });
 
   return (
-    <Card>
+    <Card className="mx-auto max-w-4xl">
       <CardHeader>
         <CardTitle>系统设置</CardTitle>
       </CardHeader>

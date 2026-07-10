@@ -7,18 +7,11 @@ import { includeActiveAdminsInNotificationRecipients } from "@/features/notifica
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { projectMemberInputSchema, projectMembersInputSchema } from "@/shared/lib/validators/projects";
+import { projectMembersInputSchema } from "@/shared/lib/validators/projects";
 
 import { grantProjectScopedTag } from "../lib/tag-grants";
 import { assertParticipantsBelongToAdvisor } from "../lib/project-governance";
 import { assertProjectWritable } from "../lib/writable";
-
-export async function addProjectMember(input: unknown) {
-  const legacy = projectMemberInputSchema.safeParse(input);
-  return addProjectMembers(legacy.success
-    ? { projectId: legacy.data.projectId, userIds: [legacy.data.userId] }
-    : input);
-}
 
 export async function addProjectMembers(input: unknown) {
   const actor = await requireActiveUser();

@@ -74,28 +74,28 @@ export default async function ProgressPage({
     : [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 text-sm">
-          <Link href={`/progress?year=${prev.year}&month=${prev.month}`} className="rounded-md border px-2 py-1 hover:bg-muted">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Link href={`/progress?year=${prev.year}&month=${prev.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
             ← 上一月
           </Link>
-          <span className="font-medium">
+          <span className="px-2 font-semibold tabular-nums">
             {year} 年 {month} 月{isCurrent ? "（本月）" : ""}
           </span>
-          <Link href={`/progress?year=${next.year}&month=${next.month}`} className="rounded-md border px-2 py-1 hover:bg-muted">
+          <Link href={`/progress?year=${next.year}&month=${next.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
             下一月 →
           </Link>
           {!isCurrent ? (
-            <Link href={`/progress?year=${current.year}&month=${current.month}`} className="rounded-md border px-2 py-1 hover:bg-muted">
+            <Link href={`/progress?year=${current.year}&month=${current.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
               回到本月
             </Link>
           ) : null}
         </div>
         {canExport ? <ExportButton year={year} month={month} /> : null}
       </div>
-      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
-        <div className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+        <div className="space-y-6">
           {canWrite
             ? (
                 <ReportForm

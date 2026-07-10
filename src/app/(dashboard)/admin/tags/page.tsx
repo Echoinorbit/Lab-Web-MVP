@@ -45,9 +45,9 @@ export default async function AdminTagsPage() {
   ]);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-      <div className="space-y-3">
-        <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="space-y-4">
+        <p className="rounded-xl border bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
           本页仅展示和管理 GLOBAL Tag；项目组长/组员 Tag 由项目流程自动维护，不可手动增删。
         </p>
         <TagList
@@ -59,7 +59,7 @@ export default async function AdminTagsPage() {
           }))}
         />
       </div>
-      <div className="space-y-4">
+      <div className="space-y-6">
         <TagGrantForm
           users={users}
           tags={tags

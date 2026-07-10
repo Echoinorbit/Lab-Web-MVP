@@ -9,7 +9,7 @@ Monthly progress reports with a strict, timezone-aware write window and a contro
 ## Key Files
 | File | Description |
 |------|-------------|
-| `lib/backfill.ts` | `resolveProgressWriteWindow` (allowed if in-window OR an unused, unexpired backfill window exists) and `markBackfillWindowUsed` (consumes the window on submit) |
+| `lib/backfill.ts` | `resolveProgressWriteWindow` (allowed if in-window OR an unused, unexpired backfill window exists) and transactional `consumeBackfillWindow` |
 | `actions/save-report.ts` | Saves a DRAFT report (gated by the write window) |
 | `actions/submit-report.ts` | Submits a report; consumes any backfill window |
 | `actions/open-backfill-window.ts` | Opens a 24h backfill window for a user/month (requires `progress.backfill`); audits `PROGRESS_BACKFILL` |

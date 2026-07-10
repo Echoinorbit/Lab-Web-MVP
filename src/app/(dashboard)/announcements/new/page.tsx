@@ -21,7 +21,7 @@ export default async function NewAnnouncementPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl py-2">
       <AnnouncementForm projects={projects} />
     </div>
   );

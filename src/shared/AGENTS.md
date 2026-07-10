@@ -11,7 +11,6 @@ Cross-cutting code used by every feature and route: the security/persistence lib
 |-----------|---------|
 | `lib/` | Auth, permissions, sessions, audit, rate limits, dates, security, Prisma client, validators (see `lib/AGENTS.md`) |
 | `components/` | Primitive UI (`ui/`), layout shell (`layout/`), and composite widgets (see `components/AGENTS.md`) |
-| `hooks/` | Client hooks: `use-auth.ts`, `use-permissions.ts` (read session-derived role/permissions/tags) |
 | `types/` | Shared cross-feature type definitions |
 
 ## For AI Agents
@@ -22,7 +21,6 @@ Cross-cutting code used by every feature and route: the security/persistence lib
 
 ### Common Patterns
 - Pure logic + thin async wrapper: e.g. `computePermissionsFromSnapshot` (pure, tested) vs `getUserPermissions` (queries Prisma then calls the pure fn).
-- `use-auth` / `use-permissions` read from the augmented NextAuth session (`session.user.permissions`, `session.user.tags`).
 
 ## Dependencies
 

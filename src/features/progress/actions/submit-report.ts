@@ -12,50 +12,6 @@ import { reportInputFromForm, type ReportFormState } from "../lib/report-form";
 import { writeProgressReport } from "../lib/report-write";
 import { saveProgressReport } from "./save-report";
 
-export async function submitProgressReport(year: number, month: number) {
-  const user = await requireActiveUser();
-  await assertPermissionWithAudit({
-    userId: user.id,
-    permission: PERMISSIONS.PROGRESS_REPORT_SUBMIT,
-    entityType: "ProgressReport",
-  });
-
-  const writeWindow = await resolveProgressWriteWindow(user.id, year, month);
-  if (!writeWindow.allowed) {
-    throw new Error("进度报告仅可在北京时间每月 25–27 日提交；历史月份需由管理员开启补填窗口。");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    const now = new Date();
-    const report = await tx.progressReport.findFirstOrThrow({
-      where: {
-        userId: user.id,
-        year,
-        month,
-        deletedAt: null,
-        status: "DRAFT",
-      },
-      select: { id: true },
-    });
-
-    await tx.progressReport.update({
-      where: { id: report.id },
-      data: { status: "SUBMITTED", submittedAt: now },
-    });
-    await consumeBackfillWindow(tx, writeWindow.backfillWindowId, now);
-
-    await tx.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "UPDATE",
-        entityType: "ProgressReport",
-        entityId: report.id,
-        details: { status: "SUBMITTED", year, month },
-      },
-    });
-  });
-}
-
 async function saveAndSubmitProgressReport(input: unknown) {
   const user = await requireActiveUser();
   const data = progressReportInputSchema.parse(input);

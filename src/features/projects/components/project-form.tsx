@@ -42,7 +42,7 @@ export function ProjectForm({
         <select
           id="project-advisor"
           name={lockedAdvisorId ? undefined : "advisorId"}
-          className="h-9 rounded-md border bg-background px-3 text-sm disabled:opacity-70"
+          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-70"
           value={advisorId}
           disabled={Boolean(lockedAdvisorId)}
           required

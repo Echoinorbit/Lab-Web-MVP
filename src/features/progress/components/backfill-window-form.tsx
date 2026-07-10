@@ -38,7 +38,7 @@ export function BackfillWindowForm({
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
           <Label htmlFor="backfill-user">成员</Label>
-          <select id="backfill-user" name="userId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
+          <select id="backfill-user" name="userId" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.displayName} ({user.username})

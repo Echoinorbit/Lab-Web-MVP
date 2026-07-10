@@ -43,7 +43,7 @@ export function ProjectNodeEditForm({
             <select
               id="node-type"
               name="nodeType"
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
               defaultValue={node.nodeType}
             >
               <option value="MILESTONE">里程碑</option>

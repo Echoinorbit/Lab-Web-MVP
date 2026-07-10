@@ -30,8 +30,8 @@ Standard server-action shape (see `announcements/actions/create.ts` for the refe
 1. `const user = await requireActiveUser()`
 2. `const data = schema.parse(input)` (Zod from `@/shared/lib/validators`)
 3. `await assertPermissionWithAudit({ ... })` — or `assertProjectPermissionWithAudit` with `projectId`
-4. optional `await checkRateLimit(user.id, action)`
-5. `prisma.$transaction(...)` that writes the entity, creates `Notification` rows for recipients, and appends an `AuditLog` entry.
+4. `prisma.$transaction(...)` with optional `await enforceRateLimit(tx, user.id, action)`
+5. Inside the same transaction, write the entity, create `Notification` rows, and append an `AuditLog` entry.
 
 ### Testing Requirements
 - Feature logic is exercised through the shared helpers' unit tests plus `tsc`/`lint`. Run `npm run verify`.

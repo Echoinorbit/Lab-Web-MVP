@@ -32,12 +32,17 @@ export function LoginForm({ initialNotice = null }: { initialNotice?: string | n
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>登录</CardTitle>
+    <Card className="w-full max-w-sm border-0 bg-transparent shadow-none">
+      <CardHeader className="border-0 px-0 pb-8 pt-0">
+        <div className="mb-8 flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.018em]">
+          <span className="h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
+          实验室协作
+        </div>
+        <CardTitle className="text-[34px] leading-tight tracking-[-0.035em]">欢迎回来</CardTitle>
+        <p className="mt-2 text-[15px] leading-6 text-muted-foreground">登录后继续管理项目、进度与实验室协作。</p>
       </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+      <CardContent className="p-0">
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="username">用户名</Label>
             <Input id="username" name="username" autoComplete="username" required />
@@ -46,7 +51,7 @@ export function LoginForm({ initialNotice = null }: { initialNotice?: string | n
             <Label htmlFor="password">密码</Label>
             <Input id="password" name="password" type="password" autoComplete="current-password" required />
           </div>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">{error}</p> : null}
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? "登录中" : "登录"}
           </Button>

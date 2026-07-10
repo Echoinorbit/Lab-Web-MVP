@@ -47,7 +47,7 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="admin-advisor">导师</Label>
-        <select id="admin-advisor" name="advisorId" className="h-9 w-full rounded-md border bg-background px-3 text-sm">
+        <select id="admin-advisor" name="advisorId" className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20">
           <option value="">未设置</option>
           {advisors.map((advisor) => (
             <option key={advisor.id} value={advisor.id}>

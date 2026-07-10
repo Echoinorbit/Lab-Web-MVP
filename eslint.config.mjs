@@ -8,6 +8,7 @@ export default [
       ".next/**",
       ".agents/**",
       ".claude/**",
+      ".understand-anything/**",
       "node_modules/**",
       "coverage/**",
       "public/**",

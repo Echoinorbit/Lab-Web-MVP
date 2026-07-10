@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Bell,
   ChartNoAxesCombined,
@@ -12,8 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { usePathname } from "next/navigation";
 
-import { Badge } from "@/shared/components/ui/badge";
 import type { NavigationAccessMap, NavigationItemKey } from "@/shared/lib/navigation-access";
 import { cn } from "@/shared/lib/utils";
 
@@ -31,33 +33,37 @@ const navItems: Array<{ key: NavigationItemKey; href: Route; label: string; icon
 ];
 
 export function Sidebar({ className, access }: { className?: string; access?: NavigationAccessMap }) {
+  const pathname = usePathname();
+
   return (
-    <aside className={cn("hidden w-60 shrink-0 border-r bg-card md:block", className)}>
-      <div className="border-b px-4 py-4">
-        <div className="text-sm font-semibold">实验室协作</div>
-        <div className="mt-2 flex items-center gap-2">
-          <Badge className="bg-secondary text-secondary-foreground">v0.1</Badge>
-          <span className="text-xs text-muted-foreground">Next + Prisma</span>
+    <aside className={cn("hidden w-64 shrink-0 border-r border-border/80 bg-background md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto", className)}>
+      <div className="flex h-16 items-center border-b border-border/80 px-5">
+        <div>
+          <div className="text-[17px] font-semibold tracking-[-0.025em]">实验室协作</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">研究协作工作台</div>
         </div>
       </div>
-      <nav className="space-y-1 p-2">
+      <nav className="space-y-1 p-3.5" aria-label="主导航">
         {navItems.map((item) => {
           const enabled = access?.[item.key] ?? true;
+          const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
           const itemClassName = cn(
-            "flex h-9 items-center gap-2 rounded-md px-3 text-sm transition-colors",
+            "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200",
             enabled
-              ? "text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? active
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-primary/10 active:text-primary"
               : "cursor-not-allowed text-muted-foreground opacity-45",
           );
           const content = (
             <>
-              <item.icon className="h-4 w-4" aria-hidden="true" />
+              <item.icon className="h-[17px] w-[17px] shrink-0" strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
               {item.label}
             </>
           );
 
           return enabled ? (
-            <Link key={item.href} href={item.href} className={itemClassName}>
+            <Link key={item.href} href={item.href} className={itemClassName} aria-current={active ? "page" : undefined}>
               {content}
             </Link>
           ) : (

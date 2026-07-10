@@ -43,7 +43,7 @@ A lab collaboration management platform built as a runnable MVP base (not a stat
 
 ### Common Patterns
 - Feature-sliced architecture under `src/features/<feature>/` with `components/`, `actions/`, optional `lib/`/`hooks/`/`types.ts`, and a barrel `index.ts`.
-- Server actions start with `"use server"`, then: `requireActiveUser()` → Zod parse → `assertPermissionWithAudit` (or project variant) → optional `checkRateLimit` → `prisma.$transaction` that writes the entity, fans out notifications, and records an `AuditLog` row.
+- Server actions start with `"use server"`, then: `requireActiveUser()` → Zod parse → `assertPermissionWithAudit` (or project variant) → `prisma.$transaction` with optional `enforceRateLimit(tx, ...)`, the entity write, notification fan-out, and an `AuditLog` row.
 
 ## Dependencies
 

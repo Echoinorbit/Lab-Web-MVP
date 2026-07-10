@@ -2,34 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 
-import { appendAuditLog } from "@/shared/lib/audit";
-import { PERMISSIONS, PermissionDeniedError, type Permission, getUserPermissions } from "@/shared/lib/permissions";
+import { assertAnyPermissionWithAudit } from "@/shared/lib/authorization";
+import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { revokeTagInputSchema } from "@/shared/lib/validators/tags";
 
 import { assertManuallyManageableTagName } from "../lib/project-tag-guard";
 
-async function assertAnyTagPermission(userId: string, permissions: readonly Permission[], entityId?: string | null) {
-  const granted = await getUserPermissions(userId);
-  if (permissions.some((permission) => granted.has(permission))) return;
-
-  const permission = permissions[0] ?? PERMISSIONS.ADMIN_TAG_MANAGE;
-  await appendAuditLog({
-    userId,
-    action: "PERMISSION_DENIED",
-    entityType: "UserTag",
-    entityId,
-    details: { permission },
-  });
-  throw new PermissionDeniedError(permission);
-}
-
 export async function revokeTag(input: unknown) {
   const actor = await requireActiveUser();
   const data = revokeTagInputSchema.parse(input);
 
-  await assertAnyTagPermission(actor.id, [PERMISSIONS.ADMIN_TAG_MANAGE, PERMISSIONS.TAG_REVOKE], data.userTagId);
+  await assertAnyPermissionWithAudit({
+    userId: actor.id,
+    permissions: [PERMISSIONS.ADMIN_TAG_MANAGE, PERMISSIONS.TAG_REVOKE],
+    entityType: "UserTag",
+    entityId: data.userTagId,
+  });
 
   const userTag = await prisma.userTag.findUniqueOrThrow({
     where: { id: data.userTagId },

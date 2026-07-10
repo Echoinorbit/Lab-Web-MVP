@@ -46,13 +46,13 @@ export function ExcelImport() {
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2 rounded-md border p-3 text-sm">
+      <div className="space-y-3 rounded-xl border bg-muted/30 p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="font-medium">Excel 列格式（顺序不可变）</p>
           <a
             href="/api/admin/users/import-template"
             download
-            className="inline-flex h-8 items-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+            className="inline-flex h-8 items-center rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             下载 .xlsx 模板
           </a>
@@ -89,7 +89,7 @@ export function ExcelImport() {
         </ul>
       ) : null}
       {result ? (
-        <div className="rounded-md bg-muted p-3 text-sm">
+        <div className="rounded-xl bg-muted p-4 text-sm">
           <div>创建 {result.created} 个成员</div>
           {result.errors.length ? <div className="mt-1 text-destructive">{result.errors.join("；")}</div> : null}
         </div>

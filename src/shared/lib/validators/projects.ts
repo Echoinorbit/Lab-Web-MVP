@@ -32,11 +32,6 @@ export const deleteProjectNodeInputSchema = z.object({
   nodeId: z.string().min(1),
 });
 
-export const projectMemberInputSchema = z.object({
-  projectId: z.string().min(1),
-  userId: z.string().min(1),
-});
-
 export const projectMembersInputSchema = z.object({
   projectId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1).transform((values) => [...new Set(values)]),

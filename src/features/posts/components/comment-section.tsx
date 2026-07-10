@@ -58,7 +58,7 @@ function CommentItem({
   return (
     <div
       data-comment-row
-      className={cn("space-y-2 rounded-md border p-3", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}
+      className={cn("space-y-3 rounded-xl border p-4", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">

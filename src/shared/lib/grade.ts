@@ -9,8 +9,6 @@ export const GRADE_LABELS = {
   phd: ["博1", "博2", "博3", "博4", "博5"],
 } as const;
 
-export type GradeLabel = (typeof GRADE_LABELS)[GradeTrack][number];
-
 function shanghaiMidnightDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month - 1, day - 1, 16, 0, 0, 0));
 }

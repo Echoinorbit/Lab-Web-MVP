@@ -63,17 +63,17 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-5xl space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>个人中心</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid gap-4 sm:grid-cols-2">
+          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
             {fields.map((field) => (
-              <div key={field.label}>
-                <dt className="text-xs text-muted-foreground">{field.label}</dt>
-                <dd className="mt-0.5 text-sm font-medium">{field.value}</dd>
+              <div key={field.label} className="border-b pb-4 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0">
+                <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
+                <dd className="mt-1 text-sm font-semibold">{field.value}</dd>
               </div>
             ))}
           </dl>
@@ -108,7 +108,7 @@ export default async function ProfilePage() {
         <CardContent>
           <Link
             href="/change-password"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             修改密码
           </Link>

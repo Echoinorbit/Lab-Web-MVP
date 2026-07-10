@@ -15,7 +15,7 @@ export function ChangePasswordForm() {
   const error = state.message;
 
   return (
-    <form className="grid gap-4" action={formAction}>
+    <form className="grid gap-5" action={formAction}>
       <div className="space-y-2">
         <Label htmlFor="currentPassword">当前密码</Label>
         <Input id="currentPassword" name="currentPassword" type="password" required />
@@ -29,7 +29,7 @@ export function ChangePasswordForm() {
         <Input id="confirmPassword" name="confirmPassword" type="password" minLength={10} required />
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" className="h-11" disabled={pending}>
         {pending ? "保存中" : "保存"}
       </Button>
     </form>

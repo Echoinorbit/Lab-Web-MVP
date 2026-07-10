@@ -47,9 +47,9 @@ export default async function AdminAuditPage({
   const userById = new Map(users.map((user) => [user.id, user]));
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">操作日志记录</h1>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">操作日志记录</h1>
         <p className="text-sm text-muted-foreground">每页显示 {AUDIT_LOG_PAGE_SIZE} 条记录。</p>
       </div>
       <AuditLogTable
@@ -62,15 +62,15 @@ export default async function AdminAuditPage({
         }))}
       />
       <Pagination basePath="/admin/audit" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div>
           <h2 className="text-base font-semibold">历史导出</h2>
           <p className="text-sm text-muted-foreground">保留到对应自然年年底，到期后由导出任务清理。</p>
         </div>
         {archives.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto rounded-xl border bg-card shadow-[var(--shadow-card)]">
             <table className="w-full text-left text-sm">
-              <thead className="bg-muted text-muted-foreground">
+              <thead className="bg-muted/70 text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">文件名</th>
                   <th className="px-3 py-2 font-medium">序号</th>
@@ -82,7 +82,7 @@ export default async function AdminAuditPage({
               </thead>
               <tbody>
                 {archives.map((archive) => (
-                  <tr key={archive.id} className="border-t">
+                  <tr key={archive.id} className="border-t transition-colors hover:bg-muted/50">
                     <td className="px-3 py-2">{archive.fileName}</td>
                     <td className="px-3 py-2">seq{archive.seqInYear}</td>
                     <td className="px-3 py-2">{archive.rowCount}</td>
@@ -102,7 +102,7 @@ export default async function AdminAuditPage({
             </table>
           </div>
         ) : (
-          <div className="rounded-md border p-3 text-sm text-muted-foreground">暂无历史导出</div>
+          <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground shadow-[var(--shadow-card)]">暂无历史导出</div>
         )}
       </section>
     </div>

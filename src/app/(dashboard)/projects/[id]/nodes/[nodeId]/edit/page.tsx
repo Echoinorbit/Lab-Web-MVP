@@ -48,7 +48,7 @@ export default async function ProjectNodeEditPage({
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-3xl py-2">
       <ProjectNodeEditForm node={node} />
     </div>
   );

@@ -15,7 +15,7 @@ The security and persistence core of the platform. Authentication, the dynamic p
 | `permissions.ts` | `PERMISSIONS` catalog, `ROLE_PERMISSIONS`, pure `compute*FromSnapshot` (global + project-scoped), and `getUserPermissions`/`getProjectPermissions`/`assertPermission`/`assertProjectPermission` + `PermissionDeniedError` |
 | `authorization.ts` | `assertPermissionWithAudit` / `assertProjectPermissionWithAudit` / `requirePermission` — wrap permission checks and write a `PERMISSION_DENIED` audit row on failure |
 | `audit.ts` | `appendAuditLog` and helpers (e.g. `auditPermissionDenied`) for the `AuditLog` table |
-| `rate-limits.ts` | `RATE_LIMITS` table, pure `selectRateLimit` (tag-based unlimited/limited/denied), and `checkRateLimit` (upserts a daily counter) |
+| `rate-limits.ts` | `RATE_LIMITS` table, pure `selectRateLimit` (tag-based unlimited/limited/denied), transactional `enforceRateLimit`, and read-only `getRateLimitStatus` |
 | `security.ts` | `validatePasswordPolicy` (≥10 chars, ≥3 classes, no identity substring) and `verifyPasswordWithDummyFallback` (constant-work bcrypt compare) |
 | `date.ts` | Asia/Shanghai date logic: report window is days 25–27; `canWriteProgressReport`, backfill expiry (24h), daily window starts for counters |
 | `authorization.ts` | (see above) |

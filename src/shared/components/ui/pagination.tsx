@@ -34,10 +34,10 @@ function PageControl({
   params?: PaginationProps["params"];
 }) {
   const className = cn(
-    "inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm transition-colors",
+    "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm transition-[color,background-color,border-color] duration-200",
     disabled
       ? "cursor-not-allowed text-muted-foreground opacity-50"
-      : "hover:bg-muted hover:text-foreground",
+      : "hover:border-foreground/20 hover:bg-muted hover:text-foreground active:bg-muted/80",
   );
 
   return disabled ? (
@@ -55,10 +55,10 @@ export function Pagination({ basePath, currentPage, totalPages, params }: Pagina
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
+    <nav aria-label="分页" className="flex flex-wrap items-center gap-2 text-sm">
       <PageControl label="首页" page={1} disabled={currentPage <= 1} basePath={basePath} params={params} />
       <PageControl label="上一页" page={currentPage - 1} disabled={currentPage <= 1} basePath={basePath} params={params} />
-      <span className="px-1 text-muted-foreground">
+      <span className="px-1 tabular-nums text-muted-foreground">
         第 {currentPage} / {totalPages} 页
       </span>
       <form action={basePath} className="flex items-center gap-2">
@@ -70,19 +70,19 @@ export function Pagination({ basePath, currentPage, totalPages, params }: Pagina
         </label>
         <input
           id="pagination-page"
-          className="h-9 w-20 rounded-md border bg-background px-2 text-sm"
+          className="h-10 w-20 rounded-lg border bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
           name="page"
           type="number"
           min={1}
           max={totalPages}
           defaultValue={currentPage}
         />
-        <button className="h-9 rounded-md border px-3 transition-colors hover:bg-muted" type="submit">
+        <button className="h-10 rounded-full border px-4 transition-colors duration-200 hover:bg-muted active:bg-muted/80" type="submit">
           跳转
         </button>
       </form>
       <PageControl label="下一页" page={currentPage + 1} disabled={currentPage >= totalPages} basePath={basePath} params={params} />
       <PageControl label="末页" page={totalPages} disabled={currentPage >= totalPages} basePath={basePath} params={params} />
-    </div>
+    </nav>
   );
 }

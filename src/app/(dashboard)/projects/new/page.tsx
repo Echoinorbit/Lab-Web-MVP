@@ -50,7 +50,7 @@ export default async function NewProjectPage() {
       <CardHeader>
         <CardTitle>创建项目</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-1">
         <ProjectForm advisors={visibleAdvisors} lockedAdvisorId={creatorIsAdvisor ? user.id : undefined} />
       </CardContent>
     </Card>

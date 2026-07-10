@@ -10,7 +10,6 @@ import { splitCommaList } from "@/shared/lib/utils";
 
 import { createPostFormAction, type CreatePostFormState } from "../actions/create-post";
 import { shouldAutosaveDraft } from "../lib/drafts";
-import { joinPostTagLabels } from "../lib/post-tags";
 
 const initialState: CreatePostFormState = { ok: false, message: null, tone: "error" };
 
@@ -113,7 +112,7 @@ export function PostForm({
 
   const messageClassName =
     state.ok || state.tone === "info"
-      ? "rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+      ? "rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-6 text-muted-foreground"
       : "text-sm text-destructive";
 
   return (
@@ -136,7 +135,7 @@ export function PostForm({
           id="post-category"
           name="category"
           defaultValue={initialDraft?.category ?? "GENERAL"}
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
         >
           <option value="GENERAL">综合</option>
           <option value="EXPERIENCE">经验分享</option>
@@ -150,7 +149,7 @@ export function PostForm({
         <Input
           id="post-tags"
           name="tags"
-          defaultValue={joinPostTagLabels(initialDraft?.tags ?? [])}
+          defaultValue={(initialDraft?.tags ?? []).join("，")}
           placeholder="多个标签用逗号分隔（中英文逗号均可）"
         />
       </div>

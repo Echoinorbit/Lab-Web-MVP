@@ -20,7 +20,7 @@ Discussion posts and threaded comments. Provides the post list/detail UI, the po
 ### Working In This Directory
 - This slice is currently UI-forward; per the README, full create/delete data flow is not yet wired. When adding actions, follow the standard server-action pattern (see `@/features/announcements/actions/create.ts`).
 - Capabilities: creating posts/comments needs `post.create` / `comment.create` (granted via Tags like `grad-master`, `grad-phd`, `advisor`); `ADMIN` only holds `post.delete_any` / `comment.delete_any` (moderation), not creation.
-- Post creation is rate-limited per tag (`grad-master` 5/day, `grad-phd` 10/day, `advisor` unlimited) — use `checkRateLimit(userId, "post.create")`.
+- Post creation is rate-limited per tag (`grad-master` 5/day, `grad-phd` 10/day, `advisor` unlimited) — use `enforceRateLimit(tx, userId, "post.create")` inside the write transaction.
 - Filter `deletedAt: null` for posts and comments (soft delete).
 
 ### Testing Requirements

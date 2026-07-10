@@ -72,7 +72,7 @@ export function ReportForm({
             <Label htmlFor="externalDays">外出项目工作天数</Label>
             <Input id="externalDays" name="externalDays" type="number" min={0} max={31} defaultValue={initialValue?.externalDays ?? 0} disabled={!writeAllowed} />
           </div>
-          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-6 text-muted-foreground">
             {describeProgressWriteMode(writeMode)}
           </p>
           {isSubmitted ? (

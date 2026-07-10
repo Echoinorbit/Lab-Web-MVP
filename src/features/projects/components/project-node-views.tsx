@@ -13,8 +13,8 @@ export function ProjectNodeViews({
   canManageNodeActions: boolean;
 }) {
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold">项目节点</h2>
+    <div className="space-y-4">
+      <h2 className="text-base font-semibold tracking-[-0.015em]">项目节点</h2>
       <CommitGraphView viewerId={viewerId} nodes={canvasNodes} canManageNodeActions={canManageNodeActions} />
     </div>
   );

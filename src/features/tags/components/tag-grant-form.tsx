@@ -49,7 +49,7 @@ export function TagGrantForm({
       <CardContent className="space-y-4">
         <form action={grantAction} className="grid gap-3">
           <Label htmlFor="tag-user">成员</Label>
-          <select id="tag-user" name="userId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
+          <select id="tag-user" name="userId" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.displayName} ({user.username})
@@ -57,7 +57,7 @@ export function TagGrantForm({
             ))}
           </select>
           <Label htmlFor="tag-id">Tag</Label>
-          <select id="tag-id" name="tagId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
+          <select id="tag-id" name="tagId" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
             {tags.map((tag) => (
               <option key={tag.id} value={tag.id}>
                 {tag.displayName} ({tag.name})
@@ -71,7 +71,7 @@ export function TagGrantForm({
         </form>
         <form action={revokeAction} className="grid gap-3 border-t pt-4">
           <Label htmlFor="user-tag-id">现有授权</Label>
-          <select id="user-tag-id" name="userTagId" className="h-9 rounded-md border bg-background px-3 text-sm" required>
+          <select id="user-tag-id" name="userTagId" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
             {userTags.map((userTag) => (
               <option key={userTag.id} value={userTag.id}>
                 {userTag.label}
