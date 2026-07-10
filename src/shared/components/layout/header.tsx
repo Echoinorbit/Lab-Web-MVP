@@ -26,7 +26,7 @@ export function Header({ displayName, role, unreadCount, navigationAccess, logou
       <div className="hidden min-w-0 flex-1 md:block" />
       <Link
         href="/notifications"
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={unreadCount > 0 ? `通知，${unreadCount} 条未读` : "通知"}
       >
         <Bell className="h-4 w-4" />

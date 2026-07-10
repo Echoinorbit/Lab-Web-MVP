@@ -17,7 +17,7 @@ export function AnnouncementCard({
   linkToDetail?: boolean;
 }) {
   return (
-    <Card data-announcement-row className={linkToDetail ? "transition-[border-color,background-color] duration-200 hover:border-foreground/20 hover:bg-muted/25" : undefined}>
+    <Card data-announcement-row className={linkToDetail ? "transition-[border-color,background-color] duration-[var(--motion-base)] ease-[var(--ease-fluid)] hover:border-foreground/20 hover:bg-muted/25" : undefined}>
       <CardHeader className="space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -31,7 +31,7 @@ export function AnnouncementCard({
         </div>
         <CardTitle className="leading-6">
           {linkToDetail ? (
-            <Link href={`/announcements/${announcement.id}`} className="transition-colors hover:text-primary">
+            <Link href={`/announcements/${announcement.id}`} className="transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:text-primary">
               {announcement.title}
             </Link>
           ) : (

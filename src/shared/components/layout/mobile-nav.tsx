@@ -20,8 +20,8 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
         <Menu className="h-[18px] w-[18px]" />
       </Button>
       {open ? (
-        <div className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="h-full w-64" onClick={(event) => event.stopPropagation()}>
+        <div className="ui-overlay-enter fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="ui-sheet-enter h-full w-64" onClick={(event) => event.stopPropagation()}>
             <Sidebar className="block h-full bg-background shadow-[var(--shadow-card)]" access={access} />
           </div>
         </div>

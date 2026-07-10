@@ -141,7 +141,7 @@ function CommitGraphCanvas({
         const x = laneX(row.laneIndex);
         const y = rowY(rowIndex);
         return (
-          <g key={row.id} opacity={dimmed ? 0.25 : 1}>
+          <g key={row.id} opacity={dimmed ? 0.25 : 1} className="transition-opacity duration-[var(--motion-fast)] ease-[var(--ease-fluid)]">
             <circle cx={x} cy={y} r={selected ? 10 : 8} fill="hsl(var(--card))" stroke={row.color} strokeWidth={selected ? 3 : 2} />
             <circle cx={x} cy={y} r={5} fill={row.color} />
             {selected ? <circle cx={x} cy={y} r={14} fill="none" stroke={row.color} strokeWidth={1.5} opacity={0.35} /> : null}
@@ -178,7 +178,7 @@ function CommitGraphRowButton({
       onClick={onSelect}
       style={{ top: index * rowHeight, height: rowHeight }}
       className={cn(
-        "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-colors duration-200 hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        "absolute left-0 flex w-full items-center border-b border-border/60 text-left transition-[background-color,border-color,box-shadow,opacity] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         selected ? "bg-primary/[0.08]" : "bg-transparent",
         dimmed && "opacity-35",
       )}
@@ -237,7 +237,7 @@ function CommitColumnResizer({
       aria-valuemax={max}
       aria-valuenow={Math.round(value)}
       tabIndex={0}
-      className="group relative hidden cursor-col-resize touch-none bg-border/60 outline-none hover:bg-primary/40 focus-visible:bg-primary/50 lg:block"
+      className="group relative hidden cursor-col-resize touch-none bg-border/60 outline-none transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-primary/40 focus-visible:bg-primary/50 lg:block"
       onDoubleClick={() => onChange(DEFAULT_COMMIT_PANEL_WIDTHS)}
       onKeyDown={(event) => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -259,7 +259,7 @@ function CommitColumnResizer({
       }}
       onPointerCancel={() => { dragStart.current = null; }}
     >
-      <span className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-border group-hover:bg-primary" aria-hidden="true" />
+      <span className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-border transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] group-hover:bg-primary" aria-hidden="true" />
     </div>
   );
 }
@@ -380,7 +380,7 @@ export function CommitGraphView({
                   setSelectedAuthorId((current) => current === lane.authorId ? null : lane.authorId);
                 }}
                 className={cn(
-                  "flex min-h-9 w-full items-center gap-2 rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-left text-xs transition-[border-color,background-color] duration-200 hover:border-foreground/20 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex min-h-9 w-full items-center gap-2 rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-left text-xs transition-[color,border-color,background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:border-foreground/20 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   selectedAuthorId === lane.authorId && "border-primary/60 bg-primary/[0.08] text-primary",
                 )}
               >

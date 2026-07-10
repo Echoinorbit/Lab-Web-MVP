@@ -21,7 +21,7 @@ export function DataTable<T>({ columns, rows }: { columns: readonly DataTableCol
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-border/70 transition-colors duration-150 hover:bg-muted/40 last:border-b-0">
+            <tr key={rowIndex} className="border-b border-border/70 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted/40 last:border-b-0">
               {columns.map((column) => (
                 <td key={column.key} className="px-4 py-3 align-top">
                   {column.cell(row)}

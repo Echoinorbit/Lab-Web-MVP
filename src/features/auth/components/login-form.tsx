@@ -32,13 +32,13 @@ export function LoginForm({ initialNotice = null }: { initialNotice?: string | n
   };
 
   return (
-    <Card className="w-full max-w-sm border-0 bg-transparent shadow-none">
-      <CardHeader className="border-0 px-0 pb-8 pt-0">
-        <div className="mb-8 flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.018em]">
+    <Card className="w-full max-w-[400px] border-0 bg-transparent shadow-none">
+      <CardHeader className="border-0 px-0 pb-7 pt-0">
+        <div className="mb-9 flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.018em]">
           <span className="h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
           实验室协作
         </div>
-        <CardTitle className="text-[34px] leading-tight tracking-[-0.035em]">欢迎回来</CardTitle>
+        <CardTitle className="text-[36px] leading-tight tracking-[-0.04em]">欢迎回来</CardTitle>
         <p className="mt-2 text-[15px] leading-6 text-muted-foreground">登录后继续管理项目、进度与实验室协作。</p>
       </CardHeader>
       <CardContent className="p-0">

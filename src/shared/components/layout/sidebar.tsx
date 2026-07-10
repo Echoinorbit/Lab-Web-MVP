@@ -48,10 +48,10 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
           const enabled = access?.[item.key] ?? true;
           const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
           const itemClassName = cn(
-            "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200",
+            "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-[color,background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)]",
             enabled
               ? active
-                ? "bg-primary/10 text-primary"
+                ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.1)]"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-primary/10 active:text-primary"
               : "cursor-not-allowed text-muted-foreground opacity-45",
           );

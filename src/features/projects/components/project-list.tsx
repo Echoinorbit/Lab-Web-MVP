@@ -29,8 +29,8 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {projects.map((project) => (
-        <Link key={project.id} href={`/projects/${project.id}`} className="group relative block">
-          <Card className="h-full transition-[border-color,background-color] duration-200 ease-out hover:border-foreground/20 hover:bg-muted/25">
+        <Link key={project.id} href={`/projects/${project.id}`} className="group relative block rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+          <Card className="h-full transition-[border-color,background-color,box-shadow] duration-[var(--motion-base)] ease-[var(--ease-fluid)] group-hover:border-foreground/20 group-hover:bg-muted/25">
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-[15px]">{project.name}</CardTitle>
@@ -49,7 +49,7 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
             </CardContent>
           </Card>
           {project.canPreview ? (
-            <div data-project-preview className="absolute left-0 top-full z-40 mt-2 hidden w-72 rounded-[14px] border border-border bg-card p-4 text-sm shadow-[var(--shadow-card)] group-hover:block">
+            <div data-project-preview className="ui-popover-enter absolute left-0 top-full z-40 mt-2 hidden w-72 origin-top-left rounded-[14px] border border-border bg-card p-4 text-sm shadow-[var(--shadow-card)] group-hover:block group-focus-within:block">
               <div className="font-medium">{project.name}</div>
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                 <div>

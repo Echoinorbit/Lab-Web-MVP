@@ -34,7 +34,7 @@ function PageControl({
   params?: PaginationProps["params"];
 }) {
   const className = cn(
-    "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm transition-[color,background-color,border-color] duration-200",
+    "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm transition-[color,background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-fluid)]",
     disabled
       ? "cursor-not-allowed text-muted-foreground opacity-50"
       : "hover:border-foreground/20 hover:bg-muted hover:text-foreground active:bg-muted/80",
@@ -70,14 +70,14 @@ export function Pagination({ basePath, currentPage, totalPages, params }: Pagina
         </label>
         <input
           id="pagination-page"
-          className="h-10 w-20 rounded-lg border bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+          className="h-10 w-20 rounded-lg border bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
           name="page"
           type="number"
           min={1}
           max={totalPages}
           defaultValue={currentPage}
         />
-        <button className="h-10 rounded-full border px-4 transition-colors duration-200 hover:bg-muted active:bg-muted/80" type="submit">
+        <button className="h-10 rounded-full border px-4 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted active:bg-muted/80" type="submit">
           跳转
         </button>
       </form>

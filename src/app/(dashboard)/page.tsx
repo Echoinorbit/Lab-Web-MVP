@@ -87,7 +87,7 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 sm:space-y-10">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-[34px]">协作总览</h1>
         <p className="max-w-2xl text-[15px] leading-6 text-muted-foreground sm:text-base">
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-border bg-border md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-border bg-border md:grid-cols-4">
         {(
           [
             ["成员", memberCount, "/admin/users"],
@@ -104,23 +104,23 @@ export default async function DashboardPage() {
             ["未读通知", unreadNotificationCount, "/notifications"],
           ] satisfies Array<[string, number, Route]>
         ).map(([label, value, href]) => (
-          <Link key={label} href={href} aria-label={`${label}：${value}`}>
-            <Card className="h-full min-h-28 rounded-none border-0 bg-card transition-colors duration-200 hover:bg-muted/45">
+          <Link key={label} href={href} aria-label={`${label}：${value}`} className="group focus-visible:outline-none">
+            <Card className="h-full min-h-24 rounded-none border-0 bg-card transition-[background-color,box-shadow] duration-[var(--motion-base)] ease-[var(--ease-fluid)] group-hover:bg-muted/45 group-focus-visible:z-10 group-focus-visible:ring-2 group-focus-visible:ring-inset group-focus-visible:ring-ring sm:min-h-28">
               <CardHeader className="border-0 px-5 pb-2 pt-5">
                 <CardTitle className="text-[13px] font-medium text-muted-foreground">{label}</CardTitle>
               </CardHeader>
-              <CardContent className="px-5 pb-5 pt-0 text-[28px] font-semibold tabular-nums tracking-[-0.035em]">{value}</CardContent>
+              <CardContent className="px-5 pb-5 pt-0 text-[28px] font-semibold tabular-nums tracking-[-0.035em] transition-colors duration-[var(--motion-base)] ease-[var(--ease-fluid)] group-hover:text-primary">{value}</CardContent>
             </Card>
           </Link>
         ))}
       </div>
 
-      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)]">
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-10 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-12">
         <div className="min-w-0 space-y-10">
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold tracking-[-0.025em]">最新公告</h2>
-              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors after:ml-1 after:content-['›'] hover:text-primary/80">
+              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] after:ml-1 after:content-['›'] hover:text-primary/80">
                 查看全部
               </Link>
             </div>
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold tracking-[-0.025em]">最近项目</h2>
-              <Link href="/projects" className="text-sm font-medium text-primary transition-colors after:ml-1 after:content-['›'] hover:text-primary/80">
+              <Link href="/projects" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] after:ml-1 after:content-['›'] hover:text-primary/80">
                 查看全部
               </Link>
             </div>

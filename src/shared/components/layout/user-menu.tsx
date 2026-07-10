@@ -46,7 +46,7 @@ export function UserMenu({ displayName, role, logoutAction }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary/90 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-[background-color,box-shadow,transform] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="个人菜单"
@@ -57,7 +57,7 @@ export function UserMenu({ displayName, role, logoutAction }: UserMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-12 z-40 w-60 rounded-[14px] border border-border bg-card/95 p-1.5 shadow-[var(--shadow-card)] backdrop-blur-xl"
+          className="ui-popover-enter absolute right-0 top-12 z-40 w-60 origin-top-right rounded-[14px] border border-border bg-card/95 p-1.5 shadow-[var(--shadow-card)] backdrop-blur-xl"
         >
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
@@ -75,7 +75,7 @@ export function UserMenu({ displayName, role, logoutAction }: UserMenuProps) {
             href="/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground"
+            className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted hover:text-foreground"
           >
             <User className="h-4 w-4" />
             个人中心
@@ -111,7 +111,7 @@ function MenuItemButton({
       type="submit"
       role="menuitem"
       className={cn(
-        "flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground",
+        "flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted hover:text-foreground",
         className,
       )}
     >

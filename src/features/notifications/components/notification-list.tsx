@@ -78,7 +78,7 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
               }}
               onKeyDown={(event) => handleCardKeyDown(event, notification)}
               className={cn(
-                "cursor-pointer transition-[border-color,background-color,opacity] duration-200 hover:border-foreground/20 hover:bg-muted/25",
+                "cursor-pointer transition-[border-color,background-color,box-shadow,opacity] duration-[var(--motion-base)] ease-[var(--ease-fluid)] hover:border-foreground/20 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 notification.isRead ? "opacity-75" : "border-primary/50 bg-primary/5",
               )}
             >
