@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { createProjectNodeFormAction, type ProjectNodeState } from "../actions/create-node";
 import { PROJECT_NODE_ROOT_PARENT_VALUE } from "../lib/node-parent-selection";
@@ -44,20 +45,20 @@ export function ProjectNodeForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="node-type">类型</Label>
-            <select id="node-type" name="nodeType" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20">
+            <Select id="node-type" name="nodeType" className="w-full">
               <option value="MILESTONE">里程碑</option>
               <option value="UPDATE">更新</option>
               <option value="DECISION">决策</option>
               <option value="ISSUE">问题</option>
               <option value="RESOURCE">资源</option>
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="parent-node">父节点</Label>
-            <select
+            <Select
               id="parent-node"
               name="parentId"
-              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+              className="w-full"
               defaultValue={defaultParentId}
             >
               <option value={PROJECT_NODE_ROOT_PARENT_VALUE}>根节点</option>
@@ -66,7 +67,7 @@ export function ProjectNodeForm({
                   {node.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="节点说明" />
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

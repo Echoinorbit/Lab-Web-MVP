@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { openBackfillWindowFormAction, type BackfillFormState } from "../actions/open-backfill-window";
 
@@ -38,13 +39,13 @@ export function BackfillWindowForm({
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
           <Label htmlFor="backfill-user">成员</Label>
-          <select id="backfill-user" name="userId" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
+          <Select id="backfill-user" name="userId" className="w-full" required>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.displayName} ({user.username})
               </option>
             ))}
-          </select>
+          </Select>
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
           <Button type="submit" className="w-fit" disabled={isPending || users.length === 0}>
             {isPending ? "处理中" : "开启 24h 窗口"}

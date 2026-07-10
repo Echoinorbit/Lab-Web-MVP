@@ -8,6 +8,7 @@ import { DataTable } from "@/shared/components/data-table";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Select } from "@/shared/components/ui/select";
 import { GRADE_LABELS, type GradeTrack } from "@/shared/lib/grade";
 
 import { revokeUserSessions } from "../actions/revoke-user-sessions";
@@ -101,9 +102,9 @@ function UserGovernanceActions({
             保存身份信息
           </Button>
           <div className="flex flex-wrap gap-2 border-t border-border/70 pt-3">
-            <select
+            <Select
               aria-label={`${user.displayName}的状态`}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
+              className="h-8 bg-card px-2 text-xs"
               value={selectedStatus}
               onChange={(event) => {
                 const nextStatus = event.target.value as UserRow["status"];
@@ -125,20 +126,20 @@ function UserGovernanceActions({
               <option value="ACTIVE">ACTIVE</option>
               <option value="SUSPENDED">SUSPENDED</option>
               <option value="GRADUATED">GRADUATED</option>
-            </select>
-            <select
+            </Select>
+            <Select
               aria-label={`${user.displayName}的角色`}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
+              className="h-8 bg-card px-2 text-xs"
               defaultValue={user.role}
               onChange={(event) => run(() => updateUserRole({ userId: user.id, role: event.target.value }))}
               disabled={isPending}
             >
               <option value="MEMBER">MEMBER</option>
               <option value="ADMIN">ADMIN</option>
-            </select>
-            <select
+            </Select>
+            <Select
               aria-label={`${user.displayName}的年级`}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
+              className="h-8 bg-card px-2 text-xs"
               defaultValue={selectableGrade ? user.computedGrade : ""}
               onChange={(event) => run(() => updateUserGrade({ userId: user.id, grade: event.target.value }))}
               disabled={isPending || user.status === "GRADUATED" || !user.gradeTrack}
@@ -151,11 +152,11 @@ function UserGovernanceActions({
                   {grade}
                 </option>
               ))}
-            </select>
+            </Select>
             {user.role === "MEMBER" && !user.isAdvisor ? (
-              <select
+              <Select
                 aria-label={`${user.displayName}的导师`}
-                className="h-8 rounded-lg border border-input bg-card px-2 text-xs outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-60"
+                className="h-8 bg-card px-2 text-xs"
                 defaultValue={user.advisorId ?? ""}
                 onChange={(event) => run(() => updateUserAdvisor({ userId: user.id, advisorId: event.target.value || null }))}
                 disabled={isPending}
@@ -166,7 +167,7 @@ function UserGovernanceActions({
                     {advisor.displayName}
                   </option>
                 ))}
-              </select>
+              </Select>
             ) : null}
             <Button
               type="button"

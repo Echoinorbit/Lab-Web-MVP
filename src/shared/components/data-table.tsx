@@ -6,29 +6,58 @@ export type DataTableColumn<T> = {
   cell: (row: T) => ReactNode;
 };
 
-export function DataTable<T>({ columns, rows }: { columns: readonly DataTableColumn<T>[]; rows: readonly T[] }) {
+type DataTableProps<T> = {
+  columns: readonly DataTableColumn<T>[];
+  rows: readonly T[];
+  label?: string;
+  emptyMessage?: string;
+};
+
+export function DataTable<T>({
+  columns,
+  rows,
+  label = "数据列表",
+  emptyMessage = "暂无数据",
+}: DataTableProps<T>) {
   return (
-    <div className="min-w-0 max-w-full overflow-x-auto rounded-[18px] border border-border bg-card">
+    <div
+      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-border/90 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      tabIndex={0}
+      role="region"
+      aria-label={`${label}，可横向滚动`}
+    >
       <table className="w-full min-w-[720px] border-collapse text-[15px] [font-variant-numeric:tabular-nums]">
-        <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
+        <caption className="sr-only">{label}</caption>
+        <thead className="bg-surface text-left text-xs text-muted-foreground">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="border-b border-border/80 px-4 py-3 font-semibold">
+              <th key={column.key} scope="col" className="border-b border-border/80 px-4 py-3 font-semibold">
                 {column.header}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-border/70 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted/40 last:border-b-0">
-              {columns.map((column) => (
-                <td key={column.key} className="px-4 py-3 align-top">
-                  {column.cell(row)}
-                </td>
-              ))}
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                {emptyMessage}
+              </td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row, rowIndex) => (
+              <tr
+                key={rowIndex}
+                className="border-b border-border/70 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted/45 last:border-b-0"
+              >
+                {columns.map((column) => (
+                  <td key={column.key} className="px-4 py-3.5 align-top">
+                    {column.cell(row)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

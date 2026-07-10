@@ -24,8 +24,8 @@ export function ThemeToggle() {
   };
 
   return (
-    <Button variant="ghost" className="h-10 w-10 px-0" onClick={toggle} aria-label="切换主题">
-      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? "切换到浅色主题" : "切换到深色主题"}>
+      {dark ? <Sun className="h-[18px] w-[18px]" aria-hidden="true" /> : <Moon className="h-[18px] w-[18px]" aria-hidden="true" />}
     </Button>
   );
 }

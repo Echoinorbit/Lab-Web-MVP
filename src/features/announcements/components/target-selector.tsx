@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { ALL_TARGET_LABEL } from "../lib/target-copy";
 import type { AnnouncementProjectOption } from "./announcement-form";
@@ -42,14 +43,14 @@ export function TargetSelector({ projects = [] }: { projects?: readonly Announce
       {targetType === "ALL" ? (
         <Badge className="bg-muted">{ALL_TARGET_LABEL}</Badge>
       ) : targetType === "PROJECT" ? (
-        <select name="targetIds" className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20" required>
+        <Select name="targetIds" className="w-full" required>
           <option value="">选择项目</option>
           {projects.map((project) => (
             <option key={project.id} value={project.id}>
               {project.name}
             </option>
           ))}
-        </select>
+        </Select>
       ) : (
         <Input name="targetIds" placeholder="输入目标 ID，多个用逗号分隔" />
       )}

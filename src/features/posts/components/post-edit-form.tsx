@@ -6,6 +6,7 @@ import { MarkdownEditor } from "@/shared/components/markdown-editor";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { updatePostFormAction, type UpdatePostFormState } from "../actions/update-post";
 
@@ -45,18 +46,18 @@ export function PostEditForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-category">分类</Label>
-        <select
+        <Select
           id="post-category"
           name="category"
           defaultValue={category}
-          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+          className="w-full"
         >
           {categoryOptions.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-tags">标签</Label>

@@ -9,9 +9,12 @@ export function FileUpload({ onFiles }: { onFiles: (files: File[]) => void }) {
   };
 
   return (
-    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-card px-4 py-7 text-sm font-medium text-muted-foreground transition-[color,background-color,border-color] duration-200 hover:border-foreground/20 hover:bg-muted hover:text-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-      <Upload className="h-4 w-4" />
-      <span>上传文件</span>
+    <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-background/55 px-4 py-6 text-center text-sm text-muted-foreground transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:border-foreground/25 hover:bg-muted/70 hover:text-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
+        <Upload className="h-4 w-4" aria-hidden="true" />
+      </span>
+      <span className="font-medium text-foreground">选择要上传的文件</span>
+      <span className="text-xs">也可以一次选择多个文件</span>
       <input type="file" className="sr-only" multiple onChange={handleChange} />
     </label>
   );

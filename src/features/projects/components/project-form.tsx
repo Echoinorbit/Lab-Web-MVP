@@ -6,6 +6,7 @@ import { MarkdownEditor } from "@/shared/components/markdown-editor";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { createProjectFormAction, type ProjectFormState } from "../actions/create-project";
 import { AdvisorStudentTree, type ProjectAdvisorOption } from "./advisor-student-tree";
@@ -39,10 +40,10 @@ export function ProjectForm({
       <div className="space-y-2">
         <Label htmlFor="project-advisor">负责导师</Label>
         {lockedAdvisorId ? <input type="hidden" name="advisorId" value={lockedAdvisorId} /> : null}
-        <select
+        <Select
           id="project-advisor"
           name={lockedAdvisorId ? undefined : "advisorId"}
-          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:opacity-70"
+          className="w-full"
           value={advisorId}
           disabled={Boolean(lockedAdvisorId)}
           required
@@ -58,7 +59,7 @@ export function ProjectForm({
               {advisor.displayName} ({advisor.username})
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <AdvisorStudentTree
         advisor={advisors.find((advisor) => advisor.id === advisorId)}

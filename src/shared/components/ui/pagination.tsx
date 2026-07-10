@@ -1,6 +1,9 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
+import { buttonStyles } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils";
 
 type PaginationProps = {
@@ -26,27 +29,37 @@ function PageControl({
   disabled,
   basePath,
   params,
+  icon,
+  className,
 }: {
   label: string;
   page: number;
   disabled: boolean;
   basePath: string;
   params?: PaginationProps["params"];
+  icon?: "previous" | "next";
+  className?: string;
 }) {
-  const className = cn(
-    "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm transition-[color,background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-fluid)]",
-    disabled
-      ? "cursor-not-allowed text-muted-foreground opacity-50"
-      : "hover:border-foreground/20 hover:bg-muted hover:text-foreground active:bg-muted/80",
+  const controlClassName = buttonStyles({
+    variant: "secondary",
+    size: "small",
+    className: cn("min-w-9", disabled && "cursor-not-allowed opacity-45", className),
+  });
+  const content = (
+    <>
+      {icon === "previous" ? <ChevronLeft className="h-4 w-4" aria-hidden="true" /> : null}
+      <span>{label}</span>
+      {icon === "next" ? <ChevronRight className="h-4 w-4" aria-hidden="true" /> : null}
+    </>
   );
 
   return disabled ? (
-    <span className={className} aria-disabled="true">
-      {label}
+    <span className={controlClassName} aria-disabled="true">
+      {content}
     </span>
   ) : (
-    <Link className={className} href={pageHref(basePath, page, params) as Route}>
-      {label}
+    <Link className={controlClassName} href={pageHref(basePath, page, params) as Route}>
+      {content}
     </Link>
   );
 }
@@ -55,34 +68,50 @@ export function Pagination({ basePath, currentPage, totalPages, params }: Pagina
   if (totalPages <= 1) return null;
 
   return (
-    <nav aria-label="分页" className="flex flex-wrap items-center gap-2 text-sm">
-      <PageControl label="首页" page={1} disabled={currentPage <= 1} basePath={basePath} params={params} />
-      <PageControl label="上一页" page={currentPage - 1} disabled={currentPage <= 1} basePath={basePath} params={params} />
-      <span className="px-1 tabular-nums text-muted-foreground">
+    <nav aria-label="分页" className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex items-center gap-2">
+        <PageControl
+          label="上一页"
+          icon="previous"
+          page={currentPage - 1}
+          disabled={currentPage <= 1}
+          basePath={basePath}
+          params={params}
+        />
+        <PageControl
+          label="下一页"
+          icon="next"
+          page={currentPage + 1}
+          disabled={currentPage >= totalPages}
+          basePath={basePath}
+          params={params}
+        />
+      </div>
+
+      <span className="tabular-nums text-muted-foreground sm:px-1">
         第 {currentPage} / {totalPages} 页
       </span>
-      <form action={basePath} className="flex items-center gap-2">
+
+      <form action={basePath} className="flex items-center gap-2 sm:ml-auto">
         {Object.entries(params ?? {}).map(([key, value]) =>
           key !== "page" && value !== undefined ? <input key={key} type="hidden" name={key} value={value} /> : null,
         )}
         <label className="sr-only" htmlFor="pagination-page">
           跳转页码
         </label>
-        <input
+        <Input
           id="pagination-page"
-          className="h-10 w-20 rounded-lg border bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+          className="h-9 w-20 bg-card px-3 text-sm"
           name="page"
           type="number"
           min={1}
           max={totalPages}
           defaultValue={currentPage}
         />
-        <button className="h-10 rounded-full border px-4 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted active:bg-muted/80" type="submit">
+        <button className={buttonStyles({ variant: "secondary", size: "small" })} type="submit">
           跳转
         </button>
       </form>
-      <PageControl label="下一页" page={currentPage + 1} disabled={currentPage >= totalPages} basePath={basePath} params={params} />
-      <PageControl label="末页" page={totalPages} disabled={currentPage >= totalPages} basePath={basePath} params={params} />
     </nav>
   );
 }

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { createUserFormAction, type CreateUserFormState } from "../actions/create-user";
 
@@ -47,14 +48,14 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="admin-advisor">导师</Label>
-        <select id="admin-advisor" name="advisorId" className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20">
+        <Select id="admin-advisor" name="advisorId" className="w-full">
           <option value="">未设置</option>
           {advisors.map((advisor) => (
             <option key={advisor.id} value={advisor.id}>
               {advisor.displayName} ({advisor.username})
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       {message ? <p className={`sm:col-span-2 ${state.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}`}>{message}</p> : null}
       <Button type="submit" className="w-fit sm:col-span-2" disabled={isPending}>

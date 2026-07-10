@@ -6,6 +6,7 @@ import { MarkdownEditor } from "@/shared/components/markdown-editor";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 import { splitCommaList } from "@/shared/lib/utils";
 
 import { createPostFormAction, type CreatePostFormState } from "../actions/create-post";
@@ -131,18 +132,18 @@ export function PostForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-category">分类</Label>
-        <select
+        <Select
           id="post-category"
           name="category"
           defaultValue={initialDraft?.category ?? "GENERAL"}
-          className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+          className="w-full"
         >
           <option value="GENERAL">综合</option>
           <option value="EXPERIENCE">经验分享</option>
           <option value="TUTORIAL">教程</option>
           <option value="DISCUSSION">讨论</option>
           <option value="RESOURCE">资源分享</option>
-        </select>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="post-tags">标签</Label>

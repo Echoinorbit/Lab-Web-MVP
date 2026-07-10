@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Select } from "@/shared/components/ui/select";
 
 import { updateProjectNodeFormAction, type UpdateProjectNodeState } from "../actions/edit-node";
 import type { ProjectCanvasNodeType } from "../lib/node-canvas";
@@ -40,10 +41,10 @@ export function ProjectNodeEditForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="node-type">类型</Label>
-            <select
+            <Select
               id="node-type"
               name="nodeType"
-              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+              className="w-full"
               defaultValue={node.nodeType}
             >
               <option value="MILESTONE">里程碑</option>
@@ -51,7 +52,7 @@ export function ProjectNodeEditForm({
               <option value="DECISION">决策</option>
               <option value="ISSUE">问题</option>
               <option value="RESOURCE">资源</option>
-            </select>
+            </Select>
           </div>
           <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="节点说明" />
           {state.message ? <p className="text-sm text-muted-foreground">{state.message}</p> : null}
