@@ -28,13 +28,13 @@ export function ProjectLifecycleActions({
           if (!window.confirm("软删除后仅管理员可见并可恢复，确认继续？")) event.preventDefault();
         }}>
           <input type="hidden" name="projectId" value={projectId} />
-          <Button type="submit" variant="secondary" size="small"><Trash2 className="h-4 w-4" aria-hidden="true" />软删除</Button>
+          <Button type="submit" variant="secondary" size="small"><Trash2 className="h-4 w-4" aria-hidden="true" />软删除项目</Button>
         </form>
       ) : null}
       {canRestore ? (
         <form action={restoreProjectFormAction}>
           <input type="hidden" name="projectId" value={projectId} />
-          <Button type="submit" variant="secondary" size="small"><RotateCcw className="h-4 w-4" aria-hidden="true" />恢复</Button>
+          <Button type="submit" variant="secondary" size="small"><RotateCcw className="h-4 w-4" aria-hidden="true" />恢复项目</Button>
         </form>
       ) : null}
       {canHardDelete ? (

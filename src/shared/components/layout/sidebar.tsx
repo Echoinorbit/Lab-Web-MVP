@@ -59,7 +59,7 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
   return (
     <aside
       className={cn(
-        "hidden w-[272px] shrink-0 border-r border-border/75 bg-card md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto",
+        "hidden w-[272px] shrink-0 border-r border-border/75 bg-card xl:sticky xl:top-0 xl:block xl:h-screen xl:overflow-y-auto",
         className,
       )}
     >

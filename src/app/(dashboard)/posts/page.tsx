@@ -33,7 +33,7 @@ export default async function PostsPage() {
   return (
     <div className="space-y-10">
       <PageHeader title="帖子" description="分享研究经验、教程、资源与待讨论的问题。公开帖子对实验室成员可见。" />
-      <div className="grid min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-12">
+      <div className={canCreate ? "grid min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-12" : "min-w-0"}>
         <div className="min-w-0 space-y-12">
           <section className="space-y-5">
             <SectionHeader title="最新讨论" description={`${posts.length} 篇公开帖子`} />

@@ -51,7 +51,7 @@ export function TagGrantForm({
       <CardContent className="space-y-4">
         <form action={grantAction} className="grid gap-3" aria-busy={isGranting}>
           <Label htmlFor="tag-user">成员</Label>
-          <Select id="tag-user" name="userId" required>
+          <Select id="tag-user" name="userId" className="w-full" required>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.displayName} ({user.username})
@@ -59,7 +59,7 @@ export function TagGrantForm({
             ))}
           </Select>
           <Label htmlFor="tag-id">Tag</Label>
-          <Select id="tag-id" name="tagId" required>
+          <Select id="tag-id" name="tagId" className="w-full" required>
             {tags.map((tag) => (
               <option key={tag.id} value={tag.id}>
                 {tag.displayName} ({tag.name})
@@ -73,7 +73,7 @@ export function TagGrantForm({
         </form>
         <form action={revokeAction} className="grid gap-3 border-t border-border/80 pt-5" aria-busy={isRevoking}>
           <Label htmlFor="user-tag-id">现有授权</Label>
-          <Select id="user-tag-id" name="userTagId" required>
+          <Select id="user-tag-id" name="userTagId" className="w-full" required>
             {userTags.map((userTag) => (
               <option key={userTag.id} value={userTag.id}>
                 {userTag.label}

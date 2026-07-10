@@ -113,6 +113,7 @@ export default async function DashboardPage() {
             <Link
               key={metric.label}
               href={metric.href}
+              data-dashboard-metric
               aria-label={`${metric.label}：${metric.value}`}
               className="border-b border-r border-border/75 transition-colors hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:border-b-0"
             >

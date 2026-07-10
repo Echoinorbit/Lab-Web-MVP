@@ -4,6 +4,8 @@ import Image from "next/image";
 import labAtmosphere from "@/assets/lab-collaboration-atmosphere.webp";
 import { LoginForm } from "@/features/auth";
 
+const transparentPixel = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -28,14 +30,22 @@ export default async function LoginPage({
       </section>
 
       <section className="relative hidden min-h-screen overflow-hidden bg-[#111113] text-white lg:block" aria-label="产品概览">
-        <Image
-          src={labAtmosphere}
-          alt="实验室成员围绕研究资料进行协作"
-          fill
-          priority
-          sizes="(min-width: 1024px) 59vw, 1px"
-          className="object-cover"
-        />
+        <picture className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <source media="(min-width: 1024px)" srcSet={labAtmosphere.src} />
+          <Image
+            src={transparentPixel}
+            alt=""
+            aria-hidden="true"
+            role="presentation"
+            width={labAtmosphere.width}
+            height={labAtmosphere.height}
+            sizes="(min-width: 1024px) 59vw, 1px"
+            decoding="async"
+            fetchPriority="high"
+            unoptimized
+            className="h-full w-full object-cover"
+          />
+        </picture>
         <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
         <div className="relative flex h-full min-h-screen flex-col justify-between p-10 xl:p-14">
           <p className="text-sm font-medium text-white/75">研究协作工作台</p>

@@ -11,7 +11,9 @@ import type { NavigationAccessMap } from "@/shared/lib/navigation-access";
 export function MobileNav({ access }: { access: NavigationAccessMap }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -23,18 +25,41 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((element) => !element.hasAttribute("hidden"));
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable.at(-1) ?? first;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
+      triggerButtonRef.current?.focus();
     };
   }, [open]);
 
   return (
-    <div className="md:hidden">
+    <div className="xl:hidden">
       <Button
+        ref={triggerButtonRef}
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
@@ -54,6 +79,7 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
             aria-label="关闭导航"
           />
           <section
+            ref={dialogRef}
             id="mobile-navigation"
             role="dialog"
             aria-modal="true"

@@ -51,7 +51,7 @@ export default async function AdminTagsPage() {
       <PageHeader title="Tag" description="Tag 为 MEMBER 账号授予内容能力或业务范围；管理员角色本身只负责治理。" />
       <StatusNotice title="管理边界">此页只管理 GLOBAL Tag。项目组长与组员 Tag 由项目流程自动维护，不可手动增删。</StatusNotice>
 
-      <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-12">
+      <div className="grid min-w-0 items-start gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-12">
         <section className="min-w-0 space-y-5">
           <SectionHeader title="全局 Tag 清单" description={`${tags.length} 个全局 Tag 及其实时有效持有人数量。`} />
           <TagList
@@ -64,7 +64,7 @@ export default async function AdminTagsPage() {
           />
         </section>
 
-        <aside className="xl:sticky xl:top-24">
+        <aside className="min-w-0 xl:sticky xl:top-24">
           <TagGrantForm
             users={users}
             tags={tags

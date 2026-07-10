@@ -21,7 +21,7 @@ export function Header({ displayName, role, unreadCount, navigationAccess, logou
   return (
     <header className="sticky top-0 z-30 flex h-[68px] items-center gap-2 border-b border-border/75 bg-background/90 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
       <MobileNav access={navigationAccess} />
-      <div className="min-w-0 flex-1 px-1 md:px-0">
+      <div className="min-w-0 flex-1 px-1 xl:px-0">
         <RouteContext />
       </div>
       <Link

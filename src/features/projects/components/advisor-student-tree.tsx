@@ -1,5 +1,7 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
+
 import { Badge } from "@/shared/components/ui/badge";
 import { Label } from "@/shared/components/ui/label";
 import { StatusNotice } from "@/shared/components/ui/status-notice";
@@ -29,7 +31,7 @@ export function AdvisorStudentTree({
 }: {
   advisor?: ProjectAdvisorOption;
   selectedIds: readonly string[];
-  onSelectedIdsChange: (ids: string[]) => void;
+  onSelectedIdsChange: Dispatch<SetStateAction<string[]>>;
   leadUserId?: string;
   onLeadUserIdChange?: (id: string) => void;
   memberInputName?: string;
@@ -64,11 +66,15 @@ export function AdvisorStudentTree({
                     className="mt-0.5 h-4 w-4 accent-primary"
                     checked={checked}
                     onChange={(event) => {
-                      const next = event.target.checked
-                        ? [...selectedIds, student.id]
-                        : selectedIds.filter((id) => id !== student.id);
-                      onSelectedIdsChange(next);
-                      if (!event.target.checked && leadUserId === student.id) onLeadUserIdChange?.("");
+                      const isChecked = event.target.checked;
+                      onSelectedIdsChange((currentIds) =>
+                        isChecked
+                          ? currentIds.includes(student.id)
+                            ? currentIds
+                            : [...currentIds, student.id]
+                          : currentIds.filter((id) => id !== student.id),
+                      );
+                      if (!isChecked && leadUserId === student.id) onLeadUserIdChange?.("");
                     }}
                   />
                   <Label htmlFor={`student-${student.id}`} className="min-w-0 flex-1 cursor-pointer leading-5">

@@ -80,7 +80,7 @@ export default async function ProgressPage({
     <div className="space-y-10">
       <PageHeader
         title="进度报告"
-        description={`${year} 年 ${month} 月${isCurrent ? " · 本月" : " · 历史月份"}。填写窗口、补填授权与提交状态均由服务端判定。`}
+        description={`${year} 年 ${month} 月${isCurrent ? "（本月）" : "（历史月份）"}。填写窗口、补填授权与提交状态均由服务端判定。`}
         actions={canExport ? <ExportButton year={year} month={month} /> : null}
       />
 

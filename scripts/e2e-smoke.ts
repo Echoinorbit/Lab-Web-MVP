@@ -126,7 +126,7 @@ function assertNotificationPage(value: unknown, expectedPage: number): asserts v
 
 function countRenderedMarkers(body: string, marker: string) {
   const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return body.match(new RegExp(`<div[^>]*\\s${escapedMarker}(?:="[^"]*")?[^>]*>`, "g"))?.length ?? 0;
+  return body.match(new RegExp(`<[a-zA-Z][^>]*\\s${escapedMarker}(?:="[^"]*")?[^>]*>`, "g"))?.length ?? 0;
 }
 
 async function main() {
