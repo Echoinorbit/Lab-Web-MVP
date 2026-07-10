@@ -8,33 +8,44 @@ datasource db {
 }
 
 model User {
-  id             String     @id @default(cuid())
-  username       String     @unique
-  passwordHash   String
-  displayName    String
-  avatar         String?
-  role           Role       @default(MEMBER)
-  status         UserStatus @default(ACTIVE)
-  bio            String?
-  studentId      String?    @unique
-  grade          String?
-  enrollmentDate DateTime?
-  advisorId      String?
-  advisor        User?      @relation("AdvisorStudent", fields: [advisorId], references: [id], onDelete: Restrict)
-  students       User[]     @relation("AdvisorStudent")
+  id                    String       @id @default(cuid())
+  username              String       @unique
+  passwordHash          String
+  displayName           String
+  avatar                String?
+  role                  Role         @default(MEMBER)
+  status                UserStatus   @default(ACTIVE)
+  bio                   String?
+  studentId             String?      @unique
+  legacyGrade           String?
+  studyDegree           StudyDegree?
+  studyGrade            StudyGrade?
+  identityNeedsReview   Boolean      @default(false)
+  identityMigrationNote String?
+  enrollmentDate        DateTime?
+  advisorId             String?
+  advisorSnapshot       Json?
+  advisor               User?        @relation("AdvisorStudent", fields: [advisorId], references: [id], onDelete: SetNull)
+  students              User[]       @relation("AdvisorStudent")
+  graduatedAt           DateTime?
+  scheduledDeletionAt   DateTime?
 
-  announcements   Announcement[]
-  posts           Post[]
-  comments        Comment[]
-  projectMembers  ProjectMember[]
-  createdProjects Project[]        @relation("ProjectCreator")
-  advisedProjects Project[]        @relation("ProjectAdvisor")
-  projectNodes    ProjectNode[]    @relation("NodeAuthor")
-  progressReports ProgressReport[]
-  notifications   Notification[]
+  announcements     Announcement[]
+  posts             Post[]
+  comments          Comment[]
+  projectMembers    ProjectMember[]
+  createdProjects   Project[]        @relation("ProjectCreator")
+  advisedProjects   Project[]        @relation("ProjectAdvisor")
+  ledProjects       Project[]        @relation("ProjectLeader")
+  archivedProjects  Project[]        @relation("ProjectArchiver")
+  projectNodes      ProjectNode[]    @relation("NodeAuthor")
+  progressReports   ProgressReport[]
+  notifications     Notification[]
   sentNotifications Notification[]   @relation("NotificationSender")
-  tags            UserTag[]
-  grantedTags     UserTag[]        @relation("TagGranter")
+  tags              UserTag[]
+  grantedTags       UserTag[]        @relation("TagGranter")
+  revokedTags       UserTag[]        @relation("TagRevoker")
+  updatedSettings   SystemSetting[]  @relation("SystemSettingUpdatedBy")
 
   mustChangePassword Boolean   @default(true)
   tokenVersion       Int       @default(0)
@@ -47,6 +58,9 @@ model User {
 
   @@index([advisorId])
   @@index([status])
+  @@index([studyDegree])
+  @@index([identityNeedsReview])
+  @@index([scheduledDeletionAt])
 }
 
 enum Role {
@@ -58,6 +72,24 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   GRADUATED
+}
+
+enum StudyDegree {
+  MASTER
+  DOCTOR
+  MENTOR
+}
+
+enum StudyGrade {
+  MASTER_0
+  MASTER_1
+  MASTER_2
+  MASTER_3
+  DOCTOR_1
+  DOCTOR_2
+  DOCTOR_3
+  DOCTOR_4
+  DOCTOR_5
 }
 
 model Tag {
@@ -94,40 +126,53 @@ model TagTemplate {
 }
 
 model UserTag {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  tagId       String
-  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  grantedById String
-  grantedBy   User      @relation("TagGranter", fields: [grantedById], references: [id], onDelete: Restrict)
-  expiresAt   DateTime?
-  revokedAt   DateTime?
-  revokedById String?
-  createdAt   DateTime  @default(now())
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId           String
+  tag             Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  projectId       String?
+  project         Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  grantedById     String?
+  grantedBy       User?         @relation("TagGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+  granterSnapshot Json?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedById     String?
+  revokedBy       User?         @relation("TagRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
+  revokerSnapshot Json?
+  source          UserTagSource @default(MANUAL)
+  createdAt       DateTime      @default(now())
 
   @@index([userId])
   @@index([tagId])
   @@index([projectId])
   @@index([revokedAt])
+  @@index([source])
+}
+
+enum UserTagSource {
+  MANUAL
+  LEGACY
+  STUDY_IDENTITY
+  PROJECT_LEAD
 }
 
 model Announcement {
-  id         String       @id @default(cuid())
-  title      String
-  content    String
-  authorId   String
-  author     User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  isPinned   Boolean      @default(false)
-  isUrgent   Boolean      @default(false)
-  targetType NotifyTarget @default(ALL)
-  targetIds  String[]     @default([])
-  expiresAt  DateTime?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  deletedAt  DateTime?
+  id             String       @id @default(cuid())
+  title          String
+  content        String
+  authorId       String?
+  author         User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorSnapshot Json?
+  isPinned       Boolean      @default(false)
+  isUrgent       Boolean      @default(false)
+  targetType     NotifyTarget @default(ALL)
+  targetIds      String[]     @default([])
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
   @@index([authorId])
   @@index([deletedAt])
@@ -143,18 +188,19 @@ enum NotifyTarget {
 }
 
 model Post {
-  id        String       @id @default(cuid())
-  title     String
-  content   String
-  authorId  String
-  author    User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  category  PostCategory @default(GENERAL)
-  status    PostStatus   @default(PUBLISHED)
-  tags      String[]     @default([])
-  comments  Comment[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  deletedAt DateTime?
+  id             String       @id @default(cuid())
+  title          String
+  content        String
+  authorId       String?
+  author         User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorSnapshot Json?
+  category       PostCategory @default(GENERAL)
+  status         PostStatus   @default(PUBLISHED)
+  tags           String[]     @default([])
+  comments       Comment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
   @@index([authorId])
   @@index([category])
@@ -176,18 +222,19 @@ enum PostStatus {
 }
 
 model Comment {
-  id        String    @id @default(cuid())
-  content   String
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  postId    String
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Restrict)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
-  replies   Comment[] @relation("CommentReplies")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id             String    @id @default(cuid())
+  content        String
+  authorId       String?
+  author         User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorSnapshot Json?
+  postId         String
+  post           Post      @relation(fields: [postId], references: [id], onDelete: Restrict)
+  parentId       String?
+  parent         Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies        Comment[] @relation("CommentReplies")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   @@index([authorId])
   @@index([postId])
@@ -196,26 +243,38 @@ model Comment {
 }
 
 model Project {
-  id          String          @id @default(cuid())
-  name        String
-  description String?
-  status      ProjectStatus   @default(PLANNING)
-  creatorId   String
-  creator     User            @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: Restrict)
-  advisorId   String?
-  advisor     User?           @relation("ProjectAdvisor", fields: [advisorId], references: [id], onDelete: Restrict)
-  members     ProjectMember[]
-  nodes       ProjectNode[]
-  userTags    UserTag[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  deletedAt   DateTime?
-  archivedAt  DateTime?
+  id                      String          @id @default(cuid())
+  name                    String
+  description             String?
+  status                  ProjectStatus   @default(PLANNING)
+  creatorId               String?
+  creator                 User?           @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  creatorSnapshot         Json?
+  advisorId               String?
+  advisor                 User?           @relation("ProjectAdvisor", fields: [advisorId], references: [id], onDelete: SetNull)
+  advisorSnapshot         Json?
+  leaderId                String?
+  leader                  User?           @relation("ProjectLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  leaderSnapshot          Json?
+  leaderNeedsReassignment Boolean         @default(false)
+  archivedById            String?
+  archivedBy              User?           @relation("ProjectArchiver", fields: [archivedById], references: [id], onDelete: SetNull)
+  archivedBySnapshot      Json?
+  members                 ProjectMember[]
+  nodes                   ProjectNode[]
+  userTags                UserTag[]
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  deletedAt               DateTime?
+  archivedAt              DateTime?
 
   @@index([creatorId])
   @@index([advisorId])
+  @@index([leaderId])
+  @@index([archivedById])
   @@index([status])
   @@index([deletedAt])
+  @@index([archivedAt])
 }
 
 enum ProjectStatus {
@@ -227,33 +286,35 @@ enum ProjectStatus {
 }
 
 model ProjectMember {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  joinedAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  memberSnapshot Json?
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime @default(now())
 
   @@unique([userId, projectId])
   @@index([projectId])
 }
 
 model ProjectNode {
-  id          String        @id @default(cuid())
-  title       String
-  description String?
-  nodeType    NodeType      @default(UPDATE)
-  projectId   String
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parentId    String?
-  parent      ProjectNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children    ProjectNode[] @relation("NodeTree")
-  authorId    String
-  author      User          @relation("NodeAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  colorHex    String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  deletedAt   DateTime?
+  id             String        @id @default(cuid())
+  title          String
+  description    String?
+  nodeType       NodeType      @default(UPDATE)
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId       String?
+  parent         ProjectNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children       ProjectNode[] @relation("NodeTree")
+  authorId       String?
+  author         User?         @relation("NodeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorSnapshot Json?
+  colorHex       String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
 
   @@index([projectId])
   @@index([parentId])
@@ -272,8 +333,9 @@ enum NodeType {
 
 model ProgressReport {
   id             String       @id @default(cuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userSnapshot   Json?
   year           Int
   month          Int
   studySummary   String?
@@ -299,19 +361,20 @@ enum ReportStatus {
 }
 
 model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  senderId    String?
-  sender      User?            @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
-  type        NotificationType
-  title       String
-  content     String?
-  relatedId   String?
-  relatedType String?
-  isRead      Boolean          @default(false)
-  readAt      DateTime?
-  createdAt   DateTime         @default(now())
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId       String?
+  sender         User?            @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  senderSnapshot Json?
+  type           NotificationType
+  title          String
+  content        String?
+  relatedId      String?
+  relatedType    String?
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
 
   @@index([userId, isRead])
   @@index([senderId])
@@ -331,15 +394,16 @@ enum NotificationType {
 }
 
 model AuditLog {
-  id         String      @id @default(cuid())
-  userId     String?
-  action     AuditAction
-  entityType String
-  entityId   String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime    @default(now())
+  id            String      @id @default(cuid())
+  userId        String?
+  actorSnapshot Json?
+  action        AuditAction
+  entityType    String
+  entityId      String?
+  details       Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime    @default(now())
 
   @@index([entityType, entityId])
   @@index([userId])
@@ -433,4 +497,22 @@ model ProgressBackfillWindow {
   @@unique([userId, year, month])
   @@index([openedById])
   @@index([expiresAt])
+}
+
+model SystemSetting {
+  id                  String   @id @default("singleton")
+  progressStartDay    Int      @default(25)
+  progressStartMinute Int      @default(0)
+  progressEndDay      Int      @default(27)
+  progressEndMinute   Int      @default(1439)
+  timezone            String   @default("Asia/Shanghai")
+  sessionHours        Int      @default(24)
+  revision            Int      @default(0)
+  updatedById         String?
+  updatedBy           User?    @relation("SystemSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBySnapshot   Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([updatedById])
 }

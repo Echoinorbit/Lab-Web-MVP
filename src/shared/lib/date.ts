@@ -7,6 +7,20 @@ export type ShanghaiDateParts = {
   day: number;
 };
 
+export type ProgressWindow = {
+  progressStartDay: number;
+  progressStartMinute: number;
+  progressEndDay: number;
+  progressEndMinute: number;
+};
+
+export const DEFAULT_PROGRESS_WINDOW: ProgressWindow = {
+  progressStartDay: 25,
+  progressStartMinute: 0,
+  progressEndDay: 27,
+  progressEndMinute: 1439,
+};
+
 const shanghaiFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: SHANGHAI_TIME_ZONE,
   year: "numeric",
@@ -60,6 +74,18 @@ export function getShanghaiDateParts(date = new Date()): ShanghaiDateParts {
   };
 }
 
+export function getShanghaiDateTimeParts(date = new Date()) {
+  const parts = shanghaiDateTimeFormatter.formatToParts(asValidDate(date));
+  const pick = (type: Intl.DateTimeFormatPartTypes) => Number(datePart(parts, type));
+  return {
+    year: pick("year"),
+    month: pick("month"),
+    day: pick("day"),
+    hour: pick("hour"),
+    minute: pick("minute"),
+  };
+}
+
 export function getShanghaiDayWindowStart(date = new Date()) {
   const parts = getShanghaiDateParts(date);
   return new Date(Date.UTC(parts.year, parts.month - 1, parts.day - 1, 16, 0, 0, 0));
@@ -70,13 +96,21 @@ export function isCurrentShanghaiPeriod(year: number, month: number, date = new 
   return parts.year === year && parts.month === month;
 }
 
-export function isProgressReportWindowOpen(date = new Date()) {
-  const { day } = getShanghaiDateParts(date);
-  return day >= 25 && day <= 27;
+export function isProgressReportWindowOpen(date = new Date(), window = DEFAULT_PROGRESS_WINDOW) {
+  const { day, hour, minute } = getShanghaiDateTimeParts(date);
+  const current = day * 1440 + hour * 60 + minute;
+  const start = window.progressStartDay * 1440 + window.progressStartMinute;
+  const end = window.progressEndDay * 1440 + window.progressEndMinute;
+  return current >= start && current <= end;
 }
 
-export function canWriteProgressReport(year: number, month: number, date = new Date()) {
-  return isCurrentShanghaiPeriod(year, month, date) && isProgressReportWindowOpen(date);
+export function canWriteProgressReport(
+  year: number,
+  month: number,
+  date = new Date(),
+  window = DEFAULT_PROGRESS_WINDOW,
+) {
+  return isCurrentShanghaiPeriod(year, month, date) && isProgressReportWindowOpen(date, window);
 }
 
 export function getProgressBackfillExpiresAt(date = new Date()) {
