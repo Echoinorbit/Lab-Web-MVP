@@ -1,5 +1,4 @@
 import { MarkdownRenderer } from "@/shared/components/markdown-renderer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
 export function PostDetail({
   title,
@@ -11,14 +10,14 @@ export function PostDetail({
   authorName: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="text-xs text-muted-foreground">{authorName}</div>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <article>
+      <header className="border-b border-border/80 pb-8">
+        <p className="text-sm text-muted-foreground">{authorName}</p>
+        <h1 className="mt-4 text-[34px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[44px]">{title}</h1>
+      </header>
+      <div className="py-8 sm:py-10">
         <MarkdownRenderer content={content} />
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/shared/lib/utils";
 
-type HeadingProps = HTMLAttributes<HTMLDivElement> & {
+type HeadingProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;

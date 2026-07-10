@@ -1,9 +1,12 @@
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
 import { AnnouncementCard } from "@/features/announcements";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { notFound } from "next/navigation";
 
 export default async function AnnouncementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,16 +24,22 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
   if (!announcement) notFound();
 
   return (
-    <AnnouncementCard
-      announcement={{
-        id: announcement.id,
-        title: announcement.title,
-        content: announcement.content,
-        authorName: announcement.author.displayName,
-        createdAt: formatShanghaiDate(announcement.createdAt),
-        isPinned: announcement.isPinned,
-        isUrgent: announcement.isUrgent,
-      }}
-    />
+    <div className="mx-auto max-w-4xl space-y-8">
+      <Link href="/announcements" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        返回公告
+      </Link>
+      <AnnouncementCard
+        announcement={{
+          id: announcement.id,
+          title: announcement.title,
+          content: announcement.content,
+          authorName: announcement.author.displayName,
+          createdAt: formatShanghaiDate(announcement.createdAt),
+          isPinned: announcement.isPinned,
+          isUrgent: announcement.isUrgent,
+        }}
+      />
+    </div>
   );
 }

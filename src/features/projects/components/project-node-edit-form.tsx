@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { updateProjectNodeFormAction, type UpdateProjectNodeState } from "../actions/edit-node";
 import type { ProjectCanvasNodeType } from "../lib/node-canvas";
@@ -30,10 +31,10 @@ export function ProjectNodeEditForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">编辑节点</CardTitle>
+        <CardTitle>编辑节点</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="grid gap-3">
+        <form action={formAction} className="grid gap-3" aria-busy={isPending}>
           <input type="hidden" name="nodeId" value={node.id} />
           <div className="space-y-2">
             <Label htmlFor="node-title">标题</Label>
@@ -55,9 +56,9 @@ export function ProjectNodeEditForm({
             </Select>
           </div>
           <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="节点说明" />
-          {state.message ? <p className="text-sm text-muted-foreground">{state.message}</p> : null}
+          {state.message ? <StatusNotice variant={state.ok ? "success" : "error"}>{state.message}</StatusNotice> : null}
           <Button type="submit" className="w-fit" disabled={isPending}>
-            {isPending ? "保存中" : "保存节点"}
+            {isPending ? "正在保存…" : "保存节点"}
           </Button>
         </form>
       </CardContent>

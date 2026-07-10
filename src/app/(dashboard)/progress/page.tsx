@@ -1,9 +1,12 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { BackfillWindowForm, ExportButton, ReportForm, ReportList, SummaryTable } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { resolveProgressWriteWindow } from "@/features/progress/lib/backfill";
 import { resolveProgressPeriod } from "@/features/progress/lib/period";
+import { buttonStyles } from "@/shared/components/ui/button";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { formatShanghaiDate, canWriteProgressReport } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -74,50 +77,67 @@ export default async function ProgressPage({
     : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Link href={`/progress?year=${prev.year}&month=${prev.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
-            ← 上一月
+    <div className="space-y-10">
+      <PageHeader
+        title="进度报告"
+        description={`${year} 年 ${month} 月${isCurrent ? " · 本月" : " · 历史月份"}。填写窗口、补填授权与提交状态均由服务端判定。`}
+        actions={canExport ? <ExportButton year={year} month={month} /> : null}
+      />
+
+      <nav aria-label="进度月份" className="flex flex-col gap-3 rounded-2xl border border-border/90 bg-card p-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
+          <Link href={`/progress?year=${prev.year}&month=${prev.month}`} className={buttonStyles({ variant: "secondary", size: "small" })}>
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            上一月
           </Link>
-          <span className="px-2 font-semibold tabular-nums">
-            {year} 年 {month} 月{isCurrent ? "（本月）" : ""}
-          </span>
-          <Link href={`/progress?year=${next.year}&month=${next.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
-            下一月 →
+          <Link href={`/progress?year=${next.year}&month=${next.month}`} className={buttonStyles({ variant: "secondary", size: "small" })}>
+            下一月
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
-          {!isCurrent ? (
-            <Link href={`/progress?year=${current.year}&month=${current.month}`} className="inline-flex h-10 items-center rounded-full border bg-card px-4 font-medium transition-colors hover:bg-muted">
-              回到本月
-            </Link>
-          ) : null}
         </div>
-        {canExport ? <ExportButton year={year} month={month} /> : null}
-      </div>
-      <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
-        <div className="space-y-6">
-          {canWrite
-            ? (
-                <ReportForm
-                  year={year}
-                  month={month}
-                  writeMode={writeMode}
-                  initialValue={
-                    currentReport
-                      ? {
-                          studySummary: currentReport.studySummary,
-                          projectSummary: currentReport.projectSummary,
-                          thesisSummary: currentReport.thesisSummary,
-                          otherWork: currentReport.otherWork,
-                          externalDays: currentReport.externalDays,
-                          status: currentReport.status,
-                          editCount: currentReport.editCount,
-                        }
-                      : null
-                  }
-                />
-              )
-            : null}
+        <strong className="order-first text-center text-sm tabular-nums sm:order-none sm:ml-auto sm:text-left">
+          {year} 年 {month} 月
+        </strong>
+        {!isCurrent ? (
+          <Link href={`/progress?year=${current.year}&month=${current.month}`} className={buttonStyles({ variant: "ghost", size: "small", className: "sm:ml-1" })}>
+            回到本月
+          </Link>
+        ) : null}
+      </nav>
+
+      {canReadAll || canReadAdvisees ? (
+        <section className="space-y-5">
+          <SectionHeader title="提交汇总" description={`${summaryRows.length} 位成员在 ${year} 年 ${month} 月的报告状态。`} />
+          <SummaryTable rows={summaryRows} />
+        </section>
+      ) : null}
+
+      <div className={canWrite ? "grid items-start gap-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] xl:gap-12" : "max-w-3xl"}>
+        {canWrite ? (
+          <section className="min-w-0 space-y-5">
+            <SectionHeader title="我的报告" description="可保存草稿；提交后不能重复提交，保存修改次数受限。" />
+            <ReportForm
+              year={year}
+              month={month}
+              writeMode={writeMode}
+              initialValue={
+                currentReport
+                  ? {
+                      studySummary: currentReport.studySummary,
+                      projectSummary: currentReport.projectSummary,
+                      thesisSummary: currentReport.thesisSummary,
+                      otherWork: currentReport.otherWork,
+                      externalDays: currentReport.externalDays,
+                      status: currentReport.status,
+                      editCount: currentReport.editCount,
+                    }
+                  : null
+              }
+            />
+          </section>
+        ) : null}
+
+        <aside className="min-w-0 space-y-8">
           {canBackfill ? (
             <BackfillWindowForm
               year={year}
@@ -129,15 +149,17 @@ export default async function ProgressPage({
               }))}
             />
           ) : null}
-          <ReportList
-            reports={reports.map((report) => ({
-              yearMonth: `${report.year}-${String(report.month).padStart(2, "0")}`,
-              status: report.status,
-              updatedAt: formatShanghaiDate(report.updatedAt),
-            }))}
-          />
-        </div>
-        {canReadAll || canReadAdvisees ? <SummaryTable rows={summaryRows} /> : null}
+          <section className="space-y-5">
+            <SectionHeader title="最近报告" description="最近 12 个月的保存与提交记录。" />
+            <ReportList
+              reports={reports.map((report) => ({
+                yearMonth: `${report.year}-${String(report.month).padStart(2, "0")}`,
+                status: report.status,
+                updatedAt: formatShanghaiDate(report.updatedAt),
+              }))}
+            />
+          </section>
+        </aside>
       </div>
     </div>
   );

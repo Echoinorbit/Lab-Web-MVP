@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PostEditForm, PostForm } from "@/features/posts";
 import { formatPostQuotaNotice } from "@/features/posts/lib/rate-limit-copy";
+import { PageHeader } from "@/shared/components/ui/page-header";
 import { FORBIDDEN_ROUTE } from "@/shared/lib/access-denied";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -35,31 +36,30 @@ export default async function PostEditPage({ params }: { params: Promise<{ id: s
       : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-2">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">编辑帖子</h1>
-        <p className="text-sm text-muted-foreground">只会修改当前帖子，历史标签以文本快照保留。</p>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <PageHeader title={post.status === "DRAFT" ? "继续编辑草稿" : "编辑帖子"} description="只会修改当前帖子；历史标签以文本快照保留。" />
+      <div className="rounded-2xl border border-border/90 bg-card p-5 sm:p-7">
+        {post.status === "DRAFT" ? (
+          <PostForm
+            initialDraft={{
+              id: post.id,
+              title: post.title,
+              category: post.category,
+              content: post.content,
+              tags: post.tags,
+            }}
+            quotaNotice={formatPostQuotaNotice(quotaStatus)}
+          />
+        ) : (
+          <PostEditForm
+            postId={post.id}
+            title={post.title}
+            category={post.category}
+            content={post.content}
+            tags={post.tags}
+          />
+        )}
       </div>
-      {post.status === "DRAFT" ? (
-        <PostForm
-          initialDraft={{
-            id: post.id,
-            title: post.title,
-            category: post.category,
-            content: post.content,
-            tags: post.tags,
-          }}
-          quotaNotice={formatPostQuotaNotice(quotaStatus)}
-        />
-      ) : (
-        <PostEditForm
-          postId={post.id}
-          title={post.title}
-          category={post.category}
-          content={post.content}
-          tags={post.tags}
-        />
-      )}
     </div>
   );
 }

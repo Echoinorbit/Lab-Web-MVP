@@ -1,17 +1,18 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck, Mail } from "lucide-react";
+import { BellOff, Check, CheckCheck, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { KeyboardEvent } from "react";
 
+import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { EmptyState } from "@/shared/components/ui/empty-state";
+import { PageHeader } from "@/shared/components/ui/page-header";
 import { cn } from "@/shared/lib/utils";
 
 import { NOTIFICATIONS_QUERY_KEY, useNotifications } from "../hooks/use-notifications";
 import { getNotificationTypeLabel } from "../lib/display";
-import type { NotificationPageData, NotificationRow } from "../types";
+import type { NotificationPageData } from "../types";
 
 async function updateNotificationReadState(input: { id?: string; read?: boolean }) {
   const response = await fetch("/api/notifications", {
@@ -38,87 +39,72 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
     },
   });
 
-  function markRead(id: string) {
-    mutation.mutate({ id, read: true });
-  }
-
-  function markAllRead() {
-    mutation.mutate({ read: true });
-  }
-
-  function markUnread(id: string) {
-    mutation.mutate({ id, read: false });
-  }
-
-  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>, notification: NotificationRow) {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    if (!notification.isRead) markRead(notification.id);
+  function updateReadState(id: string, read: boolean) {
+    mutation.mutate({ id, read });
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">通知</h1>
-        <Button type="button" variant="secondary" disabled={unreadCount === 0 || mutation.isPending} onClick={markAllRead}>
-          <CheckCheck className="h-4 w-4" />
-          全部已读
-        </Button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="通知"
+        description={unreadCount > 0 ? `还有 ${unreadCount} 条未读通知。处理后可随时重新标为未读。` : "所有通知均已阅读。新动态会按时间出现在这里。"}
+        actions={(
+          <Button type="button" variant="secondary" disabled={unreadCount === 0 || mutation.isPending} onClick={() => mutation.mutate({ read: true })}>
+            <CheckCheck className="h-4 w-4" aria-hidden="true" />
+            全部已读
+          </Button>
+        )}
+      />
+
       {rows.length > 0 ? (
-        <div className="space-y-2">
+        <div className="overflow-hidden rounded-2xl border border-border/90 bg-card">
           {rows.map((notification) => (
-            <Card
+            <article
               key={notification.id}
               data-notification-row
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (!notification.isRead) markRead(notification.id);
-              }}
-              onKeyDown={(event) => handleCardKeyDown(event, notification)}
               className={cn(
-                "cursor-pointer transition-[border-color,background-color,box-shadow,opacity] duration-[var(--motion-base)] ease-[var(--ease-fluid)] hover:border-foreground/20 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                notification.isRead ? "opacity-75" : "border-primary/50 bg-primary/5",
+                "grid gap-4 border-b border-border/75 px-5 py-5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:px-6",
+                notification.isRead ? "bg-card" : "bg-primary/[0.045]",
               )}
             >
-              <CardHeader className="flex flex-row items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-foreground">
-                      {getNotificationTypeLabel(notification.type, notification.relatedType)}
-                    </span>
-                    <span>{notification.isRead ? "已读" : "未读"}</span>
-                    {notification.senderName ? <span>来自 {notification.senderName}</span> : null}
-                  </div>
-                  <CardTitle className="text-sm">{notification.title}</CardTitle>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge className={notification.isRead ? undefined : "border-primary/25 bg-primary/10 text-primary"}>
+                    {getNotificationTypeLabel(notification.type, notification.relatedType)}
+                  </Badge>
+                  <span className="inline-flex items-center gap-1">
+                    {notification.isRead ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />}
+                    {notification.isRead ? "已读" : "未读"}
+                  </span>
+                  {notification.senderName ? <span>来自 {notification.senderName}</span> : null}
+                  <span>{notification.createdAt}</span>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-8 px-2"
-                  disabled={!notification.isRead || mutation.isPending}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    markUnread(notification.id);
-                  }}
-                >
-                  <Mail className="h-4 w-4" />
-                  标为未读
-                </Button>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {notification.content ? <p>{notification.content}</p> : null}
-                <div className="mt-2 text-xs">{notification.createdAt}</div>
-              </CardContent>
-            </Card>
+                <h2 className="mt-3 text-[16px] font-semibold leading-6 tracking-[-0.018em]">{notification.title}</h2>
+                {notification.content ? <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">{notification.content}</p> : null}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="small"
+                disabled={mutation.isPending}
+                onClick={() => updateReadState(notification.id, !notification.isRead)}
+              >
+                {notification.isRead ? <Mail className="h-4 w-4" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
+                {notification.isRead ? "标为未读" : "标为已读"}
+              </Button>
+            </article>
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="text-sm text-muted-foreground">暂无通知</CardContent>
-        </Card>
+        <EmptyState
+          icon={<BellOff className="h-5 w-5" aria-hidden="true" />}
+          title="暂无通知"
+          description="项目、公告和治理动态到来后，会按时间出现在这里。"
+        />
       )}
+
+      {mutation.isError ? <p role="alert" className="text-sm text-destructive">通知状态更新失败，请稍后重试。</p> : null}
+      {query.isFetching ? <p role="status" className="text-sm text-muted-foreground">正在同步通知…</p> : null}
     </div>
   );
 }

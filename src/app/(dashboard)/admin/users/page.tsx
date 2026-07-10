@@ -1,5 +1,6 @@
 import { ADMIN_USERS_PAGE_SIZE, ExcelImport, UserCreateForm, UserTable } from "@/features/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { requirePermission } from "@/shared/lib/authorization";
 import { formatComputedGrade, resolveGradeTrackFromTagNames } from "@/shared/lib/grade";
@@ -65,18 +66,14 @@ export default async function AdminUsersPage({
   const lastVisibleUser = Math.min(pagination.skip + users.length, totalUsers);
 
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">用户管理</h1>
-          <p className="text-sm text-muted-foreground">共 {totalUsers} 个用户，每页显示 {ADMIN_USERS_PAGE_SIZE} 个。</p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          当前显示 {firstVisibleUser}–{lastVisibleUser}
-        </p>
-      </header>
+    <div className="min-w-0 space-y-10">
+      <PageHeader
+        title="用户"
+        description={`共 ${totalUsers} 个账号。当前显示 ${firstVisibleUser}–${lastVisibleUser}，每页 ${ADMIN_USERS_PAGE_SIZE} 个。`}
+      />
 
-      <section aria-label="用户列表" className="min-w-0 space-y-3">
+      <section aria-label="用户列表" className="min-w-0 space-y-5">
+        <SectionHeader title="账号与身份" description="在表格内维护身份、角色、状态、年级、导师与会话。毕业操作不可撤销。" />
         <UserTable
           users={users.map((user) => {
             const globalTagNames = user.tags.filter((userTag) => !userTag.projectId).map((userTag) => userTag.tag.name);
@@ -114,10 +111,12 @@ export default async function AdminUsersPage({
         />
       </section>
 
-      <section aria-label="用户开通工具" className="grid items-start gap-4 xl:grid-cols-2">
+      <section aria-label="用户开通工具" className="space-y-5 border-t border-border/80 pt-8">
+        <SectionHeader title="开通成员" description="可以单个创建账号，或使用固定列顺序的 Excel 模板批量导入。" />
+        <div className="grid items-start gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">创建成员</CardTitle>
+            <CardTitle>创建成员</CardTitle>
           </CardHeader>
           <CardContent>
             <UserCreateForm advisors={advisorOptions} />
@@ -125,12 +124,13 @@ export default async function AdminUsersPage({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">批量导入成员</CardTitle>
+            <CardTitle>批量导入成员</CardTitle>
           </CardHeader>
           <CardContent>
             <ExcelImport />
           </CardContent>
         </Card>
+        </div>
       </section>
     </div>
   );

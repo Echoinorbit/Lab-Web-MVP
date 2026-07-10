@@ -1,8 +1,10 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { ProjectList } from "@/features/projects";
 import { canViewProject, getMyProjectWhere, getProjectVisibilityWhere, parseProjectListTab } from "@/features/projects/lib/visibility";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { buttonStyles } from "@/shared/components/ui/button";
+import { PageHeader } from "@/shared/components/ui/page-header";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -34,58 +36,55 @@ export default async function ProjectsPage({
       },
     },
   });
+  const canCreate = permissions.has(PERMISSIONS.PROJECT_CREATE) || permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["all", "可见项目"],
-              ["mine", "我参与/负责"],
-              ...(user.role === "ADMIN" ? [["deleted", "已软删除"]] as const : []),
-            ] as const
-          ).map(([value, label]) => (
-            <Link
-              key={value}
-              href={`/projects?tab=${value}`}
-              className={cn(
-                "inline-flex h-10 items-center rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted",
-                tab === value && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-              )}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-        <ProjectList
-          projects={projects.map((project) => ({
-            id: project.id,
-            name: project.name,
-            status: project.status,
-            memberCount: project._count.members,
-            nodeCount: project._count.nodes,
-            description: project.description,
-            canPreview: canViewProject(viewer, project),
-            deletedAt: project.deletedAt?.toISOString() ?? null,
-          }))}
-        />
-      </div>
-      {permissions.has(PERMISSIONS.PROJECT_CREATE) || permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF) ? (
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>项目创建</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/projects/new"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
-            >
-              创建项目
-            </Link>
-          </CardContent>
-        </Card>
-      ) : null}
+    <div className="space-y-8">
+      <PageHeader
+        title="项目"
+        description="以节点图追踪研究过程，并在明确的导师、组长与成员范围内协作。"
+        actions={canCreate ? (
+          <Link href="/projects/new" className={buttonStyles()}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            创建项目
+          </Link>
+        ) : null}
+      />
+
+      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+        {(
+          [
+            ["all", "可见项目"],
+            ["mine", "我参与或负责"],
+            ...(user.role === "ADMIN" ? [["deleted", "已软删除"]] as const : []),
+          ] as const
+        ).map(([value, label]) => (
+          <Link
+            key={value}
+            href={`/projects?tab=${value}`}
+            aria-current={tab === value ? "page" : undefined}
+            className={cn(
+              "inline-flex h-10 shrink-0 items-center rounded-[9px] px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              tab === value && "bg-card text-foreground",
+            )}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      <ProjectList
+        projects={projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          memberCount: project._count.members,
+          nodeCount: project._count.nodes,
+          description: project.description,
+          canPreview: canViewProject(viewer, project),
+          deletedAt: project.deletedAt?.toISOString() ?? null,
+        }))}
+      />
     </div>
   );
 }

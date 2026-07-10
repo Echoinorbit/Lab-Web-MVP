@@ -55,7 +55,7 @@ export default async function NotificationsPage({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <NotificationList pageData={pageData} />
       <Pagination basePath="/notifications" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
     </div>

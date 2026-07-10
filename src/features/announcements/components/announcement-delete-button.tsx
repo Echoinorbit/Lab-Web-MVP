@@ -10,7 +10,7 @@ export function AnnouncementDeleteButton({ announcementId }: { announcementId: s
   return (
     <form action={deleteAnnouncementFormAction} className="flex items-center gap-3">
       <input type="hidden" name="id" value={announcementId} />
-      <Button type="submit" variant="destructive" className="h-8 px-2">
+      <Button type="submit" variant="ghost" size="small" className="text-destructive hover:text-destructive">
         <Trash2 className="h-4 w-4" />
         删除
       </Button>

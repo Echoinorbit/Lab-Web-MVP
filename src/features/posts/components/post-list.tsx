@@ -1,8 +1,9 @@
+import { MessagesSquare } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
 import { Badge } from "@/shared/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { EmptyState } from "@/shared/components/ui/empty-state";
 
 export type PostSummary = {
   id: string;
@@ -14,28 +15,47 @@ export type PostSummary = {
   href?: string;
 };
 
-export function PostList({ posts }: { posts: readonly PostSummary[] }) {
+const categoryLabels: Record<string, string> = {
+  GENERAL: "综合",
+  EXPERIENCE: "经验分享",
+  TUTORIAL: "教程",
+  DISCUSSION: "讨论",
+  RESOURCE: "资源分享",
+};
+
+export function PostList({ posts, emptyTitle = "暂无帖子" }: { posts: readonly PostSummary[]; emptyTitle?: string }) {
+  if (posts.length === 0) {
+    return (
+      <EmptyState
+        icon={<MessagesSquare className="h-5 w-5" aria-hidden="true" />}
+        title={emptyTitle}
+        description="新的讨论与经验分享发布后，会出现在这里。"
+      />
+    );
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="divide-y divide-border/75 overflow-hidden rounded-2xl border border-border/90 bg-card">
       {posts.map((post) => (
-        <Link key={post.id} href={(post.href ?? `/posts/${post.id}`) as Route}>
-          <Card className="h-full transition-[border-color,background-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-muted/20">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span>{post.authorName}</span>
-                <span className="tabular-nums">{post.createdAt}</span>
-              </div>
-              <CardTitle className="text-sm">{post.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Badge>{post.category}</Badge>
+        <Link
+          key={post.id}
+          href={(post.href ?? `/posts/${post.id}`) as Route}
+          className="group block px-5 py-5 transition-colors duration-[var(--motion-fast)] hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"
+        >
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>{post.authorName}</span>
+            <span aria-hidden="true">·</span>
+            <time className="tabular-nums">{post.createdAt}</time>
+            <Badge className="ml-auto">{categoryLabels[post.category] ?? post.category}</Badge>
+          </div>
+          <h3 className="mt-3 text-lg font-semibold leading-6 tracking-[-0.022em] transition-colors group-hover:text-primary">{post.title}</h3>
+          {post.tags.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
               {post.tags.map((tag) => (
-                <Badge key={tag} className="bg-muted">
-                  {tag}
-                </Badge>
+                <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          ) : null}
         </Link>
       ))}
     </div>

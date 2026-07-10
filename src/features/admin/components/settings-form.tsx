@@ -6,7 +6,7 @@ import { Label } from "@/shared/components/ui/label";
 
 export function SettingsForm() {
   return (
-    <form className="grid max-w-xl gap-4">
+    <form className="grid max-w-xl gap-5">
       <div className="space-y-2">
         <Label htmlFor="progress-window">进度填写窗口</Label>
         <Input id="progress-window" name="progressWindow" defaultValue="25-27" />

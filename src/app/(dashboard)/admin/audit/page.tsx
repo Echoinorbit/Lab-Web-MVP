@@ -1,6 +1,8 @@
 import { AuditLogTable } from "@/features/admin";
-import { requirePermission } from "@/shared/lib/authorization";
+import { DataTable } from "@/shared/components/data-table";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { requirePermission } from "@/shared/lib/authorization";
 import { formatShanghaiDateTime } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { PERMISSIONS } from "@/shared/lib/permissions";
@@ -45,65 +47,56 @@ export default async function AdminAuditPage({
     select: { id: true, username: true, displayName: true },
   });
   const userById = new Map(users.map((user) => [user.id, user]));
+  const archiveRows = archives.map((archive) => ({
+    id: archive.id,
+    fileName: archive.fileName,
+    sequence: `seq${archive.seqInYear}`,
+    rowCount: archive.rowCount,
+    exportedAt: formatShanghaiDateTime(archive.exportedAt),
+    expiresAt: formatShanghaiDateTime(archive.expiresAt),
+  }));
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">操作日志记录</h1>
-        <p className="text-sm text-muted-foreground">每页显示 {AUDIT_LOG_PAGE_SIZE} 条记录。</p>
-      </div>
-      <AuditLogTable
-        rows={rows.map((row) => ({
-          createdAt: formatShanghaiDateTime(row.createdAt),
-          actor: row.userId ? formatActor(userById.get(row.userId)) : "-",
-          action: row.action,
-          entityType: row.entityType,
-          entityId: row.entityId ?? undefined,
-        }))}
-      />
-      <Pagination basePath="/admin/audit" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold">历史导出</h2>
-          <p className="text-sm text-muted-foreground">保留到对应自然年年底，到期后由导出任务清理。</p>
-        </div>
-        {archives.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border bg-card shadow-[var(--shadow-card)]">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/70 text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">文件名</th>
-                  <th className="px-3 py-2 font-medium">序号</th>
-                  <th className="px-3 py-2 font-medium">行数</th>
-                  <th className="px-3 py-2 font-medium">导出时间</th>
-                  <th className="px-3 py-2 font-medium">到期时间</th>
-                  <th className="px-3 py-2 font-medium">下载</th>
-                </tr>
-              </thead>
-              <tbody>
-                {archives.map((archive) => (
-                  <tr key={archive.id} className="border-t transition-colors hover:bg-muted/50">
-                    <td className="px-3 py-2">{archive.fileName}</td>
-                    <td className="px-3 py-2">seq{archive.seqInYear}</td>
-                    <td className="px-3 py-2">{archive.rowCount}</td>
-                    <td className="px-3 py-2">{formatShanghaiDateTime(archive.exportedAt)}</td>
-                    <td className="px-3 py-2">{formatShanghaiDateTime(archive.expiresAt)}</td>
-                    <td className="px-3 py-2">
-                      <a
-                        className="text-primary underline-offset-4 hover:underline"
-                        href={`/api/admin/audit-export/${archive.id}`}
-                      >
-                        下载
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground shadow-[var(--shadow-card)]">暂无历史导出</div>
-        )}
+    <div className="space-y-10">
+      <PageHeader title="操作日志" description={`只追加记录敏感操作与越权尝试。共 ${totalLogs} 条，每页显示 ${AUDIT_LOG_PAGE_SIZE} 条。`} />
+
+      <section className="space-y-5">
+        <SectionHeader title="最新记录" description="按发生时间倒序排列，实体 ID 保留用于问题追踪。" />
+        <AuditLogTable
+          rows={rows.map((row) => ({
+            createdAt: formatShanghaiDateTime(row.createdAt),
+            actor: row.userId ? formatActor(userById.get(row.userId)) : "-",
+            action: row.action,
+            entityType: row.entityType,
+            entityId: row.entityId ?? undefined,
+          }))}
+        />
+        <Pagination basePath="/admin/audit" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
+      </section>
+
+      <section className="space-y-5 border-t border-border/80 pt-8">
+        <SectionHeader title="历史导出" description="归档保留到对应自然年年底，到期后由导出任务清理。" />
+        <DataTable
+          label="审计日志历史导出"
+          emptyMessage="暂无历史导出"
+          rows={archiveRows}
+          columns={[
+            { key: "fileName", header: "文件名", cell: (row) => row.fileName },
+            { key: "sequence", header: "序号", cell: (row) => row.sequence },
+            { key: "rowCount", header: "行数", cell: (row) => row.rowCount },
+            { key: "exportedAt", header: "导出时间", cell: (row) => row.exportedAt },
+            { key: "expiresAt", header: "到期时间", cell: (row) => row.expiresAt },
+            {
+              key: "download",
+              header: "下载",
+              cell: (row) => (
+                <a className="font-medium text-primary underline-offset-4 hover:underline" href={`/api/admin/audit-export/${row.id}`}>
+                  下载
+                </a>
+              ),
+            },
+          ]}
+        />
       </section>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { CommitGraphView } from "./commit-graph-view";
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
+import { SectionHeader } from "@/shared/components/ui/page-header";
 
 export function ProjectNodeViews({
   viewerId,
@@ -13,9 +14,9 @@ export function ProjectNodeViews({
   canManageNodeActions: boolean;
 }) {
   return (
-    <div className="space-y-4">
-      <h2 className="text-base font-semibold tracking-[-0.015em]">项目节点</h2>
+    <section className="space-y-5">
+      <SectionHeader title="项目节点" description={`${canvasNodes.length} 个节点，按时间与作者关系呈现。选择作者或节点可检查对应上下文。`} />
       <CommitGraphView viewerId={viewerId} nodes={canvasNodes} canManageNodeActions={canManageNodeActions} />
-    </div>
+    </section>
   );
 }

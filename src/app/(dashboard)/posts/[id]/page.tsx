@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import type { Route } from "next";
+import { notFound } from "next/navigation";
 
 import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
 import { buildCommentTree } from "@/features/posts/lib/comment-tree";
@@ -32,7 +34,11 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   const canComment = post.status === "PUBLISHED" && permissions.has(PERMISSIONS.COMMENT_CREATE);
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-4xl space-y-8">
+      <Link href="/posts" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        返回帖子
+      </Link>
       <PostDetail
         title={post.title}
         authorName={`${post.author.displayName} · ${formatShanghaiDate(post.createdAt)}`}

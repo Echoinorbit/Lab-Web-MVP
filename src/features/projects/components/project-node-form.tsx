@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { createProjectNodeFormAction, type ProjectNodeState } from "../actions/create-node";
 import { PROJECT_NODE_ROOT_PARENT_VALUE } from "../lib/node-parent-selection";
@@ -34,10 +35,10 @@ export function ProjectNodeForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">新增节点</CardTitle>
+        <CardTitle>新增节点</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="grid gap-3">
+        <form action={formAction} className="grid gap-3" aria-busy={isPending}>
           <input type="hidden" name="projectId" value={projectId} />
           <div className="space-y-2">
             <Label htmlFor="node-title">标题</Label>
@@ -70,9 +71,9 @@ export function ProjectNodeForm({
             </Select>
           </div>
           <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="节点说明" />
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
           <Button type="submit" className="w-fit" disabled={isPending}>
-            {isPending ? "创建中" : "创建节点"}
+            {isPending ? "正在创建…" : "创建节点"}
           </Button>
         </form>
       </CardContent>

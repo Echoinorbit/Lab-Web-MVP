@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { FileUpload } from "@/shared/components/file-upload";
-import { Button } from "@/shared/components/ui/button";
+import { Button, buttonStyles } from "@/shared/components/ui/button";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { importUsers, type ImportUsersResult } from "../actions/import-users";
 import { USER_IMPORT_COLUMNS } from "../lib/user-import-template";
@@ -46,13 +47,13 @@ export function ExcelImport() {
 
   return (
     <div className="space-y-3">
-      <div className="space-y-3 rounded-xl border bg-muted/30 p-4 text-sm">
+      <div className="space-y-3 rounded-xl border border-border/80 bg-background/50 p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="font-medium">Excel 列格式（顺序不可变）</p>
           <a
             href="/api/admin/users/import-template"
             download
-            className="inline-flex h-8 items-center rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={buttonStyles({ variant: "secondary", size: "small" })}
           >
             下载 .xlsx 模板
           </a>
@@ -89,14 +90,14 @@ export function ExcelImport() {
         </ul>
       ) : null}
       {result ? (
-        <div className="rounded-xl bg-muted p-4 text-sm">
+        <StatusNotice variant={result.errors.length > 0 ? "warning" : "success"}>
           <div>创建 {result.created} 个成员</div>
           {result.errors.length ? <div className="mt-1 text-destructive">{result.errors.join("；")}</div> : null}
-        </div>
+        </StatusNotice>
       ) : null}
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <StatusNotice variant="error">{message}</StatusNotice> : null}
       <Button type="button" variant="secondary" onClick={handleImport} disabled={isPending || files.length === 0}>
-        {isPending ? "导入中" : "导入成员"}
+        {isPending ? "正在导入…" : "导入成员"}
       </Button>
     </div>
   );

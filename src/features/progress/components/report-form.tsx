@@ -4,9 +4,9 @@ import { useActionState, useState } from "react";
 
 import { MarkdownEditor } from "@/shared/components/markdown-editor";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { reportFormAction } from "../actions/submit-report";
 import { MAX_SUBMITTED_REPORT_EDITS, remainingSubmittedReportEdits } from "../lib/edit-count";
@@ -50,14 +50,14 @@ export function ReportForm({
   const canSave = writeAllowed && !isPending && (!isSubmitted || remainingEdits > 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <section className="overflow-hidden rounded-2xl border border-border/90 bg-card">
+      <header className="border-b border-border/75 px-5 py-5 sm:px-6">
+        <h3 className="text-lg font-semibold tracking-[-0.022em]">
           {year} 年 {month} 月进度报告
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form className="grid gap-4" action={formAction}>
+        </h3>
+      </header>
+      <div className="p-5 sm:p-6">
+        <form className="grid gap-5" action={formAction} aria-busy={isPending}>
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
           <Label>学习总结</Label>
@@ -72,25 +72,23 @@ export function ReportForm({
             <Label htmlFor="externalDays">外出项目工作天数</Label>
             <Input id="externalDays" name="externalDays" type="number" min={0} max={31} defaultValue={initialValue?.externalDays ?? 0} disabled={!writeAllowed} />
           </div>
-          <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            {describeProgressWriteMode(writeMode)}
-          </p>
+          <StatusNotice>{describeProgressWriteMode(writeMode)}</StatusNotice>
           {isSubmitted ? (
-            <p className="text-sm text-muted-foreground">
+            <StatusNotice variant={remainingEdits > 0 ? "warning" : "error"}>
               报告已提交，不能重复提交；剩余可保存修改 {remainingEdits} 次。
-            </p>
+            </StatusNotice>
           ) : null}
-          {message ? <p className={state.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>{message}</p> : null}
-          <div className="flex gap-2">
+          {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
+          <div className="flex flex-wrap gap-2 border-t border-border/80 pt-5">
             <Button type="submit" name="intent" value="save" variant="secondary" disabled={!canSave}>
-              {isPending ? "处理中" : isSubmitted && remainingEdits === 0 ? "修改次数已用完" : isSubmitted ? "保存修改" : "保存草稿"}
+              {isPending ? "正在处理…" : isSubmitted && remainingEdits === 0 ? "修改次数已用完" : isSubmitted ? "保存修改" : "保存草稿"}
             </Button>
             <Button type="submit" name="intent" value="submit" disabled={isPending || isSubmitted || !writeAllowed}>
-              {isSubmitted ? "已提交（不可重复）" : "提交"}
+              {isSubmitted ? "已提交（不可重复）" : "提交报告"}
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

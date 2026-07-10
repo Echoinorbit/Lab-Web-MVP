@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { openBackfillWindowFormAction, type BackfillFormState } from "../actions/open-backfill-window";
 
@@ -32,10 +33,10 @@ export function BackfillWindowForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">补填窗口</CardTitle>
+        <CardTitle>补填窗口</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="grid gap-3">
+        <form action={formAction} className="grid gap-3" aria-busy={isPending}>
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
           <Label htmlFor="backfill-user">成员</Label>
@@ -46,9 +47,10 @@ export function BackfillWindowForm({
               </option>
             ))}
           </Select>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          <p className="text-sm leading-6 text-muted-foreground">为选中成员开启一次 24 小时补填授权；保存草稿不会消费窗口。</p>
+          {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
           <Button type="submit" className="w-fit" disabled={isPending || users.length === 0}>
-            {isPending ? "处理中" : "开启 24h 窗口"}
+            {isPending ? "正在处理…" : "开启 24 小时窗口"}
           </Button>
         </form>
       </CardContent>

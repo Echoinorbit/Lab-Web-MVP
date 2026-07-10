@@ -1,11 +1,13 @@
 "use client";
 
-import { Trash2, MessageCircle } from "lucide-react";
+import { MessageCircle, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { EmptyState } from "@/shared/components/ui/empty-state";
+import { SectionHeader } from "@/shared/components/ui/page-header";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/shared/lib/utils";
 
@@ -58,7 +60,11 @@ function CommentItem({
   return (
     <div
       data-comment-row
-      className={cn("space-y-3 rounded-xl border p-4", isDeleted ? "border-dashed bg-muted/30" : "bg-card")}
+      className={cn(
+        "space-y-3 border-t border-border/75 py-5",
+        depth > 0 && "border-l border-t-0 py-4 pl-4 sm:pl-5",
+        isDeleted && "border-dashed text-muted-foreground",
+      )}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
@@ -67,8 +73,8 @@ function CommentItem({
         {canDelete ? (
           <form action={deleteCommentFormAction}>
             <input type="hidden" name="commentId" value={comment.id} />
-            <Button type="submit" variant="ghost" className="h-8 px-2">
-              <Trash2 className="h-4 w-4" />
+            <Button type="submit" variant="ghost" size="small" className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
               删除
             </Button>
           </form>
@@ -77,18 +83,18 @@ function CommentItem({
       {isDeleted ? (
         <p className="text-sm text-muted-foreground">该评论已被删除</p>
       ) : (
-        <p data-comment-content className="whitespace-pre-wrap text-sm">
+        <p data-comment-content className="whitespace-pre-wrap text-[15px] leading-6">
           {isFlattenedReply ? <span className="mr-1 font-medium text-primary">回复 @{replyToName}</span> : null}
           {comment.content}
         </p>
       )}
       {canReply ? (
         <div className="space-y-2">
-          <Button type="button" variant="ghost" className="h-8 px-2" onClick={() => setIsReplying((value) => !value)}>
+          <Button type="button" variant="ghost" size="small" onClick={() => setIsReplying((value) => !value)}>
             回复
           </Button>
           {isReplying ? (
-            <form data-comment-reply-form action={replyAction} className="grid gap-2">
+            <form data-comment-reply-form action={replyAction} className="grid gap-3 rounded-xl bg-muted/55 p-4" aria-busy={isReplyPending}>
               <input type="hidden" name="postId" value={postId} />
               <input type="hidden" name="parentId" value={comment.id} />
               <Textarea
@@ -96,14 +102,15 @@ function CommentItem({
                 value={replyContent}
                 onChange={(event) => setReplyContent(event.target.value)}
                 placeholder={`回复 ${comment.authorName}`}
+                className="min-h-24 bg-card"
                 required
               />
-              {replyState.message ? <p className="text-sm text-destructive">{replyState.message}</p> : null}
+              {replyState.message ? <StatusNotice variant={replyState.ok ? "success" : "error"}>{replyState.message}</StatusNotice> : null}
               <div className="flex gap-2">
-                <Button type="submit" className="w-fit" disabled={isReplyPending || !replyContent.trim()}>
-                  {isReplyPending ? "提交中" : "提交回复"}
+                <Button type="submit" size="small" disabled={isReplyPending || !replyContent.trim()}>
+                  {isReplyPending ? "正在提交…" : "提交回复"}
                 </Button>
-                <Button type="button" variant="secondary" className="w-fit" onClick={() => setIsReplying(false)}>
+                <Button type="button" variant="secondary" size="small" onClick={() => setIsReplying(false)}>
                   取消
                 </Button>
               </div>
@@ -112,7 +119,7 @@ function CommentItem({
         </div>
       ) : null}
       {comment.children?.length ? (
-        <div className={cn("space-y-2", depth === 0 ? "pl-4" : "pl-0")}>
+        <div className={cn("space-y-1", depth === 0 ? "pl-3 sm:pl-5" : "pl-0")}>
           {comment.children.map((child) => (
             <CommentItem
               key={child.id}
@@ -160,16 +167,19 @@ export function CommentSection({
   }, [router, state]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <MessageCircle className="h-4 w-4" />
-          评论
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="space-y-6 border-t border-border/80 pt-8 sm:pt-10">
+      <SectionHeader
+        title={(
+          <span className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            评论
+          </span>
+        )}
+        description={`${comments.length} 条讨论`}
+      />
+      <div>
         {comments.length > 0 ? (
-          <div className="space-y-3">
+          <div>
             {comments.map((comment) => (
               <CommentItem
                 key={comment.id}
@@ -184,25 +194,27 @@ export function CommentSection({
             ))}
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">暂无评论</div>
+          <EmptyState className="min-h-36 py-8" title="暂无评论" description="围绕这篇帖子展开第一条讨论。" />
         )}
+      </div>
         {canComment ? (
-          <form action={formAction} className="grid gap-2">
+          <form action={formAction} className="grid gap-3 rounded-2xl border border-border/90 bg-card p-5 sm:p-6" aria-busy={isPending}>
             <input type="hidden" name="postId" value={postId} />
+            <label htmlFor="new-comment" className="text-sm font-medium">发表评论</label>
             <Textarea
+              id="new-comment"
               name="content"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="写评论"
+              placeholder="写下你的观点或问题"
               required
             />
-            {message ? <p className="text-sm text-destructive">{message}</p> : null}
+            {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
             <Button type="submit" className="w-fit" disabled={isPending || !content.trim()}>
-              {isPending ? "提交中" : "提交评论"}
+              {isPending ? "正在提交…" : "提交评论"}
             </Button>
           </form>
         ) : null}
-      </CardContent>
-    </Card>
+    </section>
   );
 }

@@ -11,6 +11,8 @@ export type AuditLogRow = {
 export function AuditLogTable({ rows }: { rows: readonly AuditLogRow[] }) {
   return (
     <DataTable
+      label="操作日志记录"
+      emptyMessage="暂无操作日志"
       rows={rows}
       columns={[
         { key: "time", header: "时间", cell: (row) => row.createdAt },

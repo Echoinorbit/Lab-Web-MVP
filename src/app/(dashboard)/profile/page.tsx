@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { TagBadge } from "@/features/tags";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { buttonStyles } from "@/shared/components/ui/button";
+import { EmptyState } from "@/shared/components/ui/empty-state";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { formatComputedGrade } from "@/shared/lib/grade";
 import { getEffectiveTags } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -63,28 +65,31 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>个人中心</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-            {fields.map((field) => (
-              <div key={field.label} className="border-b pb-4 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0">
-                <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
-                <dd className="mt-1 text-sm font-semibold">{field.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </CardContent>
-      </Card>
+    <div className="mx-auto max-w-5xl space-y-12">
+      <PageHeader title="个人中心" description="查看当前身份、协作范围与账号安全入口。权限以有效 Tag 和账号状态为准。" />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>我的 Tag</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
+        <div>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground text-2xl font-semibold text-background">
+            {profile.displayName.trim().charAt(0).toUpperCase() || "?"}
+          </div>
+          <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{profile.displayName}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">@{profile.username} · {roleLabels[profile.role]}</p>
+        </div>
+
+        <dl className="grid border-t border-border/80 sm:grid-cols-2">
+          {fields.map((field) => (
+            <div key={field.label} className="border-b border-border/80 py-5 sm:odd:pr-6 sm:even:pl-6">
+              <dt className="text-sm text-muted-foreground">{field.label}</dt>
+              <dd className="mt-1.5 text-[16px] font-medium">{field.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="space-y-5">
+        <SectionHeader title="我的 Tag" description="Tag 决定内容能力与项目范围；已撤销或过期的 Tag 不会显示。" />
+        <div className="border-t border-border/80 pt-6">
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {tags.map((tag, index) => (
@@ -96,24 +101,25 @@ export default async function ProfilePage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无 Tag。</p>
+            <EmptyState className="min-h-36 py-8" title="暂无有效 Tag" description="如需新的协作能力，请联系实验室管理员或项目负责人。" />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>账号安全</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section className="space-y-5 border-t border-border/80 pt-8">
+        <SectionHeader
+          title="账号安全"
+          description="定期更新密码；密码变更后继续使用新凭据登录。"
+          actions={(
           <Link
             href="/change-password"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
+              className={buttonStyles({ variant: "secondary" })}
           >
             修改密码
           </Link>
-        </CardContent>
-      </Card>
+          )}
+        />
+      </section>
     </div>
   );
 }

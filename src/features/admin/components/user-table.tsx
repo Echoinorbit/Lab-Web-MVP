@@ -196,6 +196,8 @@ export function UserTable({
 }) {
   return (
     <DataTable
+      label="用户账号与治理操作"
+      emptyMessage="暂无用户"
       rows={users}
       columns={[
         { key: "username", header: "用户名", cell: (row) => <span className="whitespace-nowrap font-mono text-xs">{row.username}</span> },

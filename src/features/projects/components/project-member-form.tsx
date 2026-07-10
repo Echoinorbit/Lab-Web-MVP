@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 import { addProjectMemberFormAction, type ProjectMemberState } from "../actions/add-member";
 import { AdvisorStudentTree, type ProjectAdvisorOption } from "./advisor-student-tree";
 
@@ -27,10 +28,10 @@ export function ProjectMemberForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">邀请成员</CardTitle>
+        <CardTitle>邀请成员</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="grid gap-3">
+        <form action={formAction} className="grid gap-3" aria-busy={isPending}>
           <input type="hidden" name="projectId" value={projectId} />
           <AdvisorStudentTree
             advisor={advisor}
@@ -38,9 +39,9 @@ export function ProjectMemberForm({
             onSelectedIdsChange={setSelectedIds}
             memberInputName="userIds"
           />
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
           <Button type="submit" className="w-fit" disabled={isPending || selectedIds.length === 0}>
-            {isPending ? "处理中" : `加入 ${selectedIds.length} 人`}
+            {isPending ? "正在处理…" : `加入 ${selectedIds.length} 人`}
           </Button>
         </form>
       </CardContent>

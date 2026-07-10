@@ -12,6 +12,8 @@ export type TagRow = {
 export function TagList({ tags }: { tags: readonly TagRow[] }) {
   return (
     <DataTable
+      label="全局 Tag 清单"
+      emptyMessage="暂无全局 Tag"
       rows={tags}
       columns={[
         { key: "name", header: "标识", cell: (row) => <span className="font-mono text-xs">{row.name}</span> },

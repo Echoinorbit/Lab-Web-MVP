@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 import { splitCommaList } from "@/shared/lib/utils";
 
 import { createPostFormAction, type CreatePostFormState } from "../actions/create-post";
@@ -37,6 +38,7 @@ export function PostForm({
   const skipAutosaveRef = useRef(false);
   const [state, formAction, isPending] = useActionState(createPostFormAction, initialState);
   const message = state.message;
+  const messageVariant = state.ok ? "success" : state.tone === "info" ? "info" : "error";
 
   useEffect(() => {
     if (!state.draftId) return;
@@ -111,16 +113,12 @@ export function PostForm({
     setContent(nextContent);
   }
 
-  const messageClassName =
-    state.ok || state.tone === "info"
-      ? "rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-6 text-muted-foreground"
-      : "text-sm text-destructive";
-
   return (
     <form
       ref={formRef}
       action={formAction}
-      className="grid gap-4"
+      className="grid gap-5"
+      aria-busy={isPending}
       onSubmit={() => {
         skipAutosaveRef.current = true;
       }}
@@ -155,11 +153,11 @@ export function PostForm({
         />
       </div>
       <MarkdownEditor name="content" value={content} onChange={handleContentChange} placeholder="Markdown 正文" />
-      {quotaNotice ? <p className="text-sm text-muted-foreground">{quotaNotice}</p> : null}
-      {message ? <p className={messageClassName}>{message}</p> : null}
-      <div className="flex flex-wrap gap-3">
+      {quotaNotice ? <StatusNotice>{quotaNotice}</StatusNotice> : null}
+      {message ? <StatusNotice variant={messageVariant}>{message}</StatusNotice> : null}
+      <div className="flex flex-wrap gap-3 border-t border-border/80 pt-5">
         <Button type="submit" name="intent" value="publish" disabled={isPending}>
-          {isPending ? "处理中" : "发布"}
+          {isPending ? "正在处理…" : "发布帖子"}
         </Button>
         <Button type="submit" name="intent" value="save-draft" variant="secondary" disabled={isPending}>
           保存草稿

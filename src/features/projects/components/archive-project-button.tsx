@@ -33,8 +33,8 @@ export function ArchiveProjectButton({
     return (
       <form action={unarchiveProjectFormAction} className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="projectId" value={projectId} />
-        <Button type="submit" variant="secondary" disabled={remainingMs > 0}>
-          <RotateCcw className="h-4 w-4" />
+        <Button type="submit" variant="secondary" size="small" disabled={remainingMs > 0}>
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
           启用项目
         </Button>
         <ProjectArchiveCountdown archivedAt={archivedAt} />
@@ -47,8 +47,8 @@ export function ArchiveProjectButton({
   return (
     <form action={archiveProjectFormAction} className="flex items-center gap-3">
       <input type="hidden" name="projectId" value={projectId} />
-      <Button type="submit" variant="secondary">
-        <Archive className="h-4 w-4" />
+      <Button type="submit" variant="secondary" size="small">
+        <Archive className="h-4 w-4" aria-hidden="true" />
         归档项目
       </Button>
     </form>

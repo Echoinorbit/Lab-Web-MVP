@@ -8,7 +8,7 @@ import { ProjectList } from "@/features/projects";
 import { canViewProject, getProjectVisibilityWhere } from "@/features/projects/lib/visibility";
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { formatShanghaiDate, getShanghaiDateParts } from "@/shared/lib/date";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -85,45 +85,60 @@ export default async function DashboardPage() {
     grade: member.grade ?? "-",
     status: member.progressReports[0]?.status ?? "MISSING",
   }));
+  const metrics: Array<{ label: string; value: number; href?: Route }> = [
+    {
+      label: "活跃成员",
+      value: memberCount,
+      href: permissions.has(PERMISSIONS.ADMIN_USER_MANAGE) ? "/admin/users" : undefined,
+    },
+    { label: "可见项目", value: projectCount, href: "/projects" },
+    { label: "有效公告", value: announcementCount, href: "/announcements" },
+    { label: "未读通知", value: unreadNotificationCount, href: "/notifications" },
+  ];
 
   return (
-    <div className="space-y-8 sm:space-y-10">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-[34px]">协作总览</h1>
-        <p className="max-w-2xl text-[15px] leading-6 text-muted-foreground sm:text-base">
-          集中查看实验室成员、项目、公告与本月进度。
-        </p>
-      </header>
+    <div className="space-y-10 sm:space-y-12">
+      <PageHeader title="协作总览" description="快速掌握实验室正在推进的项目、重要公告、个人通知与本月进度。" />
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-border bg-border md:grid-cols-4">
-        {(
-          [
-            ["成员", memberCount, "/admin/users"],
-            ["项目", projectCount, "/projects"],
-            ["公告", announcementCount, "/announcements"],
-            ["未读通知", unreadNotificationCount, "/notifications"],
-          ] satisfies Array<[string, number, Route]>
-        ).map(([label, value, href]) => (
-          <Link key={label} href={href} aria-label={`${label}：${value}`} className="group focus-visible:outline-none">
-            <Card className="h-full min-h-24 rounded-none border-0 bg-card transition-[background-color,box-shadow] duration-[var(--motion-base)] ease-[var(--ease-fluid)] group-hover:bg-muted/45 group-focus-visible:z-10 group-focus-visible:ring-2 group-focus-visible:ring-inset group-focus-visible:ring-ring sm:min-h-28">
-              <CardHeader className="border-0 px-5 pb-2 pt-5">
-                <CardTitle className="text-[13px] font-medium text-muted-foreground">{label}</CardTitle>
-              </CardHeader>
-              <CardContent className="px-5 pb-5 pt-0 text-[28px] font-semibold tabular-nums tracking-[-0.035em] transition-colors duration-[var(--motion-base)] ease-[var(--ease-fluid)] group-hover:text-primary">{value}</CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <dl className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border/90 bg-card md:grid-cols-4">
+        {metrics.map((metric) => {
+          const content = (
+            <div className="flex min-h-28 flex-col justify-between p-5 sm:min-h-32 sm:p-6">
+              <dt className="text-sm text-muted-foreground">{metric.label}</dt>
+              <dd className="mt-5 text-[32px] font-semibold tabular-nums tracking-[-0.04em]">{metric.value}</dd>
+            </div>
+          );
+
+          return metric.href ? (
+            <Link
+              key={metric.label}
+              href={metric.href}
+              aria-label={`${metric.label}：${metric.value}`}
+              className="border-b border-r border-border/75 transition-colors hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:border-b-0"
+            >
+              {content}
+            </Link>
+          ) : (
+            <div key={metric.label} className="border-b border-r border-border/75 md:border-b-0">
+              {content}
+            </div>
+          );
+        })}
+      </dl>
 
       <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-10 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-12">
         <div className="min-w-0 space-y-10">
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold tracking-[-0.025em]">最新公告</h2>
-              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] after:ml-1 after:content-['›'] hover:text-primary/80">
+          <section className="space-y-5">
+            <SectionHeader
+              title="最新公告"
+              description="按置顶与紧急程度优先显示。"
+              actions={(
+                <Link href="/announcements" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
                 查看全部
-              </Link>
-            </div>
+                  <span className="ml-1" aria-hidden="true">›</span>
+                </Link>
+              )}
+            />
             <AnnouncementList
               announcements={announcements.map((announcement) => ({
                 id: announcement.id,
@@ -138,13 +153,17 @@ export default async function DashboardPage() {
             />
           </section>
 
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold tracking-[-0.025em]">最近项目</h2>
-              <Link href="/projects" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] after:ml-1 after:content-['›'] hover:text-primary/80">
+          <section className="space-y-5">
+            <SectionHeader
+              title="最近项目"
+              description="按最近更新时间排列。"
+              actions={(
+                <Link href="/projects" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
                 查看全部
-              </Link>
-            </div>
+                  <span className="ml-1" aria-hidden="true">›</span>
+                </Link>
+              )}
+            />
             <ProjectList
               projects={projects.map((project) => ({
                 id: project.id,
@@ -159,11 +178,8 @@ export default async function DashboardPage() {
           </section>
         </div>
 
-        <section className="min-w-0 space-y-4 xl:sticky xl:top-24">
-          <div>
-            <h2 className="text-xl font-semibold tracking-[-0.025em]">本月进度</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{year} 年 {month} 月提交状态</p>
-          </div>
+        <section className="min-w-0 space-y-5 xl:sticky xl:top-24">
+          <SectionHeader title="本月进度" description={`${year} 年 ${month} 月提交状态`} />
           <SummaryTable rows={progressRows} />
         </section>
       </section>

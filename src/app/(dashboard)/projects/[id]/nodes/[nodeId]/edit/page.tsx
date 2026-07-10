@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProjectNodeEditForm } from "@/features/projects/components/project-node-edit-form";
 import { canViewProject } from "@/features/projects/lib/visibility";
 import { FORBIDDEN_ROUTE } from "@/shared/lib/access-denied";
+import { PageHeader } from "@/shared/components/ui/page-header";
 import { getEffectiveTags } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -48,7 +49,8 @@ export default async function ProjectNodeEditPage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl py-2">
+    <div className="mx-auto max-w-4xl space-y-8">
+      <PageHeader title="编辑项目节点" description="只有节点作者本人可以修改标题、类型与说明；项目和节点标识保持不变。" />
       <ProjectNodeEditForm node={node} />
     </div>
   );

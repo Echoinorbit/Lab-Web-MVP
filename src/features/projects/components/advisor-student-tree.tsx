@@ -2,6 +2,7 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 import { Label } from "@/shared/components/ui/label";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 export type ProjectStudentOption = {
   id: string;
@@ -36,13 +37,13 @@ export function AdvisorStudentTree({
   const selected = new Set(selectedIds);
 
   if (!advisor) {
-    return <p className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-sm text-muted-foreground">请先选择负责导师。</p>;
+    return <StatusNotice>请先选择负责导师，再选择其直属在读学生。</StatusNotice>;
   }
 
   return (
-    <fieldset className="space-y-4 rounded-xl border border-border/80 p-4">
-      <legend className="px-2 text-sm font-medium">学生树</legend>
-      <div className="flex items-center gap-2 text-sm">
+    <fieldset className="space-y-4 rounded-xl border border-border/80 bg-background/45 p-4 sm:p-5">
+      <legend className="px-2 text-sm font-medium">项目学生与组长</legend>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{advisor.displayName}</span>
         <Badge>直属学生 {advisor.students.length} 人</Badge>
       </div>
@@ -53,13 +54,14 @@ export function AdvisorStudentTree({
           {advisor.students.map((student) => {
             const checked = selected.has(student.id);
             return (
-              <div key={student.id} data-project-student-row className="rounded-lg border border-border/80 bg-card p-3 transition-colors duration-200 hover:bg-muted/30">
+              <div key={student.id} data-project-student-row className="rounded-[10px] border border-border/80 bg-card p-3.5 transition-colors duration-[var(--motion-fast)] hover:bg-muted/45">
                 <div className="flex items-start gap-2">
                   <input
                     id={`student-${student.id}`}
                     name={memberInputName}
                     value={student.id}
                     type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-primary"
                     checked={checked}
                     onChange={(event) => {
                       const next = event.target.checked
@@ -80,6 +82,7 @@ export function AdvisorStudentTree({
                   <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                     <input
                       type="radio"
+                      className="h-4 w-4 accent-primary"
                       name="leadUserId"
                       value={student.id}
                       checked={leadUserId === student.id}

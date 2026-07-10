@@ -1,5 +1,9 @@
-import { AnnouncementCard } from "./announcement-card";
+import { Megaphone } from "lucide-react";
+
+import { EmptyState } from "@/shared/components/ui/empty-state";
+
 import type { AnnouncementSummary } from "../types";
+import { AnnouncementCard } from "./announcement-card";
 
 export function AnnouncementList({
   announcements,
@@ -12,15 +16,16 @@ export function AnnouncementList({
 }) {
   if (announcements.length === 0) {
     return (
-      <div className="rounded-[18px] border border-dashed border-border bg-card px-6 py-12 text-center">
-        <div className="text-[15px] font-medium">暂无公告</div>
-        <p className="mt-1 text-sm text-muted-foreground">有新的实验室通知时会显示在这里。</p>
-      </div>
+      <EmptyState
+        icon={<Megaphone className="h-5 w-5" aria-hidden="true" />}
+        title="暂无公告"
+        description="新的实验室通知发布后，会按置顶、紧急程度与时间显示在这里。"
+      />
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-border/75 overflow-hidden rounded-2xl border border-border/90 bg-card">
       {announcements.map((announcement) => (
         <AnnouncementCard
           key={announcement.id}

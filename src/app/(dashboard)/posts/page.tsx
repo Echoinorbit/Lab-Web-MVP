@@ -1,6 +1,7 @@
 import { PostForm, PostList } from "@/features/posts";
 import { buildMyDraftsWhere, buildPublicPostWhere } from "@/features/posts/lib/drafts";
 import { formatPostQuotaNotice } from "@/features/posts/lib/rate-limit-copy";
+import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -30,36 +31,53 @@ export default async function PostsPage() {
   ]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="space-y-6">
-        <PostList
-          posts={posts.map((post) => ({
-            id: post.id,
-            title: post.title,
-            authorName: post.author.displayName,
-            category: post.category,
-            createdAt: formatShanghaiDate(post.createdAt),
-            tags: post.tags,
-          }))}
-        />
-        {drafts.length > 0 ? (
-          <section className="space-y-4">
-            <h2 className="text-base font-semibold tracking-tight">我的草稿</h2>
+    <div className="space-y-10">
+      <PageHeader title="帖子" description="分享研究经验、教程、资源与待讨论的问题。公开帖子对实验室成员可见。" />
+      <div className="grid min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-12">
+        <div className="min-w-0 space-y-12">
+          <section className="space-y-5">
+            <SectionHeader title="最新讨论" description={`${posts.length} 篇公开帖子`} />
             <PostList
-              posts={drafts.map((post) => ({
+              posts={posts.map((post) => ({
                 id: post.id,
-                title: post.title || "未命名草稿",
+                title: post.title,
                 authorName: post.author.displayName,
                 category: post.category,
-                createdAt: formatShanghaiDate(post.updatedAt),
+                createdAt: formatShanghaiDate(post.createdAt),
                 tags: post.tags,
-                href: `/posts/${post.id}/edit`,
               }))}
             />
           </section>
+
+          {canCreate ? (
+            <section className="space-y-5">
+              <SectionHeader title="我的草稿" description="自动保存或手动保存的未发布内容。" />
+              <PostList
+                emptyTitle="暂无草稿"
+                posts={drafts.map((post) => ({
+                  id: post.id,
+                  title: post.title || "未命名草稿",
+                  authorName: post.author.displayName,
+                  category: post.category,
+                  createdAt: formatShanghaiDate(post.updatedAt),
+                  tags: post.tags,
+                  href: `/posts/${post.id}/edit`,
+                }))}
+              />
+            </section>
+          ) : null}
+        </div>
+
+        {canCreate ? (
+          <aside className="rounded-2xl border border-border/90 bg-card p-5 sm:p-6 xl:sticky xl:top-24">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold tracking-[-0.025em]">新建帖子</h2>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">发布前可保存草稿，离开页面时系统也会尝试自动保存。</p>
+            </div>
+            <PostForm quotaNotice={formatPostQuotaNotice(quotaStatus)} />
+          </aside>
         ) : null}
       </div>
-      {canCreate ? <PostForm quotaNotice={formatPostQuotaNotice(quotaStatus)} /> : null}
     </div>
   );
 }

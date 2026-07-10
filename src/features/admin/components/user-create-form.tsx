@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { createUserFormAction, type CreateUserFormState } from "../actions/create-user";
 
@@ -22,7 +23,7 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
   const message = state.message;
 
   return (
-    <form action={formAction} className="grid gap-3 sm:grid-cols-2">
+    <form action={formAction} className="grid gap-4 sm:grid-cols-2" aria-busy={isPending}>
       <div className="space-y-1.5">
         <Label htmlFor="admin-username">用户名</Label>
         <Input id="admin-username" name="username" required />
@@ -57,9 +58,9 @@ export function UserCreateForm({ advisors = [] }: { advisors?: readonly AdvisorO
           ))}
         </Select>
       </div>
-      {message ? <p className={`sm:col-span-2 ${state.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}`}>{message}</p> : null}
+      {message ? <StatusNotice className="sm:col-span-2" variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
       <Button type="submit" className="w-fit sm:col-span-2" disabled={isPending}>
-        {isPending ? "创建中" : "创建成员"}
+        {isPending ? "正在创建…" : "创建成员"}
       </Button>
     </form>
   );

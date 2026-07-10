@@ -351,7 +351,7 @@ export function CommitGraphView({
   return (
     <div
       ref={containerRef}
-      className="overflow-x-auto rounded-xl border border-border/80 bg-card shadow-[var(--shadow-card)]"
+      className="overflow-x-auto rounded-2xl border border-border/90 bg-card focus-within:ring-2 focus-within:ring-ring/20"
       data-project-commit-graph
       style={{
         "--project-author-width": `${panelWidths.author}px`,

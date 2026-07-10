@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { createProjectFormAction, type ProjectFormState } from "../actions/create-project";
 import { AdvisorStudentTree, type ProjectAdvisorOption } from "./advisor-student-tree";
@@ -28,10 +29,10 @@ export function ProjectForm({
   const message = state.message;
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form action={formAction} className="grid gap-6" aria-busy={isPending}>
       <div className="space-y-2">
         <Label htmlFor="project-name">项目名</Label>
-        <Input id="project-name" name="name" required />
+        <Input id="project-name" name="name" placeholder="例如：多模态遥感目标检测" required />
       </div>
       <div className="space-y-2">
         <Label>描述</Label>
@@ -68,11 +69,13 @@ export function ProjectForm({
         leadUserId={leadUserId}
         onLeadUserIdChange={setLeadUserId}
       />
-      {!leadUserId ? <p className="text-sm text-muted-foreground">勾选学生后，请指定其中一人为项目组长。</p> : null}
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
-      <Button type="submit" className="w-fit" disabled={isPending || !advisorId || !leadUserId}>
-        {isPending ? "创建中" : "创建"}
-      </Button>
+      {!leadUserId ? <StatusNotice>勾选学生后，请指定其中一人为项目组长。</StatusNotice> : null}
+      {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
+      <div className="border-t border-border/80 pt-5">
+        <Button type="submit" disabled={isPending || !advisorId || !leadUserId}>
+          {isPending ? "正在创建…" : "创建项目"}
+        </Button>
+      </div>
     </form>
   );
 }

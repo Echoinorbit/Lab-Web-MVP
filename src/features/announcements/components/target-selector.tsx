@@ -29,6 +29,7 @@ export function TargetSelector({ projects = [] }: { projects?: readonly Announce
             <button
               key={option.value}
               type="button"
+              aria-pressed={targetType === option.value}
               className="rounded-full border border-input px-3.5 py-2 text-sm font-medium transition-[color,background-color,border-color] duration-200 hover:border-foreground/20 hover:bg-muted data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
               data-active={targetType === option.value}
               disabled={disabled}

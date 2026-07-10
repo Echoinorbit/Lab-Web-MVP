@@ -39,8 +39,8 @@ export function ExportButton({ year, month }: { year: number; month: number }) {
   return (
     <div className="flex items-center gap-3">
       <Button type="button" variant="secondary" onClick={handleExport} disabled={isPending}>
-        <Download className="h-4 w-4" />
-        {isPending ? "导出中" : "导出 Excel"}
+        <Download className="h-4 w-4" aria-hidden="true" />
+        {isPending ? "正在导出…" : "导出 Excel"}
       </Button>
       {message ? <span className="text-sm text-destructive">{message}</span> : null}
     </div>

@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { grantTagFormAction, type TagActionState } from "../actions/grant-tag";
 import { revokeTagFormAction, type RevokeTagState } from "../actions/revoke-tag";
@@ -45,10 +46,10 @@ export function TagGrantForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Tag 授权</CardTitle>
+        <CardTitle>Tag 授权</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form action={grantAction} className="grid gap-3">
+        <form action={grantAction} className="grid gap-3" aria-busy={isGranting}>
           <Label htmlFor="tag-user">成员</Label>
           <Select id="tag-user" name="userId" required>
             {users.map((user) => (
@@ -66,11 +67,11 @@ export function TagGrantForm({
             ))}
           </Select>
           <Button type="submit" className="w-fit" disabled={isGranting || users.length === 0 || tags.length === 0}>
-            {isGranting ? "处理中" : "授予 Tag"}
+            {isGranting ? "正在处理…" : "授予 Tag"}
           </Button>
-          {grantState.message ? <p className="text-sm text-muted-foreground">{grantState.message}</p> : null}
+          {grantState.message ? <StatusNotice variant={grantState.ok ? "success" : "error"}>{grantState.message}</StatusNotice> : null}
         </form>
-        <form action={revokeAction} className="grid gap-3 border-t pt-4">
+        <form action={revokeAction} className="grid gap-3 border-t border-border/80 pt-5" aria-busy={isRevoking}>
           <Label htmlFor="user-tag-id">现有授权</Label>
           <Select id="user-tag-id" name="userTagId" required>
             {userTags.map((userTag) => (
@@ -80,9 +81,9 @@ export function TagGrantForm({
             ))}
           </Select>
           <Button type="submit" variant="destructive" className="w-fit" disabled={isRevoking || userTags.length === 0}>
-            {isRevoking ? "处理中" : "撤销 Tag"}
+            {isRevoking ? "正在处理…" : "撤销 Tag"}
           </Button>
-          {revokeState.message ? <p className="text-sm text-muted-foreground">{revokeState.message}</p> : null}
+          {revokeState.message ? <StatusNotice variant={revokeState.ok ? "success" : "error"}>{revokeState.message}</StatusNotice> : null}
         </form>
       </CardContent>
     </Card>

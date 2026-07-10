@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { updatePostFormAction, type UpdatePostFormState } from "../actions/update-post";
 
@@ -38,7 +39,7 @@ export function PostEditForm({
   const message = state.message;
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form action={formAction} className="grid gap-5" aria-busy={isPending}>
       <input type="hidden" name="postId" value={postId} />
       <div className="space-y-2">
         <Label htmlFor="post-title">标题</Label>
@@ -69,10 +70,12 @@ export function PostEditForm({
         />
       </div>
       <MarkdownEditor name="content" value={body} onChange={setBody} placeholder="Markdown 正文" />
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
-      <Button type="submit" className="w-fit" disabled={isPending}>
-        {isPending ? "保存中" : "保存修改"}
-      </Button>
+      {message ? <StatusNotice variant={state.ok ? "success" : "error"}>{message}</StatusNotice> : null}
+      <div className="border-t border-border/80 pt-5">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "正在保存…" : "保存修改"}
+        </Button>
+      </div>
     </form>
   );
 }
