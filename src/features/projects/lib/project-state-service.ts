@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 
 import { ensureProjectScopedTag } from "./tag-grants";
@@ -10,7 +11,10 @@ export async function assignProjectLeader(
   tx: Prisma.TransactionClient,
   input: { projectId: string; leaderId: string; actorId: string },
 ) {
-  await tx.$queryRaw(Prisma.sql`
+  for (const userId of orderUserLifecycleLockIds([input.actorId, input.leaderId])) {
+    await lockUserLifecycle(tx, userId);
+  }
+  await tx.$executeRaw(Prisma.sql`
     SELECT pg_advisory_xact_lock(hashtextextended(${PROJECT_LEADER_LOCK_PREFIX + input.projectId}, 0))
   `);
   await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Project" WHERE "id" = ${input.projectId} FOR UPDATE`);

@@ -48,7 +48,7 @@ export default async function DashboardPage() {
     prisma.announcement.findMany({
       where: announcementWhere,
       orderBy: ANNOUNCEMENT_ORDER_BY,
-      take: 5,
+      take: 3,
       include: { author: { select: { displayName: true } } },
     }),
     prisma.project.findMany({
@@ -129,62 +129,61 @@ export default async function DashboardPage() {
         })}
       </dl>
 
-      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-10 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-12">
-        <div className="min-w-0 space-y-10">
-          <section className="space-y-5">
-            <SectionHeader
-              title="最新公告"
-              description="按置顶与紧急程度优先显示。"
-              actions={(
-                <Link href="/announcements" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
-                查看全部
-                  <span className="ml-1" aria-hidden="true">›</span>
-                </Link>
-              )}
-            />
-            <AnnouncementList
-              announcements={announcements.map((announcement) => ({
-                id: announcement.id,
-                title: announcement.title,
-                content: announcement.content,
-                authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
-                createdAt: formatShanghaiDate(announcement.createdAt),
-                isPinned: announcement.isPinned,
-                isUrgent: announcement.isUrgent,
-              }))}
-              linkToDetail
-            />
-          </section>
-
-          <section className="space-y-5">
-            <SectionHeader
-              title="最近项目"
-              description="按最近更新时间排列。"
-              actions={(
-                <Link href="/projects" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
-                查看全部
-                  <span className="ml-1" aria-hidden="true">›</span>
-                </Link>
-              )}
-            />
-            <ProjectList
-              projects={projects.map((project) => ({
-                id: project.id,
-                name: project.name,
-                status: project.status,
-                memberCount: project._count.members,
-                nodeCount: project._count.nodes,
-                description: project.description,
-                canPreview: canViewProject(projectViewer, project),
-              }))}
-            />
-          </section>
-        </div>
-
-        <section className="min-w-0 space-y-5 xl:sticky xl:top-24">
+      <section className="grid min-w-0 items-start gap-10 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.7fr)] xl:gap-12">
+        <section className="min-w-0 space-y-5">
           <SectionHeader title="本月进度" description={`${year} 年 ${month} 月提交状态`} />
           <SummaryTable rows={progressRows} />
         </section>
+
+        <section className="min-w-0 space-y-5">
+          <SectionHeader
+            title="最新公告"
+            description="按置顶与紧急程度优先显示。"
+            actions={(
+              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
+                查看全部<span className="ml-1" aria-hidden="true">›</span>
+              </Link>
+            )}
+          />
+          <AnnouncementList
+            announcements={announcements.map((announcement) => ({
+              id: announcement.id,
+              title: announcement.title,
+              content: announcement.content,
+              authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
+              createdAt: formatShanghaiDate(announcement.createdAt),
+              updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()
+                ? formatShanghaiDate(announcement.updatedAt)
+                : null,
+              isPinned: announcement.isPinned,
+              isUrgent: announcement.isUrgent,
+            }))}
+            linkToDetail
+          />
+        </section>
+      </section>
+
+      <section className="space-y-5">
+        <SectionHeader
+          title="最近项目"
+          description="按最近更新时间排列。"
+          actions={(
+            <Link href="/projects" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
+              查看全部<span className="ml-1" aria-hidden="true">›</span>
+            </Link>
+          )}
+        />
+        <ProjectList
+          projects={projects.map((project) => ({
+            id: project.id,
+            name: project.name,
+            status: project.status,
+            memberCount: project._count.members,
+            nodeCount: project._count.nodes,
+            description: project.description,
+            canPreview: canViewProject(projectViewer, project),
+          }))}
+        />
       </section>
     </div>
   );

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { Prisma } from "@prisma/client";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -90,4 +91,14 @@ export async function archiveProjectFormAction(formData: FormData): Promise<void
   await archiveProject(projectId);
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/projects");
+}
+
+export async function archiveProjectResult(projectId: string) {
+  return toActionResult(async () => {
+    await archiveProject(projectId);
+    return null;
+  }, {
+    fallbackMessage: "项目归档失败，请稍后重试。",
+    knownMessages: ["只有规划中或进行中的项目可以归档。"],
+  });
 }

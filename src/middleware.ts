@@ -2,11 +2,11 @@ import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+import { isPublicRoutePrefilterPath } from "@/shared/lib/route-prefilter";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
+  const isPublic = isPublicRoutePrefilterPath(pathname);
 
   if (isPublic) return NextResponse.next();
 
@@ -21,5 +21,5 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

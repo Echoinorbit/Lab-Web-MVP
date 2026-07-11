@@ -20,9 +20,15 @@ export default async function ProjectsPage({
   const [permissions, effectiveTags] = await Promise.all([getUserPermissions(user.id), getEffectiveTags(user.id)]);
   const viewer = { id: user.id, role: user.role, tags: effectiveTags };
   const tab = requestedTab === "deleted" && user.role !== "ADMIN" ? "all" : requestedTab;
+  const visibleWhere = tab === "mine" ? getMyProjectWhere(viewer) : getProjectVisibilityWhere(viewer);
   const projectWhere = tab === "deleted"
     ? { deletedAt: { not: null } }
-    : tab === "mine" ? getMyProjectWhere(viewer) : getProjectVisibilityWhere(viewer);
+    : {
+        AND: [
+          visibleWhere,
+          tab === "archived" ? { status: "ARCHIVED" as const } : { status: { not: "ARCHIVED" as const } },
+        ],
+      };
   const projects = await prisma.project.findMany({
     where: projectWhere,
     orderBy: { updatedAt: "desc" },
@@ -56,6 +62,7 @@ export default async function ProjectsPage({
           [
             ["all", "可见项目"],
             ["mine", "我参与或负责"],
+            ["archived", "已归档"],
             ...(user.role === "ADMIN" ? [["deleted", "已软删除"]] as const : []),
           ] as const
         ).map(([value, label]) => (

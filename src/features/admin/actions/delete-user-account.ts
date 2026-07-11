@@ -10,6 +10,7 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { deleteUserAccountInputSchema } from "@/shared/lib/validators/admin";
 
 import { deleteUserAccount } from "../lib/delete-user-account";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function permanentlyDeleteUser(input: unknown) {
   const actor = await requireActiveUser();
@@ -33,4 +34,8 @@ export async function permanentlyDeleteUser(input: unknown) {
   revalidatePath("/admin/audit");
   revalidatePath("/projects");
   return result;
+}
+
+export async function permanentlyDeleteUserResult(input: unknown) {
+  return toUserActionResult(() => permanentlyDeleteUser(input), "永久删除用户失败，请稍后重试。");
 }

@@ -127,6 +127,11 @@ select {
   font: inherit;
 }
 
+dialog::backdrop {
+  background: hsl(var(--foreground) / 0.28);
+  backdrop-filter: blur(3px);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: hsl(var(--muted-foreground));

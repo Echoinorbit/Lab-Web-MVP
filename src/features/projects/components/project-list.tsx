@@ -20,6 +20,8 @@ export type ProjectSummary = {
 const statusLabels: Record<string, string> = {
   PLANNING: "规划中",
   IN_PROGRESS: "进行中",
+  REVIEW: "评审中",
+  COMPLETED: "已完成",
   ARCHIVED: "已归档",
 };
 

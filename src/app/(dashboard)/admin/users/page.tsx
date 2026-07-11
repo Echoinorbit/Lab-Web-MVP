@@ -1,7 +1,13 @@
+import type { Prisma, UserStatus } from "@prisma/client";
+import Link from "next/link";
+
 import { ADMIN_USERS_PAGE_SIZE, ExcelImport, UserCreateForm, UserTable } from "@/features/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { buttonStyles } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { Select } from "@/shared/components/ui/select";
 import { requirePermission } from "@/shared/lib/authorization";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { PERMISSIONS } from "@/shared/lib/permissions";
@@ -11,13 +17,28 @@ import { formatStudyGrade } from "@/shared/lib/study-identity";
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
 }) {
   await requirePermission({ permission: PERMISSIONS.ADMIN_USER_MANAGE, entityType: "AdminUsers" });
   const now = new Date();
-  const requestedPage = parsePageParam((await searchParams).page);
+  const query = await searchParams;
+  const requestedPage = parsePageParam(query.page);
+  const search = query.q?.trim().slice(0, 80) ?? "";
+  const status: UserStatus | "ALL" = query.status === "ACTIVE" || query.status === "SUSPENDED" || query.status === "GRADUATED"
+    ? query.status
+    : "ALL";
+  const where: Prisma.UserWhereInput = {
+    ...(status === "ALL" ? {} : { status }),
+    ...(search ? {
+      OR: [
+        { username: { contains: search, mode: "insensitive" } },
+        { displayName: { contains: search, mode: "insensitive" } },
+        { studentId: { contains: search, mode: "insensitive" } },
+      ],
+    } : {}),
+  };
   const [totalUsers, advisors] = await Promise.all([
-    prisma.user.count(),
+    prisma.user.count({ where }),
     prisma.user.findMany({
       where: {
         status: "ACTIVE",
@@ -34,6 +55,7 @@ export default async function AdminUsersPage({
     pageSize: ADMIN_USERS_PAGE_SIZE,
   });
   const users = await prisma.user.findMany({
+    where,
     orderBy: [{ role: "asc" }, { username: "asc" }],
     skip: pagination.skip,
     take: pagination.pageSize,
@@ -64,24 +86,43 @@ export default async function AdminUsersPage({
     <div className="min-w-0 space-y-10">
       <PageHeader
         title="用户"
-        description={`共 ${totalUsers} 个账号。当前显示 ${firstVisibleUser}–${lastVisibleUser}，每页 ${ADMIN_USERS_PAGE_SIZE} 个。`}
+        description={`找到 ${totalUsers} 个账号。当前显示 ${firstVisibleUser}–${lastVisibleUser}，每页 ${ADMIN_USERS_PAGE_SIZE} 个。`}
       />
 
       <section aria-label="用户列表" className="min-w-0 space-y-5">
-        <SectionHeader title="账号与身份" description="在表格内维护身份、角色、状态、年级、导师与会话。毕业操作不可撤销。" />
+        <SectionHeader title="账号与身份" description="先筛选账号，再进入独立治理页面处理角色、培养身份、状态与删除。" />
+        <form className="grid gap-3 rounded-2xl border border-border/90 bg-card p-4 sm:grid-cols-[minmax(0,1fr)_180px_auto_auto] sm:items-end" action="/admin/users">
+          <label className="grid gap-1.5 text-sm">
+            <span className="font-medium">搜索用户</span>
+            <Input name="q" defaultValue={search} placeholder="用户名、姓名或学号" />
+          </label>
+          <label className="grid gap-1.5 text-sm">
+            <span className="font-medium">账号状态</span>
+            <Select name="status" defaultValue={status}>
+              <option value="ALL">全部状态</option>
+              <option value="ACTIVE">在用</option>
+              <option value="SUSPENDED">已暂停</option>
+              <option value="GRADUATED">毕业清理期</option>
+            </Select>
+          </label>
+          <button type="submit" className={buttonStyles()}>筛选</button>
+          <Link href="/admin/users" className={buttonStyles({ variant: "secondary" })}>重置</Link>
+        </form>
         <UserTable
           users={users.map((user) => {
             return {
               id: user.id,
               username: user.username,
               displayName: user.displayName,
+              avatar: user.avatar,
               studentId: user.studentId,
               role: user.role,
               status: user.status,
               computedGrade: formatStudyGrade(user.studyDegree, user.studyGrade),
-              gradeTrack: user.studyDegree === "MASTER" ? "master" : user.studyDegree === "DOCTOR" ? "phd" : null,
-              advisorId: user.advisorId,
-              isAdvisor: user.studyDegree === "MENTOR" && !user.identityNeedsReview,
+              identityNeedsReview: user.identityNeedsReview,
+              scheduledDeletionAt: user.scheduledDeletionAt
+                ? new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", year: "numeric" }).format(user.scheduledDeletionAt)
+                : null,
               tags: user.tags.map((userTag) => ({
                 name: userTag.tag.name,
                 displayName: userTag.tag.displayName,
@@ -89,12 +130,12 @@ export default async function AdminUsersPage({
               })),
             };
           })}
-          advisors={advisorOptions}
         />
         <Pagination
           basePath="/admin/users"
           currentPage={pagination.currentPage}
           totalPages={pagination.totalPages}
+          params={{ q: search || undefined, status: status === "ALL" ? undefined : status }}
         />
       </section>
 

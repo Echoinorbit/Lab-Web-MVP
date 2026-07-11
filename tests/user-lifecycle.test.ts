@@ -6,6 +6,11 @@ import {
   getDeletionSnapshotState,
   isScheduledUserDeletionDue,
 } from "../src/features/admin/lib/delete-user-account";
+import {
+  restoreStudyIdentityAfterCancelledGraduation,
+  revokeTagsForGraduation,
+  orderUserLifecycleLockIds,
+} from "../src/features/admin/lib/user-lifecycle";
 
 const target = {
   id: "target",
@@ -72,4 +77,69 @@ test("手动永久删除拒绝自删、错误用户名和最后一个有效管�
     },
     activeAdminCount: 2,
   }));
+});
+
+test("毕业撤销全部旧授权，取消毕业只恢复培养身份 Tag", async () => {
+  const updates: unknown[] = [];
+  const creates: unknown[] = [];
+  const tagNames: string[] = [];
+  const transaction = {
+    userTag: {
+      updateMany: async (args: unknown) => { updates.push(args); return { count: 1 }; },
+      create: async (args: unknown) => { creates.push(args); return { id: `grant-${creates.length}` }; },
+    },
+    tag: {
+      findFirstOrThrow: async (args: { where: { name: string } }) => {
+        tagNames.push(args.where.name);
+        return { id: `tag-${args.where.name}` };
+      },
+    },
+  };
+  const now = new Date("2026-07-10T00:00:00.000Z");
+  const actorSnapshot = {
+    v: 1 as const,
+    displayName: "治理管理员",
+    studyDegree: null,
+    accountState: "ACTIVE" as const,
+    capturedAt: now.toISOString(),
+  };
+
+  await revokeTagsForGraduation(
+    transaction as unknown as Parameters<typeof revokeTagsForGraduation>[0],
+    { userId: "student", actorId: "admin", actorSnapshot, now },
+  );
+  await restoreStudyIdentityAfterCancelledGraduation(
+    transaction as unknown as Parameters<typeof restoreStudyIdentityAfterCancelledGraduation>[0],
+    { userId: "student", actorId: "admin", actorSnapshot, now, studyDegree: "MASTER" },
+  );
+
+  assert.deepEqual(tagNames, ["graduated", "grad-master"]);
+  assert.deepEqual(updates, [
+    {
+      where: { userId: "student", revokedAt: null },
+      data: { revokedAt: now, revokedById: "admin", revokerSnapshot: actorSnapshot },
+    },
+    {
+      where: { userId: "student", revokedAt: null, projectId: null, tag: { name: "graduated" } },
+      data: { revokedAt: now, revokedById: "admin", revokerSnapshot: actorSnapshot },
+    },
+  ]);
+  assert.equal(creates.length, 2);
+  assert.deepEqual(creates[1], {
+    data: {
+      userId: "student",
+      tagId: "tag-grad-master",
+      source: "STUDY_IDENTITY",
+      grantedById: "admin",
+      granterSnapshot: actorSnapshot,
+    },
+  });
+});
+
+test("跨项目批量成员变更以稳定顺序获取用户生命周期锁", () => {
+  assert.deepEqual(orderUserLifecycleLockIds(["user-b", "user-a", "user-b", "user-c"]), [
+    "user-a",
+    "user-b",
+    "user-c",
+  ]);
 });

@@ -3,7 +3,15 @@
 import { Upload } from "lucide-react";
 import type { ChangeEvent } from "react";
 
-export function FileUpload({ onFiles }: { onFiles: (files: File[]) => void }) {
+export function FileUpload({
+  onFiles,
+  accept,
+  multiple = true,
+}: {
+  onFiles: (files: File[]) => void;
+  accept?: string;
+  multiple?: boolean;
+}) {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onFiles(Array.from(event.target.files ?? []));
   };
@@ -15,7 +23,7 @@ export function FileUpload({ onFiles }: { onFiles: (files: File[]) => void }) {
       </span>
       <span className="font-medium text-foreground">选择要上传的文件</span>
       <span className="text-xs">也可以一次选择多个文件</span>
-      <input type="file" className="sr-only" multiple onChange={handleChange} />
+      <input type="file" className="sr-only" accept={accept} multiple={multiple} onChange={handleChange} />
     </label>
   );
 }

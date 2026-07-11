@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
@@ -29,9 +30,19 @@ export async function createProject(input: unknown) {
     entityType: "Project",
   });
 
+  const requestedLifecycleUserIds = orderUserLifecycleLockIds([
+    user.id,
+    data.advisorId ?? user.id,
+    data.leadUserId,
+    ...data.memberUserIds,
+  ]);
+
   let project: { id: string };
   try {
     project = await prisma.$transaction(async (tx) => {
+      for (const userId of requestedLifecycleUserIds) {
+        await lockUserLifecycle(tx, userId);
+      }
       const [[{ now }], currentActor] = await Promise.all([
         tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
         tx.user.findUnique({

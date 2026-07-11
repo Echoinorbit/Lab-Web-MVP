@@ -2,6 +2,7 @@
 
 import ExcelJS from "exceljs";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
@@ -55,4 +56,10 @@ export async function exportProgressReports(year: number, month: number) {
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer).toString("base64");
+}
+
+export async function exportProgressReportsResult(year: number, month: number) {
+  return toActionResult(() => exportProgressReports(year, month), {
+    fallbackMessage: "报表导出失败，请稍后重试。",
+  });
 }

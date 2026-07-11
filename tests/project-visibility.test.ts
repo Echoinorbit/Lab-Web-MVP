@@ -33,6 +33,7 @@ test("项目列表 Tab 参数只接受 all、mine 与 deleted", () => {
   assert.equal(parseProjectListTab(undefined), "all");
   assert.equal(parseProjectListTab("all"), "all");
   assert.equal(parseProjectListTab("mine"), "mine");
+  assert.equal(parseProjectListTab("archived"), "archived");
   assert.equal(parseProjectListTab("deleted"), "deleted");
   assert.equal(parseProjectListTab("other"), "all");
   assert.equal(parseProjectListTab(["mine", "all"]), "mine");

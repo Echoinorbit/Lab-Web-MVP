@@ -10,13 +10,19 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { updateUserRoleInputSchema } from "@/shared/lib/validators/admin";
 
 import { applyAdminUserRoleUpdate } from "../lib/user-governance";
-import { getDatabaseNow, lockAdminGovernance, lockUserLifecycle } from "../lib/user-lifecycle";
+import {
+  getDatabaseNow,
+  lockAdminGovernance,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserRole(input: unknown) {
   const admin = await requireActiveUser();
   const data = updateUserRoleInputSchema.parse(input);
   if (admin.id === data.userId && data.role !== "ADMIN") {
-    throw new Error("Admins cannot remove their own admin role.");
+    throw new Error("管理员不能移除自己的管理员角色。");
   }
 
   await assertPermissionWithAudit({
@@ -27,7 +33,9 @@ export async function updateUserRole(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await lockUserLifecycle(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+      await lockUserLifecycle(tx, userId);
+    }
     await lockAdminGovernance(tx);
     const target = await tx.user.findUnique({
       where: { id: data.userId },
@@ -60,4 +68,11 @@ export async function updateUserRole(input: unknown) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
   revalidatePath("/admin/tags");
+}
+
+export async function updateUserRoleResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await updateUserRole(input);
+    return null;
+  }, "系统角色更新失败，请稍后重试。");
 }

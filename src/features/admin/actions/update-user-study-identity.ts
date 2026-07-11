@@ -11,6 +11,8 @@ import { STUDY_GRADE_LABELS } from "@/shared/lib/study-identity";
 import { updateUserStudyIdentityInputSchema } from "@/shared/lib/validators/admin";
 
 import { lockUserIdentity, syncStudyIdentity } from "../lib/study-identity-service";
+import { orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserStudyIdentity(input: unknown) {
   const actor = await requireActiveUser();
@@ -23,7 +25,9 @@ export async function updateUserStudyIdentity(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await lockUserIdentity(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([actor.id, data.userId])) {
+      await lockUserIdentity(tx, userId);
+    }
     const target = await tx.user.findUnique({
       where: { id: data.userId },
       select: { role: true, status: true, studyDegree: true, studyGrade: true },
@@ -66,4 +70,11 @@ export async function updateUserStudyIdentity(input: unknown) {
   revalidatePath(`/admin/users/${data.userId}/edit`);
   revalidatePath("/admin/tags");
   revalidatePath("/profile");
+}
+
+export async function updateUserStudyIdentityResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await updateUserStudyIdentity(input);
+    return null;
+  }, "培养身份更新失败，请稍后重试。");
 }

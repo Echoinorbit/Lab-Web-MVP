@@ -19,7 +19,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   const post = await prisma.post.findFirst({
     where: buildVisiblePostWhere(user.id, id),
     include: {
-      author: { select: { id: true, displayName: true } },
+      author: { select: { id: true, displayName: true, avatar: true } },
       comments: {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, displayName: true } } },
@@ -43,6 +43,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       <PostDetail
         title={post.title}
         authorName={`${resolveActorDisplay(post.author, post.authorSnapshot).displayName} · ${formatShanghaiDate(post.createdAt)}`}
+        authorAvatar={post.author?.avatar ?? null}
         content={post.content}
       />
       {canEditPost || canDeletePost ? (

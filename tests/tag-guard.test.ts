@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertManualTagTargetEligible,
   assertManuallyManageableTagName,
+  isManuallyManageableTagName,
   isProjectManagedTagName,
 } from "../src/features/tags/lib/project-tag-guard";
 
@@ -26,4 +28,19 @@ test("培养身份 Tag 受保护，相似前缀与普通 GLOBAL Tag 不被误伤
 
 test("毕业 Tag 仅保留历史迁移用途，不能手动授予或撤销", () => {
   assert.throws(() => assertManuallyManageableTagName("graduated"), /毕业状态/);
+});
+
+test("手动 Tag 变更只允许在用普通成员", () => {
+  assert.doesNotThrow(() => assertManualTagTargetEligible({ role: "MEMBER", status: "ACTIVE" }));
+  assert.throws(() => assertManualTagTargetEligible(null), /目标成员不存在/);
+  assert.throws(() => assertManualTagTargetEligible({ role: "ADMIN", status: "ACTIVE" }), /治理账号/);
+  assert.throws(() => assertManualTagTargetEligible({ role: "MEMBER", status: "SUSPENDED" }), /在用成员/);
+  assert.throws(() => assertManualTagTargetEligible({ role: "MEMBER", status: "GRADUATED" }), /在用成员/);
+});
+
+test("Tag 管理 UI 只暴露服务端允许手动维护的 Tag", () => {
+  for (const protectedName of ["advisor", "grad-master", "grad-phd", "graduated", "project-lead:p1", "project-member:p1"]) {
+    assert.equal(isManuallyManageableTagName(protectedName), false);
+  }
+  assert.equal(isManuallyManageableTagName("post-moderator"), true);
 });

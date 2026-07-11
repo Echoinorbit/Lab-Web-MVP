@@ -11,13 +11,14 @@ import { UserMenu } from "./user-menu";
 
 type HeaderProps = {
   displayName: string;
+  avatar: string | null;
   role: "ADMIN" | "MEMBER";
   unreadCount: number;
   navigationAccess: NavigationAccessMap;
   logoutAction: () => void | Promise<void>;
 };
 
-export function Header({ displayName, role, unreadCount, navigationAccess, logoutAction }: HeaderProps) {
+export function Header({ displayName, avatar, role, unreadCount, navigationAccess, logoutAction }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-[68px] items-center gap-2 border-b border-border/75 bg-background/90 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
       <MobileNav access={navigationAccess} />
@@ -37,7 +38,7 @@ export function Header({ displayName, role, unreadCount, navigationAccess, logou
         ) : null}
       </Link>
       <ThemeToggle />
-      <UserMenu displayName={displayName} role={role} logoutAction={logoutAction} />
+      <UserMenu displayName={displayName} avatar={avatar} role={role} logoutAction={logoutAction} />
     </header>
   );
 }

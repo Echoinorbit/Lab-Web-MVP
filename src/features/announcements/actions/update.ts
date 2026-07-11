@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { computePermissionsFromSnapshot, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -122,23 +122,12 @@ export async function updateAnnouncement(input: unknown) {
   return updated;
 }
 
-export type UpdateAnnouncementState = { ok: boolean; message: string | null };
-
-export async function updateAnnouncementFormAction(
-  _previous: UpdateAnnouncementState,
-  formData: FormData,
-): Promise<UpdateAnnouncementState> {
-  const id = String(formData.get("id") ?? "");
-  try {
-    await updateAnnouncement({
-      id,
-      title: formData.get("title"),
-      content: formData.get("content"),
-      isPinned: formData.get("isPinned") === "on",
-      isUrgent: formData.get("isUrgent") === "on",
-    });
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "保存失败" };
-  }
-  redirect(`/announcements/${id}`);
+export async function updateAnnouncementResult(input: unknown) {
+  return toActionResult(async () => {
+    await updateAnnouncement(input);
+    return null;
+  }, {
+    fallbackMessage: "公告保存失败，请稍后重试。",
+    knownMessages: ["公告不存在或已删除。"],
+  });
 }

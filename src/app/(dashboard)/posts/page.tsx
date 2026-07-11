@@ -18,14 +18,14 @@ export default async function PostsPage() {
       where: buildPublicPostWhere(),
       orderBy: { createdAt: "desc" },
       take: 50,
-      include: { author: { select: { displayName: true } } },
+      include: { author: { select: { displayName: true, avatar: true } } },
     }),
     canCreate
       ? prisma.post.findMany({
           where: buildMyDraftsWhere(user.id),
           orderBy: { updatedAt: "desc" },
           take: 20,
-          include: { author: { select: { displayName: true } } },
+          include: { author: { select: { displayName: true, avatar: true } } },
         })
       : Promise.resolve([]),
     canCreate ? getRateLimitStatus(user.id, PERMISSIONS.POST_CREATE) : Promise.resolve(null),
@@ -43,6 +43,7 @@ export default async function PostsPage() {
                 id: post.id,
                 title: post.title,
                 authorName: resolveActorDisplay(post.author, post.authorSnapshot).displayName,
+                authorAvatar: post.author?.avatar ?? null,
                 category: post.category,
                 createdAt: formatShanghaiDate(post.createdAt),
                 tags: post.tags,
@@ -59,6 +60,7 @@ export default async function PostsPage() {
                   id: post.id,
                   title: post.title || "未命名草稿",
                   authorName: resolveActorDisplay(post.author, post.authorSnapshot).displayName,
+                  authorAvatar: post.author?.avatar ?? null,
                   category: post.category,
                   createdAt: formatShanghaiDate(post.updatedAt),
                   tags: post.tags,

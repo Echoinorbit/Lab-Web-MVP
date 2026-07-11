@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { prisma } from "@/shared/lib/prisma";
@@ -72,16 +73,12 @@ export async function deleteProjectNode(input: unknown) {
   revalidatePath(`/projects/${locatedNode.projectId}`);
 }
 
-export type DeleteProjectNodeState = { ok: boolean; message: string | null };
-
-export async function deleteProjectNodeFormAction(
-  _prevState: DeleteProjectNodeState,
-  formData: FormData,
-): Promise<DeleteProjectNodeState> {
-  try {
-    await deleteProjectNode({ nodeId: formData.get("nodeId") });
-    return { ok: true, message: "节点已删除" };
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "删除失败" };
-  }
+export async function deleteProjectNodeResult(input: unknown) {
+  return toActionResult(async () => {
+    await deleteProjectNode(input);
+    return null;
+  }, {
+    fallbackMessage: "项目节点删除失败，请稍后重试。",
+    knownMessages: ["只有节点作者可以编辑或删除该节点。", "已归档项目不可写入。"],
+  });
 }

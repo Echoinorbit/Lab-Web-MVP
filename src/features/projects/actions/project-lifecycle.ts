@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -149,6 +150,35 @@ export async function hardDeleteProject(projectId: string) {
     }
     throw error;
   }
+}
+
+const lifecycleFeedbackMessages = ["项目状态已变化，请刷新后重试。"] as const;
+
+export async function softDeleteAdvisedProjectResult(projectId: string) {
+  return toActionResult(async () => {
+    await softDeleteAdvisedProject(projectId);
+    return null;
+  }, {
+    fallbackMessage: "项目软删除失败，请稍后重试。",
+    knownMessages: lifecycleFeedbackMessages,
+  });
+}
+
+export async function restoreProjectResult(projectId: string) {
+  return toActionResult(async () => {
+    await restoreProject(projectId);
+    return null;
+  }, {
+    fallbackMessage: "项目恢复失败，请稍后重试。",
+    knownMessages: lifecycleFeedbackMessages,
+  });
+}
+
+export async function hardDeleteProjectResult(projectId: string) {
+  return toActionResult(async () => {
+    await hardDeleteProject(projectId);
+    return null;
+  }, { fallbackMessage: "项目永久删除失败，请稍后重试。" });
 }
 
 export async function softDeleteProjectFormAction(formData: FormData): Promise<void> {

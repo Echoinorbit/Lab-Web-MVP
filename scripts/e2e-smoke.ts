@@ -97,12 +97,22 @@ async function expectStatus(username: string, jar: CookieJar, path: string, expe
   return response;
 }
 
-async function expectNotStatus(username: string, jar: CookieJar, path: string, forbidden: number) {
+async function expectAccessDenied(username: string, jar: CookieJar, path: string, protectedMarker: string) {
   const response = await request(path, jar);
-  if (response.status === forbidden) {
-    throw new Error(`${username}: expected ${path} not to return ${forbidden}`);
+  if (response.status >= 300 && response.status < 400) {
+    if (response.headers.get("location") !== "/403") {
+      throw new Error(`${username}: expected ${path} to redirect to /403, got ${response.headers.get("location")}`);
+    }
+    return response;
   }
-  return response;
+  if (response.status === 200) {
+    const body = await response.text();
+    if (!body.includes("NEXT_REDIRECT") || (!body.includes("/403") && !body.includes("\\u002f403")) || body.includes(protectedMarker)) {
+      throw new Error(`${username}: ${path} rendered protected content instead of a streamed /403 redirect`);
+    }
+    return response;
+  }
+  throw new Error(`${username}: expected ${path} to be denied, got ${response.status}`);
 }
 
 async function expectBodyContains(username: string, jar: CookieJar, path: string, expected: string) {
@@ -139,8 +149,8 @@ async function main() {
   }
   const dashboard = await expectBodyContains(adminUsername, admin, "/", "E2E 公告 15");
   const dashboardAnnouncementRows = countRenderedMarkers(dashboard, "data-announcement-row");
-  if (dashboardAnnouncementRows !== 5) {
-    throw new Error(`${adminUsername}: dashboard expected 5 announcement rows, got ${dashboardAnnouncementRows}`);
+  if (dashboardAnnouncementRows !== 3) {
+    throw new Error(`${adminUsername}: dashboard expected 3 announcement rows, got ${dashboardAnnouncementRows}`);
   }
   if (dashboard.includes("搜索公告、项目、成员")) {
     throw new Error(`${adminUsername}: removed global search control is still rendered`);
@@ -153,7 +163,7 @@ async function main() {
   if (!progressBody.includes("报告已提交，不能重复提交")) {
     throw new Error("e2e-master: submitted progress report state was not rendered");
   }
-  await expectNotStatus("e2e-master", master, "/admin/users", 200);
+  await expectAccessDenied("e2e-master", master, "/admin/users", "账号与身份");
   const notifications = await expectStatus("e2e-master", master, "/api/notifications", 200);
   const notificationPageOne = (await notifications.json()) as unknown;
   assertNotificationPage(notificationPageOne, 1);
@@ -188,7 +198,7 @@ async function main() {
   const visionLead = await login("e2e-vision-lead", fixturePassword);
   await expectStatus("e2e-vision-lead", visionLead, "/projects", 200);
   await expectStatus("e2e-vision-lead", visionLead, "/progress", 200);
-  await expectNotStatus("e2e-vision-lead", visionLead, "/admin/tags", 200);
+  await expectAccessDenied("e2e-vision-lead", visionLead, "/admin/tags", "全局 Tag 清单");
 
   const visionMember = await login("e2e-vision-member-a", fixturePassword);
   const memberProjects = await expectBodyContains("e2e-vision-member-a", visionMember, "/projects", "图像识别误检分析项目");
@@ -196,7 +206,7 @@ async function main() {
     throw new Error("e2e-vision-member-a: own project did not render its preview surface");
   }
   await expectStatus("e2e-vision-member-a", visionMember, "/posts", 200);
-  await expectNotStatus("e2e-vision-member-a", visionMember, "/admin/users", 200);
+  await expectAccessDenied("e2e-vision-member-a", visionMember, "/admin/users", "账号与身份");
   await expectLoginRejected("e2e-graduated", fixturePassword);
 
   console.log(
@@ -205,7 +215,7 @@ async function main() {
         baseUrl,
         checks: [
           `${adminUsername} dashboard/audit 200`,
-          "dashboard renders 5 announcements; announcement pages render at most 10",
+          "dashboard renders 3 announcements; announcement pages render at most 10",
           "e2e-master current progress state and three notification pages verified",
           "e2e-advisor announcements/projects 200",
           "e2e-progress-mgr progress 200",

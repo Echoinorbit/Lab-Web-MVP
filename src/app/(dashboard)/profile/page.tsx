@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { AvatarEditor } from "@/features/profile";
 import { TagBadge } from "@/features/tags";
+import { Avatar } from "@/shared/components/ui/avatar";
 import { buttonStyles } from "@/shared/components/ui/button";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
@@ -34,6 +36,7 @@ export default async function ProfilePage() {
       where: { id: sessionUser.id },
       select: {
         displayName: true,
+        avatar: true,
         username: true,
         role: true,
         studentId: true,
@@ -67,9 +70,7 @@ export default async function ProfilePage() {
 
       <section className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
         <div>
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground text-2xl font-semibold text-background">
-            {profile.displayName.trim().charAt(0).toUpperCase() || "?"}
-          </div>
+          <Avatar src={profile.avatar} name={profile.displayName} size={80} priority />
           <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{profile.displayName}</h2>
           <p className="mt-1 text-sm text-muted-foreground">@{profile.username} · {roleLabels[profile.role]}</p>
         </div>
@@ -82,6 +83,11 @@ export default async function ProfilePage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="space-y-5 border-t border-border/80 pt-8">
+        <SectionHeader title="头像" description="上传后先在浏览器内完成 1:1 裁剪，服务端会再次校验最终 PNG。" />
+        <AvatarEditor currentAvatar={profile.avatar} displayName={profile.displayName} />
       </section>
 
       <section className="space-y-5">

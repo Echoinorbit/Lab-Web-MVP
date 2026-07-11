@@ -3,7 +3,9 @@
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { enrollmentDateForGrade } from "@/shared/lib/grade";
@@ -15,6 +17,9 @@ import { STUDY_GRADE_LABELS } from "@/shared/lib/study-identity";
 import { createUserInputSchema } from "@/shared/lib/validators/admin";
 
 import { syncStudyIdentity } from "../lib/study-identity-service";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+
+class CreateUserFeedbackError extends Error {}
 
 export async function createUser(input: unknown) {
   const admin = await requireActiveUser();
@@ -28,11 +33,17 @@ export async function createUser(input: unknown) {
 
   const passwordCheck = validatePasswordPolicy(data.password, [data.username, data.studentId ?? ""]);
   if (!passwordCheck.ok) {
-    throw new Error(passwordCheck.errors.join(" "));
+    throw new CreateUserFeedbackError(passwordCheck.errors.join(" "));
   }
 
   const passwordHash = await bcrypt.hash(data.password, 12);
   const user = await prisma.$transaction(async (tx) => {
+    for (const userId of orderUserLifecycleLockIds([
+      admin.id,
+      ...(data.advisorId ? [data.advisorId] : []),
+    ])) {
+      await lockUserLifecycle(tx, userId);
+    }
     const [[{ now }], advisor] = await Promise.all([
       tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
       data.advisorId
@@ -48,7 +59,7 @@ export async function createUser(input: unknown) {
         })
         : Promise.resolve(null),
     ]);
-    if (data.advisorId && !advisor) throw new Error("所选导师不存在或导师资格已失效。");
+    if (data.advisorId && !advisor) throw new CreateUserFeedbackError("所选导师不存在或导师资格已失效。");
     const created = await tx.user.create({
       data: {
         username: data.username,
@@ -111,7 +122,8 @@ function formatCreateUserError(error: unknown) {
     if (target.includes("studentId")) return "学号已存在，请检查是否重复创建。";
     return "用户唯一字段重复，请检查用户名或学号。";
   }
-  return error instanceof Error ? error.message : "创建失败";
+  if (error instanceof CreateUserFeedbackError) return error.message;
+  return getActionErrorMessage(error, { fallbackMessage: "成员创建失败，请稍后重试。" });
 }
 
 export async function createUserFormAction(
@@ -130,6 +142,7 @@ export async function createUserFormAction(
     });
     return { ok: true, message: "成员已创建" };
   } catch (error) {
+    unstable_rethrow(error);
     return { ok: false, message: formatCreateUserError(error) };
   }
 }

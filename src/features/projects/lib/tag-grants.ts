@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { PROJECT_LEAD_TAG_PREFIX, PROJECT_MEMBER_TAG_PREFIX } from "@/shared/lib/system-tags";
+
+import { isEligibleProjectLeaderActor } from "./project-governance";
 
 export type ProjectScopedTagKind = "lead" | "member";
 
@@ -70,10 +73,19 @@ export async function grantProjectScopedTag(
     grantedById: string;
   },
 ) {
+  for (const lockedUserId of orderUserLifecycleLockIds([grantedById, userId])) {
+    await lockUserLifecycle(tx, lockedUserId);
+  }
   const [member, actor, [{ now }]] = await Promise.all([
     tx.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { displayName: true, studyDegree: true, status: true },
+      select: {
+        role: true,
+        displayName: true,
+        studyDegree: true,
+        status: true,
+        identityNeedsReview: true,
+      },
     }),
     tx.user.findUniqueOrThrow({
       where: { id: grantedById },
@@ -81,6 +93,10 @@ export async function grantProjectScopedTag(
     }),
     tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
   ]);
+  if (!isEligibleProjectLeaderActor(member)) {
+    throw new Error("项目成员必须是身份已确认的在读硕士或博士成员。");
+  }
+  if (actor.status !== "ACTIVE") throw new Error("执行项目成员变更的账号已失效。");
   const memberSnapshot = createActorSnapshot(member, now);
   const actorSnapshot = createActorSnapshot(actor, now);
   await tx.projectMember.upsert({

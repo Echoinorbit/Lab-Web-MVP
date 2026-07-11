@@ -9,7 +9,8 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { revokeUserSessionsInputSchema } from "@/shared/lib/validators/admin";
 
-import { getDatabaseNow, lockUserLifecycle } from "../lib/user-lifecycle";
+import { getDatabaseNow, lockUserLifecycle, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function revokeUserSessions(input: unknown) {
   const admin = await requireActiveUser();
@@ -23,7 +24,9 @@ export async function revokeUserSessions(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await lockUserLifecycle(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+      await lockUserLifecycle(tx, userId);
+    }
     const [currentAdmin, now] = await Promise.all([
       tx.user.findFirst({
         where: { id: admin.id, role: "ADMIN", status: "ACTIVE" },
@@ -49,4 +52,11 @@ export async function revokeUserSessions(input: unknown) {
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
+}
+
+export async function revokeUserSessionsResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await revokeUserSessions(input);
+    return null;
+  }, "吊销用户会话失败，请稍后重试。");
 }

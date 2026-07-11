@@ -4,8 +4,9 @@ import { Download } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/shared/components/ui/button";
+import { useToast } from "@/shared/components/ui/toast";
 
-import { exportProgressReports } from "../actions/export-excel";
+import { exportProgressReportsResult } from "../actions/export-excel";
 
 function downloadBase64Xlsx(base64: string, fileName: string) {
   const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
@@ -21,6 +22,7 @@ function downloadBase64Xlsx(base64: string, fileName: string) {
 }
 
 export function ExportButton({ year, month }: { year: number; month: number }) {
+  const { toast } = useToast();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -28,10 +30,18 @@ export function ExportButton({ year, month }: { year: number; month: number }) {
     setMessage(null);
     startTransition(async () => {
       try {
-        const base64 = await exportProgressReports(year, month);
-        downloadBase64Xlsx(base64, `progress-${year}-${String(month).padStart(2, "0")}.xlsx`);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "导出失败");
+        const result = await exportProgressReportsResult(year, month);
+        if (!result.ok) {
+          setMessage(result.message);
+          toast({ title: "报表导出失败", description: result.message, variant: "error" });
+          return;
+        }
+        downloadBase64Xlsx(result.data, `progress-${year}-${String(month).padStart(2, "0")}.xlsx`);
+        toast({ title: "进度报表已导出", variant: "success" });
+      } catch {
+        const nextMessage = "导出请求失败，请稍后重试。";
+        setMessage(nextMessage);
+        toast({ title: "报表导出失败", description: nextMessage, variant: "error" });
       }
     });
   }

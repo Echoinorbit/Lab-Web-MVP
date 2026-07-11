@@ -4,6 +4,7 @@ export type AnnouncementSummary = {
   content: string;
   authorName: string;
   createdAt: string;
+  updatedAt?: string | null;
   isPinned: boolean;
   isUrgent: boolean;
 };

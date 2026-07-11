@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -61,4 +62,14 @@ export async function deleteAnnouncement(input: unknown) {
 
 export async function deleteAnnouncementFormAction(formData: FormData): Promise<void> {
   await deleteAnnouncement({ id: formData.get("id") });
+}
+
+export async function deleteAnnouncementResult(input: unknown) {
+  return toActionResult(async () => {
+    await deleteAnnouncement(input);
+    return null;
+  }, {
+    fallbackMessage: "公告删除失败，请稍后重试。",
+    knownMessages: ["公告不存在或已删除。"],
+  });
 }

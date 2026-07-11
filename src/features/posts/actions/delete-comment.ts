@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissions, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -18,7 +19,7 @@ export async function deleteComment(input: unknown) {
     where: { id: data.commentId, deletedAt: null },
     select: { postId: true, authorId: true },
   });
-  if (!comment) throw new Error("Comment not found.");
+  if (!comment) throw new Error("评论不存在或已删除。");
 
   const permissions = await getUserPermissions(user.id);
   const access = resolveCommentDeleteAccess({ userId: user.id, authorId: comment.authorId, permissions });
@@ -51,6 +52,12 @@ export async function deleteComment(input: unknown) {
   revalidatePath(`/posts/${comment.postId}`);
 }
 
-export async function deleteCommentFormAction(formData: FormData): Promise<void> {
-  await deleteComment({ commentId: formData.get("commentId") });
+export async function deleteCommentResult(input: unknown) {
+  return toActionResult(async () => {
+    await deleteComment(input);
+    return null;
+  }, {
+    fallbackMessage: "评论删除失败，请稍后重试。",
+    knownMessages: ["评论不存在或已删除。"],
+  });
 }

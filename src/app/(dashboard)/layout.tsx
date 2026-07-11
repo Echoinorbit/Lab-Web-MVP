@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const [profile, unreadCount, permissions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { displayName: true },
+      select: { displayName: true, avatar: true },
     }),
     prisma.notification.count({ where: { userId: user.id, isRead: false } }),
     getUserPermissions(user.id),
@@ -33,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <div className="min-w-0 flex-1 overflow-x-hidden">
         <Header
           displayName={displayName}
+          avatar={profile?.avatar ?? null}
           role={user.role}
           unreadCount={unreadCount}
           navigationAccess={navigationAccess}

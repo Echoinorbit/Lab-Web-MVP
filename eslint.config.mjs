@@ -52,6 +52,13 @@ export default [
     },
   },
   {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "no-alert": "error",
+      "no-console": "error",
+    },
+  },
+  {
     files: ["tests/**/*.test.ts"],
     rules: {
       "@typescript-eslint/no-floating-promises": "off",

@@ -9,13 +9,20 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { updateUserStatusInputSchema } from "@/shared/lib/validators/admin";
 
-import { getDatabaseNow, graduateUser, lockAdminGovernance, lockUserLifecycle } from "../lib/user-lifecycle";
+import {
+  getDatabaseNow,
+  graduateUser,
+  lockAdminGovernance,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserStatus(input: unknown) {
   const admin = await requireActiveUser();
   const data = updateUserStatusInputSchema.parse(input);
   if (admin.id === data.userId && data.status !== "ACTIVE") {
-    throw new Error("管理员不能停用或毕业自己的账号。");
+    throw new Error("管理员不能停用、毕业或删除自己的账号。");
   }
 
   await assertPermissionWithAudit({
@@ -31,7 +38,9 @@ export async function updateUserStatus(input: unknown) {
       return;
     }
 
-    await lockUserLifecycle(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+      await lockUserLifecycle(tx, userId);
+    }
     const target = await tx.user.findUnique({
       where: { id: data.userId },
       select: { id: true, role: true, status: true },
@@ -74,4 +83,11 @@ export async function updateUserStatus(input: unknown) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
   revalidatePath("/admin/tags");
+}
+
+export async function updateUserStatusResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await updateUserStatus(input);
+    return null;
+  }, "账号状态更新失败，请稍后重试。");
 }

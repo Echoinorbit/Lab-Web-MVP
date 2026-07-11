@@ -1,7 +1,10 @@
+import { Pencil } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 import { MarkdownRenderer } from "@/shared/components/markdown-renderer";
 import { Badge } from "@/shared/components/ui/badge";
+import { buttonStyles } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
 import type { AnnouncementSummary } from "../types";
@@ -10,10 +13,12 @@ import { AnnouncementDeleteButton } from "./announcement-delete-button";
 export function AnnouncementCard({
   announcement,
   canDelete = false,
+  canEdit = false,
   linkToDetail = false,
 }: {
   announcement: AnnouncementSummary;
   canDelete?: boolean;
+  canEdit?: boolean;
   linkToDetail?: boolean;
 }) {
   const titleClassName = cn(
@@ -37,8 +42,24 @@ export function AnnouncementCard({
           <span>{announcement.authorName}</span>
           <span aria-hidden="true">·</span>
           <time>{announcement.createdAt}</time>
+          {announcement.updatedAt ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <time>已编辑 {announcement.updatedAt}</time>
+            </>
+          ) : null}
         </div>
-        {canDelete ? <AnnouncementDeleteButton announcementId={announcement.id} /> : null}
+        {canEdit || canDelete ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {canEdit ? (
+              <Link href={`/announcements/${announcement.id}/edit` as Route} className={buttonStyles({ variant: "ghost", size: "small" })}>
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+                编辑
+              </Link>
+            ) : null}
+            {canDelete ? <AnnouncementDeleteButton announcementId={announcement.id} returnToList={!linkToDetail} /> : null}
+          </div>
+        ) : null}
       </div>
 
       {linkToDetail ? (

@@ -3,7 +3,7 @@ import { Prisma, type Role, type StudyDegree, type StudyGrade } from "@prisma/cl
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertStudyIdentity, studyDegreeTagName } from "@/shared/lib/study-identity";
 
-import { lockUserLifecycle } from "./user-lifecycle";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "./user-lifecycle";
 
 export type CanonicalStudyIdentity = {
   role: Role;
@@ -23,7 +23,9 @@ export async function syncStudyIdentity(
   input: CanonicalStudyIdentity & { userId: string; actorId: string },
 ) {
   assertStudyIdentity(input);
-  await lockUserIdentity(tx, input.userId);
+  for (const userId of orderUserLifecycleLockIds([input.actorId, input.userId])) {
+    await lockUserIdentity(tx, userId);
+  }
   const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>(Prisma.sql`SELECT transaction_timestamp() AS now`);
   const actor = await tx.user.findFirst({
     where: { id: input.actorId, role: "ADMIN", status: "ACTIVE" },

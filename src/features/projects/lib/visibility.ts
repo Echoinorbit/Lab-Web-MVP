@@ -14,11 +14,11 @@ export type ProjectVisibilitySnapshot = {
   members?: readonly { userId: string | null }[];
 };
 
-export type ProjectListTab = "all" | "mine" | "deleted";
+export type ProjectListTab = "all" | "mine" | "archived" | "deleted";
 
 export function parseProjectListTab(value: string | string[] | undefined): ProjectListTab {
   const rawValue = Array.isArray(value) ? value[0] : value;
-  return rawValue === "mine" || rawValue === "deleted" ? rawValue : "all";
+  return rawValue === "mine" || rawValue === "archived" || rawValue === "deleted" ? rawValue : "all";
 }
 
 export function hasGlobalAdvisorTag(viewer: Pick<ProjectVisibilityViewer, "tags">) {

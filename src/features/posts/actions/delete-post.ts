@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissions, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -19,7 +19,7 @@ export async function deletePost(input: unknown) {
     where: { id: data.postId, deletedAt: null },
     select: { id: true, authorId: true },
   });
-  if (!post) throw new Error("Post not found.");
+  if (!post) throw new Error("帖子不存在或已删除。");
 
   const permissions = await getUserPermissions(user.id);
   const access = resolvePostDeleteAccess({ userId: user.id, authorId: post.authorId, permissions });
@@ -52,8 +52,12 @@ export async function deletePost(input: unknown) {
   revalidatePath("/posts");
 }
 
-export async function deletePostFormAction(formData: FormData): Promise<void> {
-  await deletePost({ postId: formData.get("postId") });
-  // The current post page is now soft-deleted; send the user back to the list.
-  redirect("/posts");
+export async function deletePostResult(input: unknown) {
+  return toActionResult(async () => {
+    await deletePost(input);
+    return null;
+  }, {
+    fallbackMessage: "帖子删除失败，请稍后重试。",
+    knownMessages: ["帖子不存在或已删除。"],
+  });
 }

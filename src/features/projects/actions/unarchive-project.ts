@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { Prisma } from "@prisma/client";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -89,4 +90,14 @@ export async function unarchiveProjectFormAction(formData: FormData): Promise<vo
   await unarchiveProject(projectId);
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/projects");
+}
+
+export async function unarchiveProjectResult(projectId: string) {
+  return toActionResult(async () => {
+    await unarchiveProject(projectId);
+    return null;
+  }, {
+    fallbackMessage: "项目启用失败，请稍后重试。",
+    knownMessages: ["只有已归档的项目可以重新启用。", "归档后 7 天内不可重新启用"],
+  });
 }

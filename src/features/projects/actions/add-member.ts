@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
@@ -20,6 +21,9 @@ export async function addProjectMembers(input: unknown) {
 
   try {
     await prisma.$transaction(async (tx) => {
+      for (const userId of orderUserLifecycleLockIds([actor.id, ...data.userIds])) {
+        await lockUserLifecycle(tx, userId);
+      }
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${data.projectId} FOR UPDATE`;
       const [{ now }, project, currentActor] = await Promise.all([
         tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`.then((rows) => rows[0]!),

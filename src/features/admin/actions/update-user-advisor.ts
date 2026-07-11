@@ -12,7 +12,8 @@ import { updateUserAdvisorInputSchema } from "@/shared/lib/validators/admin";
 
 import { lockUserIdentity } from "../lib/study-identity-service";
 import { canAssignAdvisorToTarget } from "../lib/user-governance";
-import { getDatabaseNow } from "../lib/user-lifecycle";
+import { getDatabaseNow, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserAdvisor(input: unknown) {
   const admin = await requireActiveUser();
@@ -26,7 +27,13 @@ export async function updateUserAdvisor(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await lockUserIdentity(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([
+      admin.id,
+      data.userId,
+      ...(data.advisorId ? [data.advisorId] : []),
+    ])) {
+      await lockUserIdentity(tx, userId);
+    }
     const [target, currentAdmin, now] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: data.userId },
@@ -85,4 +92,11 @@ export async function updateUserAdvisor(input: unknown) {
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
+}
+
+export async function updateUserAdvisorResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await updateUserAdvisor(input);
+    return null;
+  }, "导师关系更新失败，请稍后重试。");
 }

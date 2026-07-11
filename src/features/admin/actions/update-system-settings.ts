@@ -2,7 +2,9 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
@@ -11,6 +13,8 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { assertRuntimeSettings, SYSTEM_SETTING_ID } from "@/shared/lib/system-settings";
 import { updateSystemSettingsInputSchema } from "@/shared/lib/validators/admin";
+
+import { parseSystemSettingsRevision, parseSystemSettingsTime } from "../lib/system-settings-form";
 
 export async function updateSystemSettings(input: unknown) {
   const actor = await requireActiveUser();
@@ -109,21 +113,39 @@ export async function updateSystemSettings(input: unknown) {
 
 export type SystemSettingsState = { ok: boolean; message: string | null };
 
+const systemSettingsFeedbackMessages = [
+  "进度窗口日期或时间无效。",
+  "进度窗口结束时间必须晚于开始时间。",
+  "会话时长必须在 1 到 720 小时之间。",
+  "设置已被其他管理员更新，请刷新后重试。",
+] as const;
+
 export async function updateSystemSettingsFormAction(
   _previous: SystemSettingsState,
   formData: FormData,
 ): Promise<SystemSettingsState> {
   try {
     await updateSystemSettings({
-      revision: Number(formData.get("revision")),
+      revision: parseSystemSettingsRevision(formData.get("revision")),
       progressStartDay: Number(formData.get("progressStartDay")),
-      progressStartMinute: Number(formData.get("progressStartMinute")),
+      progressStartMinute: formData.has("progressStartTime")
+        ? parseSystemSettingsTime(formData.get("progressStartTime"))
+        : Number(formData.get("progressStartMinute")),
       progressEndDay: Number(formData.get("progressEndDay")),
-      progressEndMinute: Number(formData.get("progressEndMinute")),
+      progressEndMinute: formData.has("progressEndTime")
+        ? parseSystemSettingsTime(formData.get("progressEndTime"))
+        : Number(formData.get("progressEndMinute")),
       sessionHours: Number(formData.get("sessionHours")),
     });
     return { ok: true, message: "系统设置已保存；会话策略变更会要求所有用户重新登录。" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "保存失败" };
+    unstable_rethrow(error);
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "系统设置保存失败，请检查日期、时间与会话时长后重试。",
+        knownMessages: systemSettingsFeedbackMessages,
+      }),
+    };
   }
 }

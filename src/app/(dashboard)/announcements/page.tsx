@@ -62,6 +62,9 @@ export default async function AnnouncementsPage({
           content: announcement.content,
           authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
           createdAt: formatShanghaiDate(announcement.createdAt),
+          updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()
+            ? formatShanghaiDate(announcement.updatedAt)
+            : null,
           isPinned: announcement.isPinned,
           isUrgent: announcement.isUrgent,
         }))}

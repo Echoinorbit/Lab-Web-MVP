@@ -2,7 +2,12 @@ import type { Prisma } from "@prisma/client";
 
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 
-import { getDatabaseNow, lockAdminGovernance, lockUserLifecycle } from "./user-lifecycle";
+import {
+  getDatabaseNow,
+  lockAdminGovernance,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "./user-lifecycle";
 
 export type DeleteUserMode =
   | { kind: "manual"; actorId: string; confirmUsername: string }
@@ -58,7 +63,12 @@ export async function deleteUserAccount(
   targetUserId: string,
   mode: DeleteUserMode,
 ): Promise<DeleteUserAccountResult> {
-  await lockUserLifecycle(tx, targetUserId);
+  const lifecycleUserIds = mode.kind === "manual"
+    ? [mode.actorId, targetUserId]
+    : [targetUserId];
+  for (const userId of orderUserLifecycleLockIds(lifecycleUserIds)) {
+    await lockUserLifecycle(tx, userId);
+  }
   const now = await getDatabaseNow(tx);
   const target = await tx.user.findUnique({
     where: { id: targetUserId },

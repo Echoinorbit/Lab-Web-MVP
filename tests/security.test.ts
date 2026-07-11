@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { securityHeaders } from "../next.config";
+import { isPublicRoutePrefilterPath } from "../src/shared/lib/route-prefilter";
 import { validatePasswordPolicy } from "../src/shared/lib/security";
 
 test("密码策略应拒绝过短或与身份信息相关联的密码", () => {
@@ -24,4 +25,13 @@ test("Next.js 全局安全响应头应包含基础硬化策略", () => {
   assert.equal(headers.get("Referrer-Policy"), "strict-origin-when-cross-origin");
   assert.match(headers.get("Strict-Transport-Security") ?? "", /max-age=31536000/);
   assert.match(headers.get("Content-Security-Policy-Report-Only") ?? "", /frame-ancestors 'none'/);
+});
+
+test("路由预筛选只放行认证端点与受控静态头像路径", () => {
+  assert.equal(isPublicRoutePrefilterPath("/login"), true);
+  assert.equal(isPublicRoutePrefilterPath("/api/auth/csrf"), true);
+  assert.equal(isPublicRoutePrefilterPath("/avatar/default.png"), true);
+  assert.equal(isPublicRoutePrefilterPath("/uploads/avatars/example.png"), true);
+  assert.equal(isPublicRoutePrefilterPath("/login-impersonation"), false);
+  assert.equal(isPublicRoutePrefilterPath("/admin/users"), false);
 });

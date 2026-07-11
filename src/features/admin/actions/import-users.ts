@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
+import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
@@ -47,6 +48,15 @@ class ImportCommitConflictError extends Error {
     super("用户导入提交冲突");
   }
 }
+
+const importFeedbackMessages = [
+  "Excel 数据编码无效。",
+  "Excel 文件必须小于 5 MiB。",
+  "Excel 文件中没有工作表。",
+  "一次最多导入 500 行。",
+  "导入预览凭据无效，请重新预览。",
+  "导入预览已失效或文件已变化，请重新预览。",
+] as const;
 
 function authSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -210,6 +220,20 @@ export async function confirmUserImport(input: unknown): Promise<ImportUsersResu
   revalidatePath("/admin/users");
   revalidatePath("/admin/tags");
   return { created: prepared.length, errors: [] };
+}
+
+export async function previewUserImportResult(input: unknown) {
+  return toActionResult(() => previewUserImport(input), {
+    fallbackMessage: "无法生成导入预览，请稍后重试。",
+    knownMessages: importFeedbackMessages,
+  });
+}
+
+export async function confirmUserImportResult(input: unknown) {
+  return toActionResult(() => confirmUserImport(input), {
+    fallbackMessage: "用户导入失败，请稍后重试。",
+    knownMessages: importFeedbackMessages,
+  });
 }
 
 // Kept as a transition alias for existing imports; confirmation still requires

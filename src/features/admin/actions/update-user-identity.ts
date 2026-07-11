@@ -11,7 +11,8 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { updateUserIdentityInputSchema } from "@/shared/lib/validators/admin";
 
 import { buildUserIdentityUpdateData } from "../lib/user-governance";
-import { getDatabaseNow, lockUserLifecycle } from "../lib/user-lifecycle";
+import { getDatabaseNow, lockUserLifecycle, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 function identityConflictMessage(error: unknown) {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") return null;
@@ -33,7 +34,9 @@ export async function updateUserIdentity(input: unknown) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      await lockUserLifecycle(tx, data.userId);
+      for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+        await lockUserLifecycle(tx, userId);
+      }
       const [current, currentAdmin, now] = await Promise.all([
         tx.user.findUniqueOrThrow({
           where: { id: data.userId },
@@ -74,4 +77,11 @@ export async function updateUserIdentity(input: unknown) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
   revalidatePath("/profile");
+}
+
+export async function updateUserIdentityResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await updateUserIdentity(input);
+    return null;
+  }, "用户资料更新失败，请稍后重试。");
 }

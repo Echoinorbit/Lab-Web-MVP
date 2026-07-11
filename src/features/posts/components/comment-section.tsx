@@ -3,16 +3,19 @@
 import { MessageCircle, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
+import { useTransition } from "react";
 
 import { Button } from "@/shared/components/ui/button";
+import { ConfirmDialog } from "@/shared/components/ui/dialog";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { SectionHeader } from "@/shared/components/ui/page-header";
 import { StatusNotice } from "@/shared/components/ui/status-notice";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { useToast } from "@/shared/components/ui/toast";
 import { cn } from "@/shared/lib/utils";
 
 import { createCommentFormAction, type CommentFormState } from "../actions/create-comment";
-import { deleteCommentFormAction } from "../actions/delete-comment";
+import { deleteCommentResult } from "../actions/delete-comment";
 import type { CommentRow } from "../types";
 
 export type { CommentRow };
@@ -41,12 +44,15 @@ function CommentItem({
   replyToName?: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const isDeleted = comment.isDeleted === true;
   const canDelete = !isDeleted && (canModerate || (canDeleteOwn && comment.authorId === viewerId));
   const canReply = !isDeleted && canComment && allowReply;
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyState, replyAction, isReplyPending] = useActionState(createCommentFormAction, initialState);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeletePending, startDeleteTransition] = useTransition();
   const isFlattenedReply = depth >= 2 && Boolean(replyToName) && !isDeleted;
   const nextReplyToName = isDeleted ? "已删除评论" : comment.authorName;
 
@@ -56,6 +62,27 @@ function CommentItem({
     setIsReplying(false);
     router.refresh();
   }, [replyState, router]);
+
+  function handleDelete() {
+    startDeleteTransition(async () => {
+      try {
+        const result = await deleteCommentResult({ commentId: comment.id });
+        if (!result.ok) {
+          toast({ title: "评论删除失败", description: result.message, variant: "error" });
+          return;
+        }
+        setDeleteOpen(false);
+        toast({ title: "评论已删除", variant: "success" });
+        router.refresh();
+      } catch {
+        toast({
+          title: "评论删除失败",
+          description: "删除请求失败，请稍后重试。",
+          variant: "error",
+        });
+      }
+    });
+  }
 
   return (
     <div
@@ -71,13 +98,17 @@ function CommentItem({
           {isDeleted ? `该评论已删除 · ${comment.createdAt}` : `${comment.authorName} · ${comment.createdAt}`}
         </span>
         {canDelete ? (
-          <form action={deleteCommentFormAction}>
-            <input type="hidden" name="commentId" value={comment.id} />
-            <Button type="submit" variant="ghost" size="small" className="text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              删除
-            </Button>
-          </form>
+          <Button
+            type="button"
+            variant="ghost"
+            size="small"
+            className="text-destructive hover:text-destructive"
+            disabled={isDeletePending}
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            删除
+          </Button>
         ) : null}
       </div>
       {isDeleted ? (
@@ -136,6 +167,16 @@ function CommentItem({
           ))}
         </div>
       ) : null}
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="删除这条评论？"
+        description="评论内容会被隐藏，但回复结构与审计记录仍会保留。"
+        confirmLabel="删除评论"
+        destructive
+        pending={isDeletePending}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

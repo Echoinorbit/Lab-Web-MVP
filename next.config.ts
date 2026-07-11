@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+export const SERVER_ACTION_BODY_SIZE_LIMIT = "8mb";
+
 export const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -24,6 +26,11 @@ export const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: SERVER_ACTION_BODY_SIZE_LIMIT,
+    },
+  },
   async headers() {
     return [
       {

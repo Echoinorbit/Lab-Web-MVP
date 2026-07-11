@@ -9,6 +9,7 @@ import { requireActiveUser } from "@/shared/lib/session";
 import { cancelUserGraduationInputSchema } from "@/shared/lib/validators/admin";
 
 import { cancelUserGraduation } from "../lib/user-lifecycle";
+import { toUserActionResult } from "../lib/user-action-result";
 
 export async function cancelGraduation(input: unknown) {
   const actor = await requireActiveUser();
@@ -23,4 +24,11 @@ export async function cancelGraduation(input: unknown) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${data.userId}/edit`);
   revalidatePath("/admin/tags");
+}
+
+export async function cancelGraduationResult(input: unknown) {
+  return toUserActionResult(async () => {
+    await cancelGraduation(input);
+    return null;
+  }, "取消毕业失败，请稍后重试。");
 }
