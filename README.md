@@ -125,7 +125,7 @@ http://localhost:3000
 15 * * * * curl -sS --fail-with-body -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/purge-graduated-users
 ```
 
-调度器必须检查 HTTP 状态和 JSON 中的 `failed`；`207` 表示本批有失败项，应告警并重试。不要在 Next.js 进程中使用内存定时器。完整部署、头像目录和恢复要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
+调度器必须检查 HTTP 状态以及 JSON 中的 `failed`、`avatarCleanupFailed`；`207` 表示本批账号事务或头像清理存在失败，应告警并重试。不要在 Next.js 进程中使用内存定时器。完整部署、头像目录和恢复要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
 
 ## 使用路径
 

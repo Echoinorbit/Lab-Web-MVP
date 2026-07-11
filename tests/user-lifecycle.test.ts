@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   assertManualUserDeletionPolicy,
   getDeletionSnapshotState,
+  getPurgeResponseStatus,
   isScheduledUserDeletionDue,
 } from "../src/features/admin/lib/delete-user-account";
 import {
@@ -21,6 +22,12 @@ const target = {
   identityNeedsReview: false,
   scheduledDeletionAt: new Date("2026-07-13T00:00:00.000Z"),
 };
+
+test("毕业清理在账号或头像清理失败时返回部分成功状态", () => {
+  assert.equal(getPurgeResponseStatus(0, 0), 200);
+  assert.equal(getPurgeResponseStatus(1, 0), 207);
+  assert.equal(getPurgeResponseStatus(0, 1), 207);
+});
 
 test("自动清理仅选择到期且身份已确认的毕业硕博账号", () => {
   const dueAt = new Date("2026-07-13T00:00:00.000Z");

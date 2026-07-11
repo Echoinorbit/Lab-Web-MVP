@@ -23,6 +23,10 @@ export function getDeletionSnapshotState(mode: DeleteUserMode) {
   return mode.kind === "scheduled" ? "GRADUATED" as const : "DELETED" as const;
 }
 
+export function getPurgeResponseStatus(failed: number, avatarCleanupFailed: number) {
+  return failed === 0 && avatarCleanupFailed === 0 ? 200 : 207;
+}
+
 type DeletionTargetPolicySnapshot = {
   id: string;
   username: string;

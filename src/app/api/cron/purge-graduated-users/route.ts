@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { deleteUserAccount } from "@/features/admin/lib/delete-user-account";
+import { deleteUserAccount, getPurgeResponseStatus } from "@/features/admin/lib/delete-user-account";
 import { cleanupAvatarOrphans, removeManagedAvatar } from "@/shared/lib/avatar-storage";
 import { isBearerSecretAuthorized } from "@/shared/lib/cron-auth";
 import { prisma } from "@/shared/lib/prisma";
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   let deleted = 0;
   let skipped = 0;
   let failed = 0;
+  let avatarCleanupFailed = 0;
   for (const candidate of candidates) {
     try {
       const result = await prisma.$transaction(
@@ -37,7 +38,11 @@ export async function POST(request: Request) {
       );
       if (result.deleted) {
         deleted += 1;
-        await removeManagedAvatar(result.avatar).catch(() => undefined);
+        try {
+          await removeManagedAvatar(result.avatar);
+        } catch {
+          avatarCleanupFailed += 1;
+        }
       } else {
         skipped += 1;
       }
@@ -50,14 +55,22 @@ export async function POST(request: Request) {
     where: { avatar: { not: null } },
     select: { avatar: true },
   })).flatMap((user) => user.avatar ? [user.avatar] : []));
-  const orphanedAvatarsRemoved = await cleanupAvatarOrphans(referencedAvatars).catch(() => 0);
+  let orphanedAvatarsRemoved = 0;
+  try {
+    orphanedAvatarsRemoved = await cleanupAvatarOrphans(referencedAvatars);
+  } catch {
+    avatarCleanupFailed += 1;
+  }
+
+  const status = getPurgeResponseStatus(failed, avatarCleanupFailed);
 
   return NextResponse.json({
-    ok: failed === 0,
+    ok: status === 200,
     processed: candidates.length,
     deleted,
     skipped,
     failed,
+    avatarCleanupFailed,
     orphanedAvatarsRemoved,
-  }, { status: failed === 0 ? 200 : 207 });
+  }, { status });
 }

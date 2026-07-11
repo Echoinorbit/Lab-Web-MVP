@@ -53,9 +53,10 @@ Response fields:
 - `deleted`: accounts removed;
 - `skipped`: rows already absent or no longer eligible;
 - `failed`: per-account transaction failures;
+- `avatarCleanupFailed`: managed-avatar deletion or orphan-sweep failures;
 - `orphanedAvatarsRemoved`: stale managed avatar files deleted after the batch.
 
-HTTP `200` means the batch had no failures. HTTP `207` means at least one candidate failed; alert on it and retry after investigating application/database logs. HTTP `401` means scheduler secret/configuration failure. Do not implement an in-process `setInterval`; Next.js instances are not reliable job schedulers.
+HTTP `200` means the batch had no account or avatar-cleanup failures. HTTP `207` means at least one candidate or avatar cleanup failed; alert on it and retry after investigating application/database and avatar-volume health. HTTP `401` means scheduler secret/configuration failure. Do not implement an in-process `setInterval`; Next.js instances are not reliable job schedulers.
 
 Graduation behavior is intentionally narrow:
 
