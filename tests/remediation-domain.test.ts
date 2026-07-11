@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createActorSnapshot,
+  loadActorSnapshot,
   parseActorSnapshot,
   resolveActorDisplay,
 } from "../src/shared/lib/actor-snapshot";
@@ -69,6 +70,23 @@ test("署名快照有版本、隐私边界和损坏回退", () => {
   });
   assert.equal(resolveActorDisplay(null, { v: 99 }).displayName, "已删除用户");
   assert.equal(resolveActorDisplay({ displayName: "实时姓名", studyDegree: "DOCTOR", status: "ACTIVE" }, snapshot).displayName, "实时姓名");
+});
+
+test("署名快照加载器只读取有界公开身份字段", async () => {
+  const capturedAt = new Date("2026-07-10T00:00:00.000Z");
+  const client = {
+    user: {
+      findUnique: async () => ({ displayName: "审计操作者", studyDegree: "MENTOR" as const, status: "ACTIVE" as const }),
+    },
+  } as unknown as Parameters<typeof loadActorSnapshot>[0];
+
+  assert.deepEqual(await loadActorSnapshot(client, "actor-id", capturedAt), {
+    v: 1,
+    displayName: "审计操作者",
+    studyDegree: "MENTOR",
+    accountState: "ACTIVE",
+    capturedAt: capturedAt.toISOString(),
+  });
 });
 
 test("持久化窗口按上海日和分钟边界生效", () => {

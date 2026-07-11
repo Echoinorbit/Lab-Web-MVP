@@ -17,6 +17,8 @@ type ActorSource = {
   status: UserStatus;
 };
 
+type ActorLookupClient = Pick<Prisma.TransactionClient, "user">;
+
 function byteLength(value: unknown) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
@@ -35,6 +37,18 @@ export function createActorSnapshot(
   };
   if (byteLength(snapshot) > ACTOR_SNAPSHOT_MAX_BYTES) throw new Error("用户署名快照超出大小限制。");
   return snapshot;
+}
+
+export async function loadActorSnapshot(
+  client: ActorLookupClient,
+  userId: string,
+  capturedAt = new Date(),
+) {
+  const actor = await client.user.findUnique({
+    where: { id: userId },
+    select: { displayName: true, studyDegree: true, status: true },
+  });
+  return actor ? createActorSnapshot(actor, capturedAt) : null;
 }
 
 export function parseActorSnapshot(value: Prisma.JsonValue | null | undefined): ActorSnapshotV1 | null {

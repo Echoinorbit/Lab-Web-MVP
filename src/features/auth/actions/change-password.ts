@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { requireActiveUser } from "@/shared/lib/session";
 import { prisma } from "@/shared/lib/prisma";
@@ -20,6 +21,9 @@ export async function changePassword(input: unknown) {
       username: true,
       studentId: true,
       passwordHash: true,
+      displayName: true,
+      studyDegree: true,
+      status: true,
     },
   });
 
@@ -33,6 +37,8 @@ export async function changePassword(input: unknown) {
     throw new Error(policy.errors.join(" "));
   }
 
+  const actorSnapshot = createActorSnapshot(user);
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
@@ -45,6 +51,7 @@ export async function changePassword(input: unknown) {
     prisma.auditLog.create({
       data: {
         userId: user.id,
+        actorSnapshot,
         action: "PASSWORD_CHANGE",
         entityType: "User",
         entityId: user.id,

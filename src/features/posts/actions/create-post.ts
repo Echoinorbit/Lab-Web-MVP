@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -28,6 +29,8 @@ export async function createPost(input: unknown) {
   let post: { id: string };
   try {
     post = await prisma.$transaction(async (tx) => {
+      const actorSnapshot = await loadActorSnapshot(tx, user.id);
+      if (!actorSnapshot) throw new Error("Active user not found.");
       await enforceRateLimit(tx, user.id, PERMISSIONS.POST_CREATE);
 
       if (data.postId) {
@@ -50,12 +53,14 @@ export async function createPost(input: unknown) {
             category: data.category,
             tags: data.tags,
             status: "PUBLISHED",
+            authorSnapshot: actorSnapshot,
           },
         });
 
         await tx.auditLog.create({
           data: {
             userId: user.id,
+            actorSnapshot,
             action: "CREATE",
             entityType: "Post",
             entityId: published.id,
@@ -73,12 +78,14 @@ export async function createPost(input: unknown) {
           category: data.category,
           tags: data.tags,
           authorId: user.id,
+          authorSnapshot: actorSnapshot,
         },
       });
 
       await tx.auditLog.create({
         data: {
           userId: user.id,
+          actorSnapshot,
           action: "CREATE",
           entityType: "Post",
           entityId: created.id,

@@ -9,6 +9,7 @@
     "typecheck": "prisma generate && tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "node --import tsx --test tests/*.test.ts",
+    "test:integration": "tsx scripts/remediation-integration.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "DATABASE_URL=postgresql://lab:lab@localhost:5432/lab_platform prisma validate",
     "seed": "tsx prisma/seed.ts",

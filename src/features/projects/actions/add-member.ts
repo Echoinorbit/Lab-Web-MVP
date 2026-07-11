@@ -54,6 +54,7 @@ export async function addProjectMembers(input: unknown) {
         throw new PermissionDeniedError(PERMISSIONS.PROJECT_MEMBER_MANAGE);
       }
       assertProjectWritableStatus(project.status);
+      const actorSnapshot = createActorSnapshot(currentActor, now);
       if (!project.advisorId) throw new Error("项目未设置负责导师，不能添加学生。");
       const participants = await tx.user.findMany({
         where: { id: { in: data.userIds }, role: "MEMBER", status: "ACTIVE" },
@@ -82,6 +83,7 @@ export async function addProjectMembers(input: unknown) {
           data: recipientIds.map((recipientId) => ({
             userId: recipientId,
             senderId: actor.id,
+            senderSnapshot: actorSnapshot,
             type: "TAG_GRANTED",
             title: "加入项目",
             content: memberTagName,
@@ -94,7 +96,7 @@ export async function addProjectMembers(input: unknown) {
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot,
           action: "CREATE",
           entityType: "ProjectMember",
           entityId: data.projectId,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { toActionResult } from "@/shared/lib/action-result";
+import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissions, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -34,6 +35,8 @@ export async function deleteComment(input: unknown) {
   }
 
   await prisma.$transaction(async (tx) => {
+    const actorSnapshot = await loadActorSnapshot(tx, user.id);
+    if (!actorSnapshot) throw new Error("Active user not found.");
     await tx.comment.update({
       where: { id: data.commentId },
       data: { deletedAt: new Date() },
@@ -41,6 +44,7 @@ export async function deleteComment(input: unknown) {
     await tx.auditLog.create({
       data: {
         userId: user.id,
+        actorSnapshot,
         action: "DELETE",
         entityType: "Comment",
         entityId: data.commentId,

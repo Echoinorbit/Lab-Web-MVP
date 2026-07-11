@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
+import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -37,12 +38,15 @@ export async function createComment(input: unknown) {
   }
 
   const comment = await prisma.$transaction(async (tx) => {
+    const actorSnapshot = await loadActorSnapshot(tx, user.id);
+    if (!actorSnapshot) throw new Error("Active user not found.");
     const created = await tx.comment.create({
       data: {
         postId: data.postId,
         parentId: data.parentId,
         content: data.content,
         authorId: user.id,
+        authorSnapshot: actorSnapshot,
       },
     });
 
@@ -55,6 +59,7 @@ export async function createComment(input: unknown) {
         data: recipientIds.map((recipientId) => ({
           userId: recipientId,
           senderId: user.id,
+          senderSnapshot: actorSnapshot,
           type: "POST_COMMENT",
           title: "帖子收到新评论",
           content: post.title,
@@ -67,6 +72,7 @@ export async function createComment(input: unknown) {
     await tx.auditLog.create({
       data: {
         userId: user.id,
+        actorSnapshot,
         action: "CREATE",
         entityType: "Comment",
         entityId: created.id,

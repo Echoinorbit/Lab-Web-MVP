@@ -1,9 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, type UserTagSource } from "@prisma/client";
 import { loadEnvConfig } from "@next/env";
 import bcrypt from "bcryptjs";
 
+import { createActorSnapshot } from "../src/shared/lib/actor-snapshot";
 import { getShanghaiDateParts } from "../src/shared/lib/date";
 import { PERMISSIONS } from "../src/shared/lib/permissions";
+import { studyDegreeTagName } from "../src/shared/lib/study-identity";
 
 loadEnvConfig(process.cwd());
 
@@ -78,7 +80,7 @@ const actorSpecs = [
     studyDegree: "MASTER",
     studyGrade: "MASTER_3",
     status: "GRADUATED",
-    tags: ["graduated"],
+    tags: ["grad-master", "graduated"],
   },
 ] as const;
 
@@ -170,7 +172,7 @@ async function ensureMember(input: ActorSpec, passwordHash: string, adminId: str
   return user;
 }
 
-async function ensureGlobalTagGrant(userId: string, tagName: string, adminId: string) {
+async function ensureGlobalTagGrant(userId: string, tagName: string, adminId: string, source: UserTagSource) {
   const tag = await prisma.tag.findUniqueOrThrow({ where: { name: tagName }, select: { id: true, displayName: true } });
   const existing = await prisma.userTag.findFirst({
     where: {
@@ -182,10 +184,15 @@ async function ensureGlobalTagGrant(userId: string, tagName: string, adminId: st
     },
   });
 
-  if (existing) return existing;
+  if (existing) {
+    return prisma.userTag.update({
+      where: { id: existing.id },
+      data: { source, grantedById: adminId },
+    });
+  }
 
   const grant = await prisma.userTag.create({
-    data: { userId, tagId: tag.id, grantedById: adminId },
+    data: { userId, tagId: tag.id, grantedById: adminId, source },
   });
 
   await prisma.auditLog.create({
@@ -307,6 +314,12 @@ async function ensureProjectMember(projectId: string, userId: string, actorId: s
   });
 
   const tag = await ensureProjectTag(projectId, kind);
+  if (kind === "lead") {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { leaderId: userId, leaderNeedsReassignment: false },
+    });
+  }
   const existingGrant = await prisma.userTag.findFirst({
     where: {
       userId,
@@ -316,10 +329,21 @@ async function ensureProjectMember(projectId: string, userId: string, actorId: s
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
   });
-  if (existingGrant) return existingGrant;
+  if (existingGrant) {
+    return prisma.userTag.update({
+      where: { id: existingGrant.id },
+      data: { source: kind === "lead" ? "PROJECT_LEAD" : "MANUAL", grantedById: actorId },
+    });
+  }
 
   const grant = await prisma.userTag.create({
-    data: { userId, tagId: tag.id, projectId, grantedById: actorId },
+    data: {
+      userId,
+      tagId: tag.id,
+      projectId,
+      grantedById: actorId,
+      source: kind === "lead" ? "PROJECT_LEAD" : "MANUAL",
+    },
   });
   await prisma.auditLog.create({
     data: {
@@ -562,6 +586,81 @@ async function ensureAnnouncements(authorId: string, recipientIds: string[]) {
   return announcements;
 }
 
+async function backfillMissingSnapshots() {
+  const users = await prisma.user.findMany({
+    select: { id: true, displayName: true, studyDegree: true, status: true },
+  });
+  for (const user of users) {
+    const snapshot = createActorSnapshot(user, fixtureStartedAt);
+    await prisma.$transaction([
+      prisma.announcement.updateMany({
+        where: { authorId: user.id, authorSnapshot: { equals: Prisma.DbNull } },
+        data: { authorSnapshot: snapshot },
+      }),
+      prisma.post.updateMany({
+        where: { authorId: user.id, authorSnapshot: { equals: Prisma.DbNull } },
+        data: { authorSnapshot: snapshot },
+      }),
+      prisma.comment.updateMany({
+        where: { authorId: user.id, authorSnapshot: { equals: Prisma.DbNull } },
+        data: { authorSnapshot: snapshot },
+      }),
+      prisma.projectMember.updateMany({
+        where: { userId: user.id, memberSnapshot: { equals: Prisma.DbNull } },
+        data: { memberSnapshot: snapshot },
+      }),
+      prisma.projectNode.updateMany({
+        where: { authorId: user.id, authorSnapshot: { equals: Prisma.DbNull } },
+        data: { authorSnapshot: snapshot },
+      }),
+      prisma.progressReport.updateMany({
+        where: { userId: user.id, userSnapshot: { equals: Prisma.DbNull } },
+        data: { userSnapshot: snapshot },
+      }),
+      prisma.user.updateMany({
+        where: { advisorId: user.id, advisorSnapshot: { equals: Prisma.DbNull } },
+        data: { advisorSnapshot: snapshot },
+      }),
+      prisma.project.updateMany({
+        where: { creatorId: user.id, creatorSnapshot: { equals: Prisma.DbNull } },
+        data: { creatorSnapshot: snapshot },
+      }),
+      prisma.project.updateMany({
+        where: { advisorId: user.id, advisorSnapshot: { equals: Prisma.DbNull } },
+        data: { advisorSnapshot: snapshot },
+      }),
+      prisma.project.updateMany({
+        where: { leaderId: user.id, leaderSnapshot: { equals: Prisma.DbNull } },
+        data: { leaderSnapshot: snapshot },
+      }),
+      prisma.project.updateMany({
+        where: { archivedById: user.id, archivedBySnapshot: { equals: Prisma.DbNull } },
+        data: { archivedBySnapshot: snapshot },
+      }),
+      prisma.notification.updateMany({
+        where: { senderId: user.id, senderSnapshot: { equals: Prisma.DbNull } },
+        data: { senderSnapshot: snapshot },
+      }),
+      prisma.auditLog.updateMany({
+        where: { userId: user.id, actorSnapshot: { equals: Prisma.DbNull } },
+        data: { actorSnapshot: snapshot },
+      }),
+      prisma.userTag.updateMany({
+        where: { grantedById: user.id, granterSnapshot: { equals: Prisma.DbNull } },
+        data: { granterSnapshot: snapshot },
+      }),
+      prisma.userTag.updateMany({
+        where: { revokedById: user.id, revokerSnapshot: { equals: Prisma.DbNull } },
+        data: { revokerSnapshot: snapshot },
+      }),
+      prisma.systemSetting.updateMany({
+        where: { updatedById: user.id, updatedBySnapshot: { equals: Prisma.DbNull } },
+        data: { updatedBySnapshot: snapshot },
+      }),
+    ]);
+  }
+}
+
 function requireActor(actors: Map<string, FixtureUser>, username: string) {
   const actor = actors.get(username);
   if (!actor) throw new Error(`Missing fixture actor: ${username}`);
@@ -576,8 +675,14 @@ async function main() {
   for (const spec of actorSpecs) {
     const user = await ensureMember(spec, memberPasswordHash, admin.id);
     actors.set(spec.username, user);
+    const identityTag = studyDegreeTagName(spec.studyDegree);
     for (const tagName of spec.tags) {
-      await ensureGlobalTagGrant(user.id, tagName, admin.id);
+      await ensureGlobalTagGrant(
+        user.id,
+        tagName,
+        admin.id,
+        tagName === identityTag ? "STUDY_IDENTITY" : "MANUAL",
+      );
     }
   }
 
@@ -776,6 +881,7 @@ async function main() {
     advisor.id,
     [admin, master, phd, progressMgr, visionLead, visionMemberA, visionMemberB].map((actor) => actor.id),
   );
+  await backfillMissingSnapshots();
 
   console.log(
     JSON.stringify(

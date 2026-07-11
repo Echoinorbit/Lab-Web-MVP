@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -20,6 +21,8 @@ export async function saveDraft(input: unknown) {
   });
 
   const draft = await prisma.$transaction(async (tx) => {
+    const authorSnapshot = await loadActorSnapshot(tx, user.id);
+    if (!authorSnapshot) throw new Error("Active user not found.");
     if (data.postId) {
       const existing = await tx.post.findFirst({
         where: {
@@ -39,6 +42,7 @@ export async function saveDraft(input: unknown) {
           content: data.content,
           category: data.category,
           tags: data.tags,
+          authorSnapshot,
         },
         select: { id: true },
       });
@@ -52,6 +56,7 @@ export async function saveDraft(input: unknown) {
         tags: data.tags,
         status: "DRAFT",
         authorId: user.id,
+        authorSnapshot,
       },
       select: { id: true },
     });

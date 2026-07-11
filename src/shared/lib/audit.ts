@@ -1,5 +1,6 @@
 import type { AuditAction } from "@prisma/client";
 
+import { loadActorSnapshot } from "./actor-snapshot";
 import { prisma } from "./prisma";
 
 export type AuditDetails = Record<string, string | number | boolean | null | string[]>;
@@ -13,9 +14,11 @@ export async function appendAuditLog(input: {
   ipAddress?: string | null;
   userAgent?: string | null;
 }) {
+  const actorSnapshot = input.userId ? await loadActorSnapshot(prisma, input.userId) : null;
   return prisma.auditLog.create({
     data: {
       userId: input.userId ?? null,
+      ...(actorSnapshot ? { actorSnapshot } : {}),
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId ?? null,

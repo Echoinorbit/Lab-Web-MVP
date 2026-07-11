@@ -32,9 +32,9 @@ test("只有已提交报告保存修改时才递增 editCount", () => {
   assert.equal(shouldIncrementSubmittedReportEditCount(undefined), false);
 });
 
-test("进度表单应明确区分常规窗口、补填窗口和只读月份", () => {
-  assert.match(describeProgressWriteMode("regular"), /25–27 日/);
+test("进度表单应明确区分动态常规窗口、补填窗口和只读月份", () => {
+  assert.match(describeProgressWriteMode("regular"), /管理员配置的本月填报窗口/);
   assert.match(describeProgressWriteMode("backfill"), /24 小时补填窗口/);
-  assert.match(describeProgressWriteMode("closed-current"), /当前为只读/);
+  assert.match(describeProgressWriteMode("closed-current"), /管理员配置的填报窗口/);
   assert.match(describeProgressWriteMode("closed-history"), /联系管理员/);
 });

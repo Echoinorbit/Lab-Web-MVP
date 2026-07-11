@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissions, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -36,6 +37,8 @@ export async function updatePost(input: unknown) {
   }
 
   await prisma.$transaction(async (tx) => {
+    const actorSnapshot = await loadActorSnapshot(tx, user.id);
+    if (!actorSnapshot) throw new Error("Active user not found.");
     await tx.post.update({
       where: { id: data.postId },
       data: {
@@ -49,6 +52,7 @@ export async function updatePost(input: unknown) {
     await tx.auditLog.create({
       data: {
         userId: user.id,
+        actorSnapshot,
         action: "UPDATE",
         entityType: "Post",
         entityId: data.postId,
