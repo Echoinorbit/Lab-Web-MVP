@@ -10,7 +10,10 @@ Reusable, feature-agnostic UI: low-level primitives (`ui/`), the authenticated a
 | File | Description |
 |------|-------------|
 | `data-table.tsx` | Generic table for list views |
-| `file-upload.tsx` | File input/upload widget (avatars, attachments) |
+| `file-upload.tsx` | File input/upload widget (attachments and bounded uploads) |
+| `ui/toast.tsx` | Unified asynchronous success/error feedback provider |
+| `ui/dialog.tsx` | Accessible confirmation dialog with focus return and destructive/pending behavior |
+| `ui/avatar.tsx` | Persisted/default avatar rendering and name fallback |
 | `markdown-editor.tsx` | Markdown authoring control (posts, announcements) |
 | `markdown-renderer.tsx` | Renders markdown via `react-markdown` + `remark-gfm` |
 
@@ -47,3 +50,5 @@ Reusable, feature-agnostic UI: low-level primitives (`ui/`), the authenticated a
 - Do not pair wide decorative shadows with borders, nest cards, or use oversized radii. Elevation is functional and rare.
 - New shared components must have clear multi-page reuse or state-consistency value; do not create configurable wrappers for one-off layout.
 - Interactive primitives must cover hover, focus-visible, active, disabled, and pending usage while respecting reduced motion.
+- All destructive workflows must use `Dialog`; pending dialogs cannot be dismissed, destructive dialogs initially focus the safe control, and focus returns to the trigger. Native `alert()` / `confirm()` are prohibited.
+- Async mutations report through Toast plus inline field/form errors where recovery needs local context. Raw exception messages and `console.log` are not user feedback.

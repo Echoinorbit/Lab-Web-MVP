@@ -73,3 +73,16 @@ A lab collaboration management platform built as a runnable MVP base (not a stat
 - Before completion, run `npm run verify` and `npm run build`. Do not weaken lint, types, tests, or security controls to manufacture a passing result.
 - Do not discard user changes. Keep frontend rebuilds on a dedicated branch, review every staged diff, and use meaningful phase commits.
 - Record major design and frontend architecture decisions in repository documentation. Runtime screenshots, temporary probes, and one-off progress logs do not belong in `AGENTS.md`.
+
+## Full-stack Domain Invariants
+
+- Project `PLANNING` / `IN_PROGRESS` state is derived from the count of non-deleted nodes. `ARCHIVED` and `COMPLETED` have higher priority and must never be overwritten by node changes. Persisted project state and the database triggers must agree with the shared derivation helper.
+- Keep governance role, study degree, study grade, and custom capability Tags separate. Mentors have no grade; masters use `MASTER_0`–`MASTER_3`; doctors use `DOCTOR_1`–`DOCTOR_5`. Canonical degree Tags are projections with `STUDY_IDENTITY` provenance, not manually managed labels.
+- Every live actor/author relation must write its bounded snapshot at creation time; account deletion refreshes affected snapshots to the deleted-state attribution before clearing nullable foreign keys. Never reintroduce restrictive historical-author foreign keys or anonymous historical rows.
+- Graduated master/doctor accounts receive a database-time deletion schedule three days after graduation. A protected external scheduler calls the idempotent purge route; cancellation must clear the schedule and restore only the canonical study-identity Tag.
+- Every sensitive permission check remains server-side. Middleware and hidden client controls are prefilters only; actions and route handlers must re-authenticate and assert global or project-scoped permission as appropriate.
+- User-facing feedback must use the shared Toast, Dialog, and form-error contracts. Do not use browser `alert()` / `confirm()` or frontend `console.log` as interaction behavior.
+- Runtime progress-window and session-duration settings are stored in the singleton database settings row and read by real progress/auth logic. Do not add environment-only or UI-only copies.
+- User creation, import, study-identity changes, and Tag grant/revoke flows must invalidate or refresh every affected server/client query immediately. Stable actor/target row locks are required for concurrent lifecycle mutations.
+- Archive, delete, permanent account deletion, and other destructive actions require the shared accessible confirmation dialog plus allow/deny and duplicate-submit regression coverage.
+- Schema changes require formal migrations, readiness reporting, a disposable-schema rehearsal, and documented backup/rollback commands. Never use `db push` as the delivery path.

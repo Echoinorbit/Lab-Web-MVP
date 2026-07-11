@@ -23,11 +23,12 @@ Project lifecycle and project-scoped collaboration: create projects, add timelin
 
 ### Working In This Directory
 - **Project Tags must never cross projects.** Use `assertProjectPermissionWithAudit({ ..., projectId })` / `getProjectPermissions(userId, projectId)`. The global `getUserPermissions` deliberately ignores project-scoped tags, so checking it here would be a privilege-escalation bug.
-- Filter soft-deleted projects/nodes with `deletedAt: null`; archiving sets `archivedAt`/`status = ARCHIVED` rather than deleting.
-- README notes the project list still shows sample data; wire pages to these actions and real queries rather than re-implementing the permission logic.
+- Filter soft-deleted projects/nodes with `deletedAt: null`; archiving sets `archivedAt`/`status = ARCHIVED` rather than deleting. Archive/unarchive is available to active `ADMIN`, the canonical project leader, or an actor with the project-scoped management permission; ordinary members are denied server-side.
+- `PLANNING` / `IN_PROGRESS` is derived from non-deleted node count. `ARCHIVED` and `COMPLETED` take priority. Use `deriveProjectStatus` and keep the database triggers/integration tests aligned.
+- `Project.leaderId` is canonical. The corresponding `project-lead:{projectId}` projection must be updated atomically under project locks. Deleting an active leader sets `leaderNeedsReassignment`; do not silently promote another member.
 
 ### Testing Requirements
-- Project-scoped permission computation is covered in `tests/permissions.test.ts`. Run `npm run verify`.
+- Project-scoped permission computation is covered in unit tests; status triggers, leader projection, and concurrency require the disposable PostgreSQL integration runner plus browser archive/member-denial coverage.
 
 ## Dependencies
 

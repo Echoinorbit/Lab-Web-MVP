@@ -17,8 +17,12 @@ The security and persistence core of the platform. Authentication, the dynamic p
 | `audit.ts` | `appendAuditLog` and helpers (e.g. `auditPermissionDenied`) for the `AuditLog` table |
 | `rate-limits.ts` | `RATE_LIMITS` table, pure `selectRateLimit` (tag-based unlimited/limited/denied), transactional `enforceRateLimit`, and read-only `getRateLimitStatus` |
 | `security.ts` | `validatePasswordPolicy` (≥10 chars, ≥3 classes, no identity substring) and `verifyPasswordWithDummyFallback` (constant-work bcrypt compare) |
-| `date.ts` | Asia/Shanghai date logic: report window is days 25–27; `canWriteProgressReport`, backfill expiry (24h), daily window starts for counters |
-| `authorization.ts` | (see above) |
+| `date.ts` | Asia/Shanghai date logic: persisted report-window evaluation, period helpers, backfill expiry (24h), and daily counter boundaries |
+| `system-settings.ts` | Singleton persisted progress-window/session-duration validation and constants |
+| `study-identity.ts` | Canonical degree/grade combinations and degree-Tag projection helpers |
+| `project-status.ts` | Pure project state derivation with archive/completion priority |
+| `actor-snapshot.ts` | Bounded historical identity snapshots used before nullable actor relations are cleared |
+| `avatar-storage.ts` | Managed 512×512 PNG validation, atomic storage, safe removal, and orphan cleanup |
 | `utils.ts` | `cn` class-merge helper and small utilities |
 
 ## Subdirectories
@@ -34,6 +38,9 @@ The security and persistence core of the platform. Authentication, the dynamic p
 - **Session revocation is `tokenVersion`-based.** Bumping `User.tokenVersion` invalidates all live sessions; the `auth.ts` session callback and `isSessionCurrent` both re-check it against the DB on every request.
 - Keep login-failure handling constant-work: always run a bcrypt compare (real hash or `DUMMY_HASH`) even on unknown users / rate-limited IPs to avoid timing leaks.
 - Effective Tag = `revokedAt == null` AND (`expiresAt == null` OR `expiresAt > now`). Reuse `isEffectiveTag` rather than re-implementing the predicate.
+- Runtime progress and session policy must be loaded from `SystemSetting(id = "singleton")`. Authentication stamps a database-time policy expiry at login; progress submission evaluates the persisted Shanghai-time window.
+- Managed avatars are UUID-named files under `public/uploads/avatars`; accept only validated 512×512 8-bit PNG output, write by temp-file rename, reject symlinks/path traversal, and never delete `/avatar/default.png`.
+- Historical actor links use snapshots plus nullable foreign keys. Populate the bounded snapshot whenever the live relation is written; account deletion refreshes the deleted actor snapshot before clearing/reassigning responsibilities, revoking owned state, deleting credentials, and cleaning managed avatar files.
 
 ### Testing Requirements
 - Pure helpers here are directly tested in `tests/` (permissions, session, security, rate-limits, progress-window, validators). Any change must keep those green and add cases for new branches. Run `npm run test` / `npm run verify`.

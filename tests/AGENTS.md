@@ -4,7 +4,7 @@
 # tests
 
 ## Purpose
-Pure-unit test suites that lock in the platform's security-critical invariants. They run on the Node built-in test runner (`node --test`) via `tsx`, with no database — they exercise the deterministic, side-effect-free helpers (snapshot-based permission/session computation, password policy, rate-limit selection, date windows, validators).
+DB-free unit and static-contract suites that lock in the platform's security-critical invariants. They run on the Node built-in test runner (`node --test`) via `tsx`. Real PostgreSQL transaction/trigger coverage lives in the explicit disposable-schema integration runner under `scripts/`; browser business flows live in `scripts/e2e-browser.ts`.
 
 ## Key Files
 | File | Description |
@@ -13,7 +13,7 @@ Pure-unit test suites that lock in the platform's security-critical invariants. 
 | `permissions.test.ts` | `computePermissionsFromSnapshot` / project-scoped permission computation, tag expiry/revocation |
 | `session.test.ts` | `isSessionCurrent` revocation logic (status + `tokenVersion`) |
 | `rate-limits.test.ts` | `selectRateLimit` tag-based limit selection (unlimited/limited/denied) |
-| `progress-window.test.ts` | Shanghai-timezone report window (25–27) and backfill expiry rules |
+| `progress-window.test.ts` | Persisted Shanghai-timezone report-window boundaries and backfill expiry rules |
 | `security.test.ts` | `validatePasswordPolicy` (length, character classes, identity exclusion) |
 | `validators.test.ts` | Zod schemas in `src/shared/lib/validators/` |
 
@@ -23,6 +23,8 @@ Pure-unit test suites that lock in the platform's security-critical invariants. 
 - Run with `npm run test` (matches `tests/*.test.ts`); included in `npm run verify`.
 - Tests import pure functions from `@/shared/...`. Keep them DB-free: test the `*FromSnapshot`/`select*`/`is*` pure helpers, not the `async` Prisma wrappers.
 - When you change any security helper (permissions, session, auth security, rate-limits, date windows, validators), add or update the matching test in the same PR — these suites are the guardrails for the architecture's invariants.
+- Changes to migrations, database triggers, lifecycle deletion, actor snapshots, settings persistence, or concurrency also require the disposable PostgreSQL integration runner; unit tests alone are insufficient.
+- Changes to destructive interactions, avatar persistence, admin onboarding/editing, project lifecycle, or settings behavior require a real-browser E2E path with cleanup in `finally`.
 
 ### Common Patterns
 - `node:test` (`describe`/`it`) + `node:assert/strict`. No mocking framework; construct plain snapshot objects as inputs.

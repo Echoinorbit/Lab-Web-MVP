@@ -19,17 +19,23 @@ Database layer for the platform: the Prisma schema (PostgreSQL), generated migra
 
 ## Data Model Notes
 - **Auth/session control on `User`**: `passwordHash`, `mustChangePassword`, `tokenVersion` (incrementing this revokes all existing sessions), `loginAttempts`, `lockedUntil`, `status`.
+- **Canonical study identity on `User`**: `studyDegree`, `studyGrade`, `identityNeedsReview`, and retained `legacyGrade`. Degree/grade combinations follow the root invariants; canonical global Tags are projections with `UserTag.source = STUDY_IDENTITY`.
+- **Lifecycle on `User`**: `graduatedAt` and `scheduledDeletionAt` are database-time facts. Only graduated master/doctor members are eligible for the three-day scheduled purge.
 - **Permission engine**: `Tag` (GLOBAL or PROJECT `scope`, optional `permissions` JSON or `TagTemplate`), `UserTag` (grant with optional `projectId`, `expiresAt`, `revokedAt`). Effective = not revoked and not expired.
 - **Rate limiting / abuse**: `RateLimitCounter`, `IpLoginFailureCounter`, `ProgressBackfillWindow` (one open window per user/year/month, has `expiresAt` and `usedAt`).
 - **Soft deletes**: most content models (`Announcement`, `Post`, `Comment`, `Project`, `ProjectNode`, `ProgressReport`) use a nullable `deletedAt`; queries must filter `deletedAt: null`.
-- **Audit**: `AuditLog` with a wide `AuditAction` enum — every privileged mutation should append a row.
+- **History retention**: actor/content foreign keys are nullable `onDelete: SetNull`; the corresponding JSON snapshot must be written before account deletion so names, study identity, status, and avatar fallback remain attributable.
+- **Projects**: `leaderId` is the canonical leader projection; active projects without a leader set `leaderNeedsReassignment`. `PLANNING`/`IN_PROGRESS` is derived from non-deleted nodes, with `ARCHIVED`/`COMPLETED` taking priority.
+- **Runtime settings**: `SystemSetting(id = "singleton")` stores progress-window and session-duration policy consumed by application logic.
+- **Audit**: `AuditLog` with a wide `AuditAction` enum and `actorSnapshot` — every privileged mutation should append a row.
 
 ## For AI Agents
 
 ### Working In This Directory
-- Editing `schema.prisma` requires a migration (`npx prisma migrate dev`) and `prisma generate`. Never hand-edit applied migration SQL.
-- Preserve `onDelete` semantics: content authors use `Restrict` (block deletion of referenced users); `Cascade` is reserved for ownership-style links (e.g. `Notification`→`User`, `UserTag`→`Tag`/`Project`).
+- Editing `schema.prisma` requires a formal migration and `prisma generate`. Never hand-edit an already-applied migration; generate and review a new migration instead.
+- Preserve `onDelete` semantics: historical actor/author relations use `SetNull` plus snapshots; `Cascade` is reserved for ownership-only data that must disappear with an account. Do not change either category without a deletion-history integration test.
 - Keep the `@@index`/`@@unique` constraints — the upsert-based counters rely on the composite unique keys.
+- Rehearse migrations against a unique disposable PostgreSQL schema and require `npm run remediation:readiness` to report `ready: true` before deployment.
 
 ### Testing Requirements
 - `npm run prisma:validate` validates the schema; it is part of `npm run verify`.

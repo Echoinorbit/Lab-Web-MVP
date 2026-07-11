@@ -2,9 +2,9 @@
 
 这是一个可运行的 MVP，不是只看页面的静态 demo，也还不是生产可上线的完整产品。
 
-当前版本已经完成：Next.js App Router 应用、Prisma/PostgreSQL 数据模型、NextAuth 登录、DB-backed 会话校验、动态 Tag 权限引擎、审计日志、帖子/评论、公告/通知、项目治理与提交图谱、进度报告时间窗口/补填/Excel 导出，以及自动化验证。
+当前版本已经完成：Next.js App Router 应用、Prisma/PostgreSQL 数据模型、NextAuth 登录、DB-backed 会话校验、动态 Tag 权限引擎、审计日志、帖子/评论、公告编辑与通知、项目治理与提交图谱、培养身份/年级、毕业清理、历史署名保留、头像裁剪、数据库持久化进度/Session 设置，以及自动化验证。
 
-当前版本仍属于 MVP 的原因：尚未完成生产部署加固、对象存储/备份、Tag 自助申请审批等运营闭环；系统设置仍以基础配置为主。当前主要业务页面均读取真实数据库，不再依赖静态示例列表。
+当前版本仍属于 MVP 的原因：尚未完成生产部署加固、对象存储/病毒扫描、备份恢复演练、监控告警和 Tag 自助申请审批等运营闭环。当前主要业务页面均读取真实数据库，不再依赖静态示例列表。
 
 ## 默认账号
 
@@ -107,7 +107,7 @@ npm run dev
 http://localhost:3000
 ```
 
-审计自动导出由外部调度器调用受保护路由，需在 `.env` 设置 `CRON_SECRET`。示例：
+审计自动导出和毕业账号清理由外部调度器调用受保护路由，需在 `.env` 设置高强度 `CRON_SECRET`。示例：
 
 ```bash
 0 3 */7 * * curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/audit-export
@@ -118,6 +118,14 @@ http://localhost:3000
 ```bash
 0 3 * * 0 curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/audit-export
 ```
+
+毕业学生进入 `GRADUATED` 后使用数据库时间安排三天宽限期。建议每小时调用一次幂等清理端点；每批最多处理 50 个到期账号：
+
+```bash
+15 * * * * curl -sS --fail-with-body -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/purge-graduated-users
+```
+
+调度器必须检查 HTTP 状态和 JSON 中的 `failed`；`207` 表示本批有失败项，应告警并重试。不要在 Next.js 进程中使用内存定时器。完整部署、头像目录和恢复要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
 
 ## 使用路径
 
@@ -130,7 +138,8 @@ http://localhost:3000
 管理员可访问：
 
 - `/admin`：管理后台入口
-- `/admin/users`：创建/导入成员，修改身份、角色、状态、导师和年级
+- `/admin/users`：创建/批量导入成员并进入独立编辑页
+- `/admin/users/[userId]/edit`：修改角色、培养身份、年级、导师、状态、毕业生命周期和永久删除
 - `/admin/tags`：授予/撤销全局 Tag，并查看权限明细
 - `/admin/audit`：审计日志分页、筛选与导出
 - `/admin/settings`：基础系统设置
@@ -141,7 +150,7 @@ http://localhost:3000
 
 入口：`/announcements`
 
-公告列表每页 10 条，总览展示 5 条；发布、定向通知、删除、分页和审计均已接入数据库。通知收件人会自动包含活动管理员。
+公告列表每页 10 条，总览展示 5 条；发布、作者编辑、定向通知、删除、分页和审计均已接入数据库。作者只能编辑自己的公告，服务端会拒绝越权编辑；通知收件人会自动包含活动管理员。
 
 ### 项目
 
@@ -149,7 +158,7 @@ http://localhost:3000
 
 项目列表、创建、成员树、节点、名称/简介编辑和提交图谱均已接入数据库。导师只能选择直属在读学生；admin 代创建时必须选择实际导师。学生只可查看自己参与项目的简报。项目级 Tag 始终按 `projectId` 隔离。
 
-生命周期语义：归档与删除分离；负责导师可软删除自己的项目，admin 可恢复或永久删除，项目组长可按项目权限归档/取消归档。
+生命周期语义：归档与删除分离；无未删除节点的活动项目派生为“规划中”，新增节点后派生为“进行中”，而“已归档”和“已完成”优先级更高。项目使用 `leaderId` 作为唯一组长来源，并同步项目级组长 Tag。Admin、规范组长或具有项目管理权限的成员可归档/取消归档；普通成员会被服务端拒绝。活动项目负责人被永久删除时进入“待重新分配”，不会静默提拔其他成员。
 
 ### 进度报告
 
@@ -157,13 +166,33 @@ http://localhost:3000
 
 报告表单、报告列表、汇总表和导出均已接入数据库：
 
-- 每月 25-27 日按 Asia/Shanghai 判断填写窗口
+- 由数据库系统设置定义每月开始/结束日与分钟，按 Asia/Shanghai 判断填写窗口（初始值为 25 日 00:00 至 27 日 23:59）
 - `progress.backfill` 补填窗口
 - 补填窗口服务端固定 24 小时有效期
 - 提交后消费补填窗口
 - 导出权限和审计
 
-页面默认使用当前北京时间月份，可浏览历史月份；北京时间每月 25–27 日开放当月填写，管理员可开启 24 小时补填窗口。已提交报告不能重复提交，但最多可再保存修改 3 次。导师只看到直属学生，进度管理员可查看与导出全局数据。
+页面默认使用当前北京时间月份，可浏览历史月份；管理员可在 `/admin/settings` 修改真实填写窗口，并可开启 24 小时补填窗口。已提交报告不能重复提交，但最多可再保存修改 3 次。导师只看到直属学生，进度管理员可查看与导出全局数据。
+
+### 头像
+
+入口：`/profile`
+
+浏览器端将 JPEG/PNG/WebP 原图裁剪为 512 × 512 PNG，服务端仍会重新校验 PNG 签名、CRC、尺寸、位深、数据块顺序、解压后长度和 2 MiB 上限。文件以 UUID 名写入 `public/uploads/avatars`，数据库只保存受管公开路径；替换或删除账号时清理旧文件。未设置头像统一回退到 `public/avatar/default.png`，默认头像不得由清理任务删除。
+
+### 批量导入成员
+
+在 `/admin/users` 下载当前模板。表头顺序固定为：
+
+```text
+username, displayName, password, studentId, studyDegree, studyGrade
+```
+
+- `studyDegree` 接受 `硕士`/`MASTER`、`博士`/`DOCTOR`、`导师`/`MENTOR`。
+- 硕士年级仅 `研0`–`研3`，博士年级仅 `博1`–`博5`，导师的 `studyGrade` 必须留空。
+- 文件最大 5 MiB、最多 500 个非空数据行；身份字段中的公式或外部链接会被拒绝。
+- 先执行签名预览，再在五分钟内确认同一文件；导入在事务中创建账号、培养身份和规范系统 Tag，任一行冲突会阻止整批提交。
+- 初始密码遵循与单个开通相同的策略，首次登录必须改密。
 
 ### 通知
 
@@ -177,6 +206,12 @@ http://localhost:3000
 
 - `ADMIN`：网站治理角色，可管理用户、Tag、设置、审计和内容治理；不能创作内容。
 - `MEMBER`：普通成员，默认只读，能力由 Tag 叠加。
+
+培养身份与角色分离：
+
+- `studyDegree`：`MASTER`、`DOCTOR`、`MENTOR`；管理员可为空。
+- `studyGrade`：硕士 `MASTER_0`–`MASTER_3`，博士 `DOCTOR_1`–`DOCTOR_5`，导师必须为空。
+- `grad-master`、`grad-phd`、`advisor` 是培养身份的规范能力投影，来源为 `STUDY_IDENTITY`；不要把它们当作任意自定义 Tag 手工维护。
 
 全局 Tag：
 
@@ -221,6 +256,22 @@ npm run build
 npm audit --audit-level=moderate
 ```
 
+迁移/数据一致性只读检查：
+
+```bash
+npm run remediation:readiness
+```
+
+其 JSON 中 `ready` 必须为 `true`。正式迁移、隔离 schema 演练和回滚命令见 [迁移手册](docs/fullstack-remediation-migration.md)。
+
+PostgreSQL 事务、触发器、并发组长投影和账号清理集成套件：
+
+```bash
+npm run test:integration
+```
+
+该命令从 `.env` 的数据库连接派生唯一的 `remediation_it_*` 可丢弃 schema，依次执行全部 migration 和 seed，并在 `finally` 自动删除该 schema；运行账号必须具有创建/删除 schema 的权限。它不会把测试表写入连接中原有的应用 schema。
+
 端到端 / 浏览器冒烟测试（需要本地数据库与开发服务器在运行）：
 
 ```bash
@@ -229,13 +280,7 @@ npm run e2e:smoke      # 关键路由与权限冒烟
 npm run e2e:browser    # 浏览器流程，截图写入 .omx/reports/
 ```
 
-当前最新验证结果：
-
-- `npm run verify`：通过，176 个测试
-- `npm run build`：通过，静态生成阶段 25/25 完成
-- `npm audit --audit-level=moderate`：0 vulnerabilities
-- `npm run e2e:smoke`：连续两次通过，覆盖身份、权限、5/10 分页与毕业账号拒绝
-- `npm run e2e:browser`：连续两次通过，覆盖真实表单、恶意文本安全渲染、项目图谱交互与自动清理
+数据库/生命周期改动还必须在明确指定的可丢弃 schema 上运行 PostgreSQL 集成套件；不要将该命令指向共享或生产 schema。以 `package.json` 和 [迁移手册](docs/fullstack-remediation-migration.md) 中的当前命令为准。验证结果属于具体提交的交付证据，不在 README 中保存容易过期的测试计数。
 
 ## 当前完成度判断
 
@@ -243,7 +288,7 @@ npm run e2e:browser    # 浏览器流程，截图写入 .omx/reports/
 
 它不是纯 demo，因为核心后端边界已经实现并有测试保护：认证、权限、会话吊销、审计、补填、rate limit、Prisma migration 和安全审计都已经跑通。
 
-它也不是完整生产产品：Tag 自助申请审批、生产级文件存储/备份、监控告警与部署加固仍需补齐。
+它也不是完整生产产品：Tag 自助申请审批、生产级对象存储/病毒扫描、数据库和上传目录备份、监控告警与部署加固仍需补齐。
 
 ## 常见问题
 
@@ -266,6 +311,10 @@ env DATABASE_URL="postgresql://lab:lab@localhost:5432/lab_platform?schema=public
 ### 为什么管理员不能发帖，但能代创建项目？
 
 这是架构约束。`ADMIN` 是治理角色，不是内容创作者，因此不能发帖，也不能把自己设为项目导师；它只能选择持有效 `advisor` Tag 的成员代为创建项目。需要以导师身份创作内容时，应使用 `MEMBER` 账号并授予 `advisor` Tag。
+
+### 为什么修改 Session 时长后当前登录没有立即延长或缩短？
+
+Session 时长在成功登录时从数据库读取并写入该会话的策略过期时间。设置变更影响后续登录；需要立即应用时，管理员应再吊销目标账号会话，让其重新登录。系统不会仅靠客户端 Cookie 的理论最大时长绕过数据库策略过期。
 
 ### 为什么顶部没有全局搜索？
 

@@ -1,40 +1,39 @@
 # Codex Rules Update
 
-## Updated Files
+## Updated tracked guidance
 
-| File | Scope | Durable rule added |
-| --- | --- | --- |
-| `AGENTS.md` | Entire repository | Whole-site frontend work requires inventory, shared system, all-route coverage, states, responsive/a11y/browser QA, full verification, and phase commits |
-| `src/app/AGENTS.md` | App Router pages/layouts | Preserve auth/data logic while replacing presentation; use shared page templates and flat hierarchy |
-| `src/shared/components/AGENTS.md` | Shared UI and shell | Centralize control states, restrained palette, elevation/radius discipline, and reuse threshold |
+| File | Durable remediation contract |
+| --- | --- |
+| `AGENTS.md` | Canonical project-state projection, study-identity/Tag separation, write-time actor snapshots, graduated-account scheduling, server-side authorization, shared feedback/dialogs, persisted settings, cache refresh/locking, destructive-flow coverage, and migration rehearsal |
+| `prisma/AGENTS.md` | Nullable snapshot-backed history relations, leader/status projections, singleton settings, formal migration and disposable-schema requirements |
+| `src/features/admin/AGENTS.md` | Standalone user editor, atomic identity projection, graduation/permanent deletion, persisted settings, and six-column signed import preview |
+| `src/features/announcements/AGENTS.md` | Server-side author ownership for edits and structured feedback behavior |
+| `src/features/progress/AGENTS.md` | Database-configured Shanghai progress window; no hardcoded day fallback |
+| `src/features/projects/AGENTS.md` | Canonical leader, node-derived status priority, reassignment, archive permission, and concurrency tests |
+| `src/shared/components/AGENTS.md` | Shared accessible Dialog/Toast/avatar contracts and prohibition of native alert/confirm feedback |
+| `src/shared/lib/AGENTS.md` | Settings, study identity, project state, snapshot, avatar, session, and write-time historical attribution boundaries |
+| `tests/AGENTS.md` | Clear split between DB-free tests, disposable PostgreSQL integration, and real-browser destructive-flow coverage |
 
-## Oh My Codex Scope Decision
+## Long-term constraints added
 
-- The repository contains ignored `.omx` runtime state, prior plans, reports, and screenshots. These are session artifacts, not the durable source of project rules.
-- The repository contains ignored `.agents` and `.claude` skill copies. `.claude/settings.local.json` already runs the Impeccable detector after UI edits.
-- There is no tracked project `.codex` workflow configuration or schema-backed OMX project rule file to update safely.
-- Therefore the tracked `AGENTS.md` hierarchy is used as the project-level OMX/Codex control surface. No runtime state or unknown-schema configuration was rewritten.
+- `ADMIN` remains governance-only; content capability comes from effective Tags on `MEMBER` accounts.
+- Role, degree, grade, canonical system Tags, and custom capability Tags remain separate concepts.
+- Active actor relations and audit writes carry bounded snapshots from creation; deletion refreshes attribution before nullable foreign keys are cleared.
+- Project `PLANNING`/`IN_PROGRESS` state follows non-deleted nodes, with `ARCHIVED`/`COMPLETED` taking priority; `leaderId` is the sole leader source.
+- Progress-window and login-duration settings are real singleton database policy, not UI/environment decoration.
+- Graduated-student cleanup is database-time, externally scheduled, idempotent, and routed through the same deletion service as manual deletion.
+- Destructive actions use the accessible shared dialog and require allow/deny, duplicate-submit, integration, and browser evidence appropriate to the risk.
+- Schema delivery requires formal migrations, backup/rollback documentation, readiness reporting, and an isolated-schema rehearsal; `db push` is not a release path.
 
-## Long-term Constraints Added
+## OMX/Codex scope decision
 
-- Do not reduce a whole-site rebuild to token, navigation, or home-page changes.
-- Inventory and cover every primary route.
-- Preserve backend, data, auth, permission, and API contracts.
-- Use one design system and shared page/state primitives.
-- Cover loading/empty/error/success/disabled/permission states where applicable.
-- Validate desktop, tablet, and mobile structure plus keyboard focus and reduced motion.
-- Complete two real-browser visual QA passes and full `verify` + `build` gates.
-- Protect user changes and keep redesign work in reviewable phase commits.
+- Tracked `AGENTS.md` files are the repository's durable Codex/OMX control surface.
+- `.omx/` plans, state, screenshots, and reports are runtime evidence and remain untracked session artifacts.
+- No tracked project `.codex` configuration with a stable schema exists, so no unknown-schema workflow file was invented or modified.
+- User-level Codex/OMX configuration was not changed; therefore there is no cross-project impact or user-config backup to restore.
 
-## User-level Configuration
+## Validation and rollback
 
-- Modified: no.
-- Reason: project-level tracked guidance is sufficient.
-- Backup: not applicable; no user-level file was touched.
-- Cross-project impact: none.
-
-## Validation and Rollback
-
-- Markdown rules are validated through Git diff review and repository checks.
-- No JSON/YAML/TOML project configuration was changed.
-- Rollback is available by switching to the original branch or reverting the dedicated rule/documentation commit; no destructive reset is required.
+- Guidance changes are reviewed in the same phase commit as the matching operations/migration documentation.
+- Runtime behavior remains enforced by unit/static tests, the disposable PostgreSQL suite, readiness, smoke/browser E2E, `npm run verify`, and `npm run build`.
+- Roll back with a normal Git revert of the documentation commit. No generated runtime state or user-level configuration needs restoration.

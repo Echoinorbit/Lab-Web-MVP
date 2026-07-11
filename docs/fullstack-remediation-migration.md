@@ -33,26 +33,42 @@ migration deployment requires the reviewed reverse procedure below or a full res
 
 ## Isolated migration rehearsal
 
-Use a disposable schema on the same PostgreSQL major version. The schema name must be
-unique and must not be `public`:
+The preferred automated rehearsal derives a unique `remediation_it_*` schema from the
+database in `.env`, applies all six migrations and the seed, executes the PostgreSQL
+transaction/trigger/concurrency checks, and drops the schema in `finally`:
+
+```sh
+npm run test:integration
+```
+
+The database role must be allowed to create and drop schemas. The runner never mutates
+the source URL's existing application schema.
+
+For a manual non-production rehearsal, use a unique disposable schema on the same
+PostgreSQL major version. Keep the order `migrate deploy` → `seed` → fixtures → readiness:
 
 ```sh
 DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DB?schema=remediation_rehearsal' npx prisma migrate deploy
+DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DB?schema=remediation_rehearsal' npm run seed
+DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DB?schema=remediation_rehearsal' E2E_FIXTURE_PASSWORD='NON_PRODUCTION_PASSWORD' npm run e2e:fixtures
 DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DB?schema=remediation_rehearsal' npm run remediation:readiness
 DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DB?schema=remediation_rehearsal' npx prisma migrate status
 ```
 
-Drop only that named disposable schema after evidence is captured. The integration test
-harness performs this cleanup in `finally`.
+The readiness JSON must report `"ready": true`. Drop only that explicitly named disposable
+schema after evidence is captured. The automated integration harness performs its own
+cleanup in `finally`; the manual sequence does not.
 
 ## Deploy and verify
 
 ```sh
 npx prisma migrate deploy
 npx prisma generate
+npm run seed
 npm run prisma:validate
 npm run remediation:readiness
 npm run verify
+npm run test:integration
 npm run build
 ```
 
