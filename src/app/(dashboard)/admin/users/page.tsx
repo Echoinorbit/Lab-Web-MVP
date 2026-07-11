@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { requirePermission } from "@/shared/lib/authorization";
-import { formatComputedGrade, resolveGradeTrackFromTagNames } from "@/shared/lib/grade";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
+import { formatStudyGrade } from "@/shared/lib/study-identity";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -21,13 +21,8 @@ export default async function AdminUsersPage({
     prisma.user.findMany({
       where: {
         status: "ACTIVE",
-        tags: {
-          some: {
-            revokedAt: null,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-            tag: { name: "advisor" },
-          },
-        },
+        studyDegree: "MENTOR",
+        identityNeedsReview: false,
       },
       orderBy: { displayName: "asc" },
       select: { id: true, username: true, displayName: true },
@@ -76,7 +71,6 @@ export default async function AdminUsersPage({
         <SectionHeader title="账号与身份" description="在表格内维护身份、角色、状态、年级、导师与会话。毕业操作不可撤销。" />
         <UserTable
           users={users.map((user) => {
-            const globalTagNames = user.tags.filter((userTag) => !userTag.projectId).map((userTag) => userTag.tag.name);
             return {
               id: user.id,
               username: user.username,
@@ -84,17 +78,10 @@ export default async function AdminUsersPage({
               studentId: user.studentId,
               role: user.role,
               status: user.status,
-              computedGrade: formatComputedGrade(
-                {
-                  grade: user.grade,
-                  enrollmentDate: user.enrollmentDate,
-                  tagNames: globalTagNames,
-                },
-                now,
-              ),
-              gradeTrack: resolveGradeTrackFromTagNames(globalTagNames),
+              computedGrade: formatStudyGrade(user.studyDegree, user.studyGrade),
+              gradeTrack: user.studyDegree === "MASTER" ? "master" : user.studyDegree === "DOCTOR" ? "phd" : null,
               advisorId: user.advisorId,
-              isAdvisor: globalTagNames.includes("advisor"),
+              isAdvisor: user.studyDegree === "MENTOR" && !user.identityNeedsReview,
               tags: user.tags.map((userTag) => ({
                 name: userTag.tag.name,
                 displayName: userTag.tag.displayName,

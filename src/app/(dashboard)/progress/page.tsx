@@ -11,6 +11,7 @@ import { formatShanghaiDate, canWriteProgressReport } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { formatStudyGrade } from "@/shared/lib/study-identity";
 
 export default async function ProgressPage({
   searchParams,
@@ -31,7 +32,8 @@ export default async function ProgressPage({
     canReadAll: canReadAll || canBackfill,
     canReadAdvisees,
   });
-  const regularWindowOpen = canWriteProgressReport(year, month, now);
+  const settings = await prisma.systemSetting.findUniqueOrThrow({ where: { id: "singleton" } });
+  const regularWindowOpen = canWriteProgressReport(year, month, now, settings);
   const writeWindow = canWrite
     ? await resolveProgressWriteWindow(user.id, year, month)
     : { allowed: false, backfillWindowId: null };
@@ -53,7 +55,7 @@ export default async function ProgressPage({
     canReadAll || canReadAdvisees || canBackfill
       ? prisma.user.findMany({
           where: progressAudienceWhere,
-          orderBy: [{ grade: "asc" }, { studentId: "asc" }, { displayName: "asc" }],
+          orderBy: [{ displayName: "asc" }, { studentId: "asc" }],
           include: {
             advisor: { select: { displayName: true } },
             progressReports: {
@@ -71,7 +73,7 @@ export default async function ProgressPage({
         studentName: member.displayName,
         studentId: member.studentId ?? "-",
         advisorName: member.advisor?.displayName ?? "-",
-        grade: member.grade ?? "-",
+        grade: formatStudyGrade(member.studyDegree, member.studyGrade),
         status: member.progressReports[0]?.status ?? ("MISSING" as const),
       }))
     : [];

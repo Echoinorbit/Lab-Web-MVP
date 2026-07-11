@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { auditPermissionDenied } from "@/shared/lib/audit";
 import { enforceRateLimit } from "@/shared/lib/rate-limits";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { splitCommaList } from "@/shared/lib/utils";
@@ -15,20 +17,18 @@ import { announcementInputSchema } from "@/shared/lib/validators/announcements";
 
 import { ANNOUNCEMENT_LIST_ROUTE } from "../lib/access";
 import {
-  projectLeadTagName,
   resolveProjectAnnouncementRecipientIds,
   uniqueAnnouncementRecipientIds,
 } from "../lib/recipients";
 import { getDefaultAnnouncementExpiresAt } from "../lib/visibility";
 
 async function resolveAnnouncementRecipients(
-  client: Pick<Prisma.TransactionClient, "user" | "projectMember" | "userTag">,
+  client: Pick<Prisma.TransactionClient, "user" | "project" | "projectMember" | "userTag">,
   targetType: "ALL" | "PROJECT" | "TAG" | "USERS",
   targetIds: string[],
   authorId: string,
+  now: Date,
 ) {
-  const now = new Date();
-
   if (targetType === "ALL") {
     const users = await client.user.findMany({
       where: { status: "ACTIVE" },
@@ -46,7 +46,7 @@ async function resolveAnnouncementRecipients(
   }
 
   if (targetType === "PROJECT") {
-    const [members, leadGrants] = await Promise.all([
+    const [members, projects] = await Promise.all([
       client.projectMember.findMany({
         where: {
           projectId: { in: targetIds },
@@ -55,20 +55,19 @@ async function resolveAnnouncementRecipients(
         },
         select: { userId: true },
       }),
-      client.userTag.findMany({
+      client.project.findMany({
         where: {
-          projectId: { in: targetIds },
-          revokedAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-          tag: { name: { in: targetIds.map(projectLeadTagName) } },
-          user: { status: "ACTIVE" },
+          id: { in: targetIds },
+          deletedAt: null,
+          leaderId: { not: null },
+          leader: { status: "ACTIVE" },
         },
-        select: { userId: true },
+        select: { leaderId: true },
       }),
     ]);
     return resolveProjectAnnouncementRecipientIds({
-      memberUserIds: members.map((member) => member.userId),
-      leadUserIds: leadGrants.map((grant) => grant.userId),
+      memberUserIds: members.flatMap((member) => member.userId ? [member.userId] : []),
+      leadUserIds: projects.flatMap((project) => project.leaderId ? [project.leaderId] : []),
       authorId,
     });
   }
@@ -102,56 +101,93 @@ export async function createAnnouncement(input: unknown) {
     });
   }
 
-  const now = new Date();
+  let announcement: { id: string };
+  try {
+    announcement = await prisma.$transaction(async (tx) => {
+      const [[{ now }], currentActor] = await Promise.all([
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        tx.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, status: true, displayName: true, studyDegree: true },
+        }),
+      ]);
+      const currentPermissions = await getUserPermissionsForClient(tx, user.id, now);
+      const missingPermission = !currentPermissions.has(PERMISSIONS.ANNOUNCEMENT_CREATE)
+        ? PERMISSIONS.ANNOUNCEMENT_CREATE
+        : data.targetType !== "ALL" && !currentPermissions.has(PERMISSIONS.ANNOUNCEMENT_NOTIFY_TARGETED)
+          ? PERMISSIONS.ANNOUNCEMENT_NOTIFY_TARGETED
+          : null;
+      if (!currentActor || currentActor.status !== "ACTIVE" || missingPermission) {
+        throw new PermissionDeniedError(missingPermission ?? PERMISSIONS.ANNOUNCEMENT_CREATE);
+      }
 
-  const announcement = await prisma.$transaction(async (tx) => {
-    await enforceRateLimit(tx, user.id, PERMISSIONS.ANNOUNCEMENT_CREATE);
-    const domainRecipientIds = await resolveAnnouncementRecipients(tx, data.targetType, data.targetIds, user.id);
-    const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
-      recipientIds: domainRecipientIds,
-      actorId: user.id,
-    });
+      await enforceRateLimit(tx, user.id, PERMISSIONS.ANNOUNCEMENT_CREATE, now);
+      const actorSnapshot = createActorSnapshot(currentActor, now);
+      const domainRecipientIds = await resolveAnnouncementRecipients(
+        tx,
+        data.targetType,
+        data.targetIds,
+        user.id,
+        now,
+      );
+      const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
+        recipientIds: domainRecipientIds,
+        actorId: user.id,
+      });
 
-    const announcement = await tx.announcement.create({
-      data: {
-        title: data.title,
-        content: data.content,
-        authorId: user.id,
-        isPinned: data.isPinned,
-        isUrgent: data.isUrgent,
-        targetType: data.targetType,
-        targetIds: data.targetType === "ALL" ? [] : data.targetIds,
-        expiresAt: getDefaultAnnouncementExpiresAt(now),
-      },
-    });
-
-    if (recipientIds.length > 0) {
-      await tx.notification.createMany({
-        data: recipientIds.map((recipientId) => ({
-          userId: recipientId,
-          senderId: user.id,
-          type: data.isUrgent ? "ANNOUNCEMENT_URGENT" : "ANNOUNCEMENT_NEW",
+      const created = await tx.announcement.create({
+        data: {
           title: data.title,
-          content: data.content.slice(0, 240),
-          relatedType: "ANNOUNCEMENT",
-          relatedId: announcement.id,
-        })),
-        skipDuplicates: true,
+          content: data.content,
+          authorId: user.id,
+          authorSnapshot: actorSnapshot,
+          isPinned: data.isPinned,
+          isUrgent: data.isUrgent,
+          targetType: data.targetType,
+          targetIds: data.targetType === "ALL" ? [] : data.targetIds,
+          expiresAt: getDefaultAnnouncementExpiresAt(now),
+        },
+      });
+
+      if (recipientIds.length > 0) {
+        await tx.notification.createMany({
+          data: recipientIds.map((recipientId) => ({
+            userId: recipientId,
+            senderId: user.id,
+            senderSnapshot: actorSnapshot,
+            type: data.isUrgent ? "ANNOUNCEMENT_URGENT" : "ANNOUNCEMENT_NEW",
+            title: data.title,
+            content: data.content.slice(0, 240),
+            relatedType: "ANNOUNCEMENT",
+            relatedId: created.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          actorSnapshot,
+          action: "CREATE",
+          entityType: "Announcement",
+          entityId: created.id,
+          details: { targetType: data.targetType, recipientCount: recipientIds.length },
+        },
+      });
+
+      return created;
+    });
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
+        userId: user.id,
+        permission: error.permission,
+        entityType: "Announcement",
       });
     }
-
-    await tx.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "CREATE",
-        entityType: "Announcement",
-        entityId: announcement.id,
-        details: { targetType: data.targetType, recipientCount: recipientIds.length },
-      },
-    });
-
-    return announcement;
-  });
+    throw error;
+  }
 
   revalidatePath("/announcements");
   return announcement;

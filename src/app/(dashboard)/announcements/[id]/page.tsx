@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { AnnouncementCard } from "@/features/announcements";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -34,7 +35,7 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
-          authorName: announcement.author.displayName,
+          authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
           createdAt: formatShanghaiDate(announcement.createdAt),
           isPinned: announcement.isPinned,
           isUrgent: announcement.isUrgent,

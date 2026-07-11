@@ -25,3 +25,11 @@ export const announcementInputSchema = z
       });
     }
   });
+
+export const updateAnnouncementInputSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(2).max(160),
+  content: z.string().trim().min(1).max(20000),
+  isPinned: z.boolean().default(false),
+  isUrgent: z.boolean().default(false),
+});

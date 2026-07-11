@@ -9,6 +9,7 @@ declare module "next-auth" {
       status: "ACTIVE" | "SUSPENDED" | "GRADUATED";
       mustChangePassword: boolean;
       tokenVersion: number;
+      policyExpiresAt: string;
       permissions: string[];
       tags: Array<{ name: string; projectId: string | null }>;
     } & DefaultSession["user"];
@@ -20,6 +21,7 @@ declare module "next-auth" {
     status: "ACTIVE" | "SUSPENDED" | "GRADUATED";
     mustChangePassword: boolean;
     tokenVersion: number;
+    policyExpiresAt: string;
   }
 }
 
@@ -30,5 +32,6 @@ declare module "next-auth/jwt" {
     status?: "ACTIVE" | "SUSPENDED" | "GRADUATED";
     mustChangePassword?: boolean;
     tokenVersion?: number;
+    policyExpiresAt?: string;
   }
 }

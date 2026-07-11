@@ -1,7 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
-
 import ExcelJS from "exceljs";
 
+import { isBearerSecretAuthorized } from "@/shared/lib/cron-auth";
 import { getShanghaiDateParts } from "@/shared/lib/date";
 
 export type AuditExportCounterSnapshot = {
@@ -23,14 +22,7 @@ export function isAuditCronAuthorized(input: {
   authorizationHeader?: string | null;
   secret?: string | null;
 }) {
-  if (!input.secret) return false;
-  const prefix = "Bearer ";
-  if (!input.authorizationHeader?.startsWith(prefix)) return false;
-  const token = input.authorizationHeader.slice(prefix.length);
-  const tokenBuffer = Buffer.from(token);
-  const secretBuffer = Buffer.from(input.secret);
-  if (tokenBuffer.length !== secretBuffer.length) return false;
-  return timingSafeEqual(tokenBuffer, secretBuffer);
+  return isBearerSecretAuthorized(input);
 }
 
 export function buildAuditExportContentDisposition(fileName: string) {

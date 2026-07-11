@@ -8,6 +8,7 @@ import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } fro
 import { buttonStyles } from "@/shared/components/ui/button";
 import { PageHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -59,7 +60,7 @@ export default async function AnnouncementsPage({
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
-          authorName: announcement.author.displayName,
+          authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
           createdAt: formatShanghaiDate(announcement.createdAt),
           isPinned: announcement.isPinned,
           isUrgent: announcement.isUrgent,

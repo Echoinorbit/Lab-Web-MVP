@@ -18,7 +18,7 @@ import { ProjectNodeViews } from "./project-node-views";
 export type ProjectMemberRow = {
   id: string;
   displayName: string;
-  username: string;
+  username: string | null;
 };
 
 const statusLabels: Record<string, string> = {
@@ -115,7 +115,9 @@ export function ProjectDetail({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{member.displayName}</span>
-                  <span className="block truncate text-xs text-muted-foreground">@{member.username}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {member.username ? `@${member.username}` : "历史成员"}
+                  </span>
                 </span>
               </li>
             ))}

@@ -3,90 +3,152 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { auditPermissionDenied } from "@/shared/lib/audit";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
 import { applyHardDeleteProject, type ProjectHardDeleteTransaction } from "../lib/hard-delete";
+import { canRestoreProjectSnapshot, canSoftDeleteProjectSnapshot } from "../lib/project-governance";
 
 export async function softDeleteAdvisedProject(projectId: string) {
   const actor = await requireActiveUser();
-  await assertPermissionWithAudit({
-    userId: actor.id,
-    permission: PERMISSIONS.PROJECT_DELETE_ADVISED,
-    entityType: "Project",
-    entityId: projectId,
-  });
-
-  const deletedAt = new Date();
-  return prisma.$transaction(async (tx) => {
-    const project = await tx.project.findFirst({
-      where: { id: projectId, advisorId: actor.id, deletedAt: null },
-      select: { name: true, advisorId: true, status: true, archivedAt: true },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
+      const [[{ now }], project, currentActor] = await Promise.all([
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        tx.project.findUnique({
+          where: { id: projectId },
+          select: { name: true, advisorId: true, status: true, archivedAt: true, deletedAt: true },
+        }),
+        tx.user.findUnique({
+          where: { id: actor.id },
+          select: { role: true, status: true, displayName: true, studyDegree: true },
+        }),
+      ]);
+      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
+      if (
+        !currentActor
+        || currentActor.status !== "ACTIVE"
+        || !project
+        || !canSoftDeleteProjectSnapshot(actor.id, project, permissions)
+      ) {
+        throw new PermissionDeniedError(PERMISSIONS.PROJECT_DELETE_ADVISED);
+      }
+      const result = await tx.project.updateMany({
+        where: { id: projectId, advisorId: actor.id, deletedAt: null },
+        data: { deletedAt: now },
+      });
+      if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          actorSnapshot: createActorSnapshot(currentActor, now),
+          action: "DELETE",
+          entityType: "Project",
+          entityId: projectId,
+          details: { mode: "SOFT", deletedAt: now, before: project },
+        },
+      });
     });
-    if (!project) throw new Error("仅负责导师可以软删除自己的项目。");
-    const result = await tx.project.updateMany({
-      where: { id: projectId, advisorId: actor.id, deletedAt: null },
-      data: { deletedAt },
-    });
-    if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
-    await tx.auditLog.create({
-      data: {
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
         userId: actor.id,
-        action: "DELETE",
+        permission: error.permission,
         entityType: "Project",
         entityId: projectId,
-        details: { mode: "SOFT", deletedAt, before: project },
-      },
-    });
-  });
+      });
+    }
+    throw error;
+  }
 }
 
 export async function restoreProject(projectId: string) {
   const actor = await requireActiveUser();
-  await assertPermissionWithAudit({
-    userId: actor.id,
-    permission: PERMISSIONS.PROJECT_RESTORE,
-    entityType: "Project",
-    entityId: projectId,
-  });
-  return prisma.$transaction(async (tx) => {
-    const project = await tx.project.findFirst({
-      where: { id: projectId, deletedAt: { not: null } },
-      select: { name: true, deletedAt: true },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
+      const [[{ now }], project, currentActor] = await Promise.all([
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        tx.project.findUnique({ where: { id: projectId }, select: { name: true, deletedAt: true } }),
+        tx.user.findUnique({
+          where: { id: actor.id },
+          select: { role: true, status: true, displayName: true, studyDegree: true },
+        }),
+      ]);
+      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
+      if (
+        !currentActor
+        || currentActor.status !== "ACTIVE"
+        || !project
+        || !canRestoreProjectSnapshot(project, permissions)
+      ) {
+        throw new PermissionDeniedError(PERMISSIONS.PROJECT_RESTORE);
+      }
+      const result = await tx.project.updateMany({
+        where: { id: projectId, deletedAt: { not: null } },
+        data: { deletedAt: null },
+      });
+      if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          actorSnapshot: createActorSnapshot(currentActor, now),
+          action: "UPDATE",
+          entityType: "Project",
+          entityId: projectId,
+          details: { mode: "SOFT", before: project, restoredAt: now },
+        },
+      });
     });
-    if (!project) throw new Error("项目不存在或未被软删除。");
-    const result = await tx.project.updateMany({
-      where: { id: projectId, deletedAt: { not: null } },
-      data: { deletedAt: null },
-    });
-    if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
-    await tx.auditLog.create({
-      data: {
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
         userId: actor.id,
-        action: "UPDATE",
+        permission: error.permission,
         entityType: "Project",
         entityId: projectId,
-        details: { mode: "SOFT", before: project, restoredAt: new Date() },
-      },
-    });
-  });
+      });
+    }
+    throw error;
+  }
 }
 
 export async function hardDeleteProject(projectId: string) {
   const actor = await requireActiveUser();
-  await assertPermissionWithAudit({
-    userId: actor.id,
-    permission: PERMISSIONS.PROJECT_DELETE_ANY,
-    entityType: "Project",
-    entityId: projectId,
-  });
-
-  return prisma.$transaction((tx) => applyHardDeleteProject(
-    tx as unknown as ProjectHardDeleteTransaction,
-    { projectId, actorId: actor.id },
-  ));
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
+      const [[{ now }], currentActor] = await Promise.all([
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        tx.user.findUnique({
+          where: { id: actor.id },
+          select: { role: true, status: true, displayName: true, studyDegree: true },
+        }),
+      ]);
+      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
+      if (!currentActor || currentActor.status !== "ACTIVE" || !permissions.has(PERMISSIONS.PROJECT_DELETE_ANY)) {
+        throw new PermissionDeniedError(PERMISSIONS.PROJECT_DELETE_ANY);
+      }
+      return applyHardDeleteProject(
+        tx as unknown as ProjectHardDeleteTransaction,
+        { projectId, actorId: actor.id, actorSnapshot: createActorSnapshot(currentActor, now) },
+      );
+    });
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
+        userId: actor.id,
+        permission: error.permission,
+        entityType: "Project",
+        entityId: projectId,
+      });
+    }
+    throw error;
+  }
 }
 
 export async function softDeleteProjectFormAction(formData: FormData): Promise<void> {

@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  applyAdminUserStatusUpdate,
-  type AdminUserStatusTransaction,
-} from "../src/features/admin/lib/user-status-management";
 import { assertCanUpdateStatusFromAdminPanel } from "../src/shared/lib/user-status";
-import { createUserInputSchema, updateUserGradeInputSchema, updateUserIdentityInputSchema, updateUserStatusInputSchema } from "../src/shared/lib/validators/admin";
+import {
+  createUserInputSchema,
+  deleteUserAccountInputSchema,
+  updateSystemSettingsInputSchema,
+  updateUserGradeInputSchema,
+  updateUserIdentityInputSchema,
+  updateUserStatusInputSchema,
+  updateUserStudyIdentityInputSchema,
+} from "../src/shared/lib/validators/admin";
 import { announcementInputSchema } from "../src/shared/lib/validators/announcements";
 import { commentInputSchema, postInputSchema } from "../src/shared/lib/validators/posts";
 import {
@@ -98,94 +102,52 @@ test("管理员状态更新允许将用户置为已毕业，但已毕业行仍�
   assert.throws(() => assertCanUpdateStatusFromAdminPanel("GRADUATED"), /毕业流程/);
 });
 
-test("管理员年级更新只能选择系统支持的硕博年级标签", () => {
-  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", grade: "研2" }).success, true);
-  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", grade: "博5" }).success, true);
-  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", grade: "本科4" }).success, false);
+test("管理员年级更新只接受规范化的硕博年级枚举", () => {
+  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", studyGrade: "MASTER_2" }).success, true);
+  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", studyGrade: "DOCTOR_5" }).success, true);
+  assert.equal(updateUserGradeInputSchema.safeParse({ userId: "u1", studyGrade: "研2" }).success, false);
 });
 
-test("管理员状态更新应使用原子条件避免覆盖已毕业状态", async () => {
-  const updateCalls: Parameters<AdminUserStatusTransaction["user"]["updateMany"]>[0][] = [];
-  const auditCalls: Parameters<AdminUserStatusTransaction["auditLog"]["create"]>[0][] = [];
-  const tx: AdminUserStatusTransaction = {
-    user: {
-      updateMany: async (args) => {
-        updateCalls.push(args);
-        return { count: 1 };
-      },
-      findUnique: async () => {
-        throw new Error("状态更新成功时不应查询用户。");
-      },
-    },
-    auditLog: {
-      create: async (args) => {
-        auditCalls.push(args);
-      },
-    },
-    userTag: {
-      updateMany: async () => ({ count: 0 }),
-    },
-  };
-
-  await applyAdminUserStatusUpdate(tx, { adminId: "admin-1", userId: "u1", status: "SUSPENDED" });
-
-  assert.deepEqual(updateCalls[0]?.where, { id: "u1", status: { not: "GRADUATED" } });
-  assert.deepEqual(updateCalls[0]?.data, { status: "SUSPENDED", tokenVersion: { increment: 1 } });
-  assert.equal(auditCalls.length, 1);
+test("培养身份编辑与创建使用同一组学位年级约束", () => {
+  assert.equal(updateUserStudyIdentityInputSchema.safeParse({
+    userId: "u1",
+    studyDegree: "MASTER",
+    studyGrade: "MASTER_2",
+  }).success, true);
+  assert.equal(updateUserStudyIdentityInputSchema.safeParse({
+    userId: "u1",
+    studyDegree: "DOCTOR",
+    studyGrade: "MASTER_2",
+  }).success, false);
+  assert.equal(updateUserStudyIdentityInputSchema.safeParse({
+    userId: "u1",
+    studyDegree: "MENTOR",
+    studyGrade: "DOCTOR_1",
+  }).success, false);
 });
 
-test("管理员将用户置为已毕业时应吊销会话并撤销有效 Tag", async () => {
-  const updateCalls: Parameters<AdminUserStatusTransaction["user"]["updateMany"]>[0][] = [];
-  const tagRevokeCalls: Parameters<AdminUserStatusTransaction["userTag"]["updateMany"]>[0][] = [];
-  const tx: AdminUserStatusTransaction = {
-    user: {
-      updateMany: async (args) => {
-        updateCalls.push(args);
-        return { count: 1 };
-      },
-      findUnique: async () => {
-        throw new Error("毕业状态更新成功时不应查询用户。");
-      },
-    },
-    auditLog: {
-      create: async () => undefined,
-    },
-    userTag: {
-      updateMany: async (args) => {
-        tagRevokeCalls.push(args);
-        return { count: 2 };
-      },
-    },
-  };
-
-  await applyAdminUserStatusUpdate(tx, { adminId: "admin-1", userId: "u1", status: "GRADUATED" });
-
-  assert.deepEqual(updateCalls[0]?.where, { id: "u1", status: { not: "GRADUATED" } });
-  assert.deepEqual(updateCalls[0]?.data, { status: "GRADUATED", tokenVersion: { increment: 1 } });
-  assert.equal(tagRevokeCalls[0]?.where.userId, "u1");
-  assert.equal(tagRevokeCalls[0]?.where.revokedAt, null);
-  assert.equal(tagRevokeCalls[0]?.data.revokedAt instanceof Date, true);
+test("系统设置输入只接受持久化策略的静态边界", () => {
+  assert.equal(updateSystemSettingsInputSchema.safeParse({
+    revision: 0,
+    progressStartDay: 1,
+    progressStartMinute: 0,
+    progressEndDay: 31,
+    progressEndMinute: 1439,
+    sessionHours: 720,
+  }).success, true);
+  assert.equal(updateSystemSettingsInputSchema.safeParse({
+    revision: -1,
+    progressStartDay: 0,
+    progressStartMinute: -1,
+    progressEndDay: 32,
+    progressEndMinute: 1440,
+    sessionHours: 721,
+  }).success, false);
 });
 
-test("管理员状态更新应拒绝已毕业目标且不写入审计", async () => {
-  let auditCalled = false;
-  const tx: AdminUserStatusTransaction = {
-    user: {
-      updateMany: async () => ({ count: 0 }),
-      findUnique: async () => ({ status: "GRADUATED" }),
-    },
-    auditLog: {
-      create: async () => {
-        auditCalled = true;
-      },
-    },
-    userTag: {
-      updateMany: async () => ({ count: 0 }),
-    },
-  };
-
-  await assert.rejects(() => applyAdminUserStatusUpdate(tx, { adminId: "admin-1", userId: "u1", status: "ACTIVE" }), /毕业流程/);
-  assert.equal(auditCalled, false);
+test("永久删除要求显式目标与非空确认用户名", () => {
+  assert.equal(deleteUserAccountInputSchema.safeParse({ userId: "u1", confirmUsername: "target" }).success, true);
+  assert.equal(deleteUserAccountInputSchema.safeParse({ userId: "u1", confirmUsername: "  " }).success, false);
 });
 
 test("Tag 授予输入契约必须保留显式的 ID 字段", () => {

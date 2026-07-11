@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "./prisma";
 import type { UserStatusName } from "./user-status";
 
@@ -20,6 +22,7 @@ export const PERMISSIONS = {
   PROJECT_CREATE: "project.create",
   PROJECT_CREATE_ON_BEHALF: "project.create_on_behalf",
   PROJECT_MANAGE: "project.manage",
+  PROJECT_ARCHIVE_ANY: "project.archive_any",
   PROJECT_UPDATE_ADVISED: "project.update_advised",
   PROJECT_DELETE_ADVISED: "project.delete_advised",
   PROJECT_DELETE_ANY: "project.delete_any",
@@ -45,6 +48,17 @@ export const PERMISSIONS = {
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export type RoleName = "ADMIN" | "MEMBER";
 const KNOWN_PERMISSIONS = new Set<string>(Object.values(PERMISSIONS));
+const ROLE_ONLY_PERMISSIONS = new Set<Permission>([
+  PERMISSIONS.PROJECT_CREATE_ON_BEHALF,
+  PERMISSIONS.PROJECT_ARCHIVE_ANY,
+  PERMISSIONS.PROJECT_DELETE_ANY,
+  PERMISSIONS.PROJECT_RESTORE,
+  PERMISSIONS.ADMIN_USER_MANAGE,
+  PERMISSIONS.ADMIN_TAG_MANAGE,
+  PERMISSIONS.ADMIN_AUDIT_VIEW,
+  PERMISSIONS.ADMIN_SETTINGS,
+  PERMISSIONS.ADMIN_DASHBOARD,
+]);
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.ANNOUNCEMENT_READ]: "查看公告",
@@ -65,6 +79,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.PROJECT_CREATE]: "创建项目",
   [PERMISSIONS.PROJECT_CREATE_ON_BEHALF]: "代导师创建项目",
   [PERMISSIONS.PROJECT_MANAGE]: "管理项目",
+  [PERMISSIONS.PROJECT_ARCHIVE_ANY]: "归档任意项目",
   [PERMISSIONS.PROJECT_UPDATE_ADVISED]: "编辑负责项目",
   [PERMISSIONS.PROJECT_DELETE_ADVISED]: "软删除负责项目",
   [PERMISSIONS.PROJECT_DELETE_ANY]: "永久删除任意项目",
@@ -112,6 +127,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, readonly Permission[]> = {
     PERMISSIONS.POST_DELETE_ANY,
     PERMISSIONS.COMMENT_DELETE_ANY,
     PERMISSIONS.PROJECT_CREATE_ON_BEHALF,
+    PERMISSIONS.PROJECT_ARCHIVE_ANY,
     PERMISSIONS.PROJECT_DELETE_ANY,
     PERMISSIONS.PROJECT_RESTORE,
     PERMISSIONS.TAG_APPROVE,
@@ -187,7 +203,9 @@ export function computePermissionsFromSnapshot(
   for (const userTag of user.tags) {
     if (userTag.projectId) continue;
     if (!isEffectiveTag(userTag, now)) continue;
-    for (const permission of resolveTagPermissions(userTag)) permissions.add(permission);
+    for (const permission of resolveTagPermissions(userTag)) {
+      if (!ROLE_ONLY_PERMISSIONS.has(permission)) permissions.add(permission);
+    }
   }
 
   return permissions;
@@ -207,14 +225,31 @@ export function computeProjectPermissionsFromSnapshot(
   for (const userTag of user.tags) {
     if (userTag.projectId !== projectId) continue;
     if (!isEffectiveTag(userTag, now)) continue;
-    for (const permission of resolveTagPermissions(userTag)) permissions.add(permission);
+    // Project.leaderId is the sole source of lead authority. The legacy
+    // project-lead Tag remains display/backfill compatibility only.
+    if (userTag.tag.name === `project-lead:${projectId}`) continue;
+    for (const permission of resolveTagPermissions(userTag)) {
+      if (!ROLE_ONLY_PERMISSIONS.has(permission)) permissions.add(permission);
+    }
   }
 
   return permissions;
 }
 
-export async function getUserPermissions(userId: string) {
-  const user = await prisma.user.findUnique({
+type PermissionQueryClient = Pick<Prisma.TransactionClient, "$queryRaw" | "user">;
+
+async function getPermissionDatabaseNow(client: PermissionQueryClient) {
+  const [{ now }] = await client.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`;
+  return now;
+}
+
+export async function getUserPermissionsForClient(
+  client: PermissionQueryClient,
+  userId: string,
+  now?: Date,
+) {
+  const effectiveNow = now ?? await getPermissionDatabaseNow(client);
+  const user = await client.user.findUnique({
     where: { id: userId },
     select: {
       role: true,
@@ -222,7 +257,7 @@ export async function getUserPermissions(userId: string) {
       tags: {
         where: {
           revokedAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          OR: [{ expiresAt: null }, { expiresAt: { gt: effectiveNow } }],
         },
         select: {
           projectId: true,
@@ -240,7 +275,11 @@ export async function getUserPermissions(userId: string) {
     },
   });
 
-  return computePermissionsFromSnapshot(user);
+  return computePermissionsFromSnapshot(user, effectiveNow);
+}
+
+export async function getUserPermissions(userId: string) {
+  return getUserPermissionsForClient(prisma, userId);
 }
 
 export async function getEffectiveTagNames(userId: string) {
@@ -249,6 +288,7 @@ export async function getEffectiveTagNames(userId: string) {
 }
 
 export async function getEffectiveTags(userId: string): Promise<EffectiveTag[]> {
+  const now = await getPermissionDatabaseNow(prisma);
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -256,7 +296,7 @@ export async function getEffectiveTags(userId: string): Promise<EffectiveTag[]> 
       tags: {
         where: {
           revokedAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
         },
         select: {
           projectId: true,
@@ -276,8 +316,14 @@ export async function assertPermission(userId: string, permission: Permission) {
   }
 }
 
-export async function getProjectPermissions(userId: string, projectId: string) {
-  const user = await prisma.user.findUnique({
+export async function getProjectPermissionsForClient(
+  client: PermissionQueryClient,
+  userId: string,
+  projectId: string,
+  now?: Date,
+) {
+  const effectiveNow = now ?? await getPermissionDatabaseNow(client);
+  const user = await client.user.findUnique({
     where: { id: userId },
     select: {
       role: true,
@@ -286,7 +332,7 @@ export async function getProjectPermissions(userId: string, projectId: string) {
         where: {
           projectId,
           revokedAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          OR: [{ expiresAt: null }, { expiresAt: { gt: effectiveNow } }],
         },
         select: {
           projectId: true,
@@ -304,7 +350,11 @@ export async function getProjectPermissions(userId: string, projectId: string) {
     },
   });
 
-  return computeProjectPermissionsFromSnapshot(user, projectId);
+  return computeProjectPermissionsFromSnapshot(user, projectId, effectiveNow);
+}
+
+export async function getProjectPermissions(userId: string, projectId: string) {
+  return getProjectPermissionsForClient(prisma, userId, projectId);
 }
 
 export async function assertProjectPermission(userId: string, permission: Permission, projectId: string) {

@@ -2,54 +2,74 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { deleteProjectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { ProjectNodeAuthorError, resolveProjectNodeAuthorAccess } from "../lib/node-author-ops";
-import { assertProjectWritable } from "../lib/writable";
+import { assertProjectWritableStatus } from "../lib/writable";
 
 export async function deleteProjectNode(input: unknown) {
   const actor = await requireActiveUser();
   const data = deleteProjectNodeInputSchema.parse(input);
 
-  const node = await prisma.projectNode.findFirstOrThrow({
+  const locatedNode = await prisma.projectNode.findFirstOrThrow({
     where: { id: data.nodeId, deletedAt: null },
-    select: { id: true, projectId: true, authorId: true },
+    select: { id: true, projectId: true },
   });
-  await assertProjectWritable(node.projectId);
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${locatedNode.projectId} FOR UPDATE`;
+      const [project, node, currentActor, [{ now }]] = await Promise.all([
+        tx.project.findFirstOrThrow({
+          where: { id: locatedNode.projectId, deletedAt: null },
+          select: { status: true },
+        }),
+        tx.projectNode.findFirstOrThrow({
+          where: { id: locatedNode.id, projectId: locatedNode.projectId, deletedAt: null },
+          select: { id: true, authorId: true },
+        }),
+        tx.user.findFirst({
+          where: { id: actor.id, status: "ACTIVE" },
+          select: { displayName: true, studyDegree: true, status: true },
+        }),
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+      ]);
+      assertProjectWritableStatus(project.status);
+      const access = resolveProjectNodeAuthorAccess({ userId: actor.id, authorId: node.authorId });
+      if (!currentActor || !access.allowed) throw new ProjectNodeAuthorError();
 
-  const access = resolveProjectNodeAuthorAccess({ userId: actor.id, authorId: node.authorId });
-  if (!access.allowed) {
-    await appendAuditLog({
-      userId: actor.id,
-      action: "PERMISSION_DENIED",
-      entityType: "ProjectNode",
-      entityId: node.id,
-      details: { projectId: node.projectId, reason: access.reason },
+      await tx.projectNode.update({
+        where: { id: node.id },
+        data: { deletedAt: now },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          actorSnapshot: createActorSnapshot(currentActor, now),
+          action: "DELETE",
+          entityType: "ProjectNode",
+          entityId: node.id,
+          details: { projectId: locatedNode.projectId },
+        },
+      });
     });
-    throw new ProjectNodeAuthorError();
+  } catch (error) {
+    if (error instanceof ProjectNodeAuthorError) {
+      await appendAuditLog({
+        userId: actor.id,
+        action: "PERMISSION_DENIED",
+        entityType: "ProjectNode",
+        entityId: locatedNode.id,
+        details: { projectId: locatedNode.projectId, reason: "author_only" },
+      });
+    }
+    throw error;
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.projectNode.update({
-      where: { id: node.id },
-      data: { deletedAt: new Date() },
-    });
-
-    await tx.auditLog.create({
-      data: {
-        userId: actor.id,
-        action: "DELETE",
-        entityType: "ProjectNode",
-        entityId: node.id,
-        details: { projectId: node.projectId },
-      },
-    });
-  });
-
-  revalidatePath(`/projects/${node.projectId}`);
+  revalidatePath(`/projects/${locatedNode.projectId}`);
 }
 
 export type DeleteProjectNodeState = { ok: boolean; message: string | null };

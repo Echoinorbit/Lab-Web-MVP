@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
+import type { StudyDegree } from "@prisma/client";
 
 import { auth } from "./auth";
-import { graduateUserAccount, shouldGraduateByComputedGrade } from "./graduation";
 import { prisma } from "./prisma";
 import type { UserStatusName } from "./user-status";
 
@@ -10,10 +10,13 @@ export type ActiveSessionUser = {
   username: string;
   role: "ADMIN" | "MEMBER";
   mustChangePassword: boolean;
+  studyDegree: StudyDegree | null;
+  identityNeedsReview: boolean;
 };
 
 export type SessionRevocationSnapshot = {
   tokenVersion: number;
+  policyExpiresAt?: Date | string | null;
 };
 
 export type CurrentUserSnapshot = {
@@ -24,8 +27,13 @@ export type CurrentUserSnapshot = {
 export function isSessionCurrent(
   sessionUser: SessionRevocationSnapshot,
   currentUser: CurrentUserSnapshot,
+  now = new Date(),
 ) {
-  return Boolean(currentUser) && currentUser?.status === "ACTIVE" && currentUser.tokenVersion === sessionUser.tokenVersion;
+  const expiresAt = sessionUser.policyExpiresAt ? new Date(sessionUser.policyExpiresAt) : null;
+  return Boolean(currentUser)
+    && currentUser?.status === "ACTIVE"
+    && currentUser.tokenVersion === sessionUser.tokenVersion
+    && Boolean(expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt > now);
 }
 
 export async function requireActiveUser(options: { allowPasswordChange?: boolean } = {}) {
@@ -33,38 +41,27 @@ export async function requireActiveUser(options: { allowPasswordChange?: boolean
   const sessionUser = session?.user;
   if (!sessionUser?.id) redirect("/login");
 
-  const now = new Date();
-  const user = await prisma.user.findUnique({
-    where: { id: sessionUser.id },
-    select: {
-      id: true,
-      username: true,
-      role: true,
-      status: true,
-      mustChangePassword: true,
-      tokenVersion: true,
-      enrollmentDate: true,
-      tags: {
-        where: {
-          revokedAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
+  const { user, now } = await prisma.$transaction(async (tx) => {
+    const [currentUser, [{ now: databaseNow }]] = await Promise.all([
+      tx.user.findUnique({
+        where: { id: sessionUser.id },
         select: {
-          projectId: true,
-          tag: { select: { name: true } },
+          id: true,
+          username: true,
+          role: true,
+          status: true,
+          mustChangePassword: true,
+          tokenVersion: true,
+          studyDegree: true,
+          identityNeedsReview: true,
         },
-      },
-    },
+      }),
+      tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+    ]);
+    return { user: currentUser, now: databaseNow };
   });
 
-  if (user && shouldGraduateByComputedGrade(user, now)) {
-    await prisma.$transaction(async (tx) => {
-      await graduateUserAccount(tx, user.id, now);
-    });
-    redirect("/login?reason=graduated");
-  }
-
-  if (!user || !isSessionCurrent(sessionUser, user)) {
+  if (!user || !isSessionCurrent(sessionUser, user, now)) {
     redirect("/login");
   }
 
@@ -77,5 +74,7 @@ export async function requireActiveUser(options: { allowPasswordChange?: boolean
     username: user.username,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
+    studyDegree: user.studyDegree,
+    identityNeedsReview: user.identityNeedsReview,
   } satisfies ActiveSessionUser;
 }

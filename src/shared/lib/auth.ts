@@ -6,6 +6,7 @@ import { getEffectiveTags, getUserPermissions } from "./permissions";
 import { prisma } from "./prisma";
 import { verifyPasswordWithDummyFallback } from "./security";
 import { resolveSessionStatus } from "./user-status";
+import { MAX_SESSION_HOURS, SYSTEM_SETTING_ID } from "./system-settings";
 import { loginSchema } from "./validators/auth";
 
 export const LOCK_MINUTES = 3;
@@ -175,7 +176,7 @@ async function incrementFailedLogin(userId: string) {
 export const authConfig = {
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60,
+    maxAge: MAX_SESSION_HOURS * 60 * 60,
     updateAge: 60 * 60,
   },
   pages: {
@@ -240,13 +241,20 @@ export const authConfig = {
           return failLogin({ userId: user.id, username, reason: "invalid", ipAddress });
         }
 
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            loginAttempts: 0,
-            lockedUntil: null,
-            lastLoginAt: new Date(),
-          },
+        const policyExpiresAt = await prisma.$transaction(async (tx) => {
+          const [settings, [{ now }]] = await Promise.all([
+            tx.systemSetting.findUniqueOrThrow({ where: { id: SYSTEM_SETTING_ID } }),
+            tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+          ]);
+          await tx.user.update({
+            where: { id: user.id },
+            data: {
+              loginAttempts: 0,
+              lockedUntil: null,
+              lastLoginAt: now,
+            },
+          });
+          return new Date(now.getTime() + settings.sessionHours * 60 * 60 * 1000).toISOString();
         });
         await appendAuditLog({
           userId: user.id,
@@ -264,6 +272,7 @@ export const authConfig = {
           status: user.status,
           mustChangePassword: user.mustChangePassword,
           tokenVersion: user.tokenVersion,
+          policyExpiresAt,
         };
       },
     }),
@@ -276,27 +285,38 @@ export const authConfig = {
         token.status = user.status;
         token.mustChangePassword = user.mustChangePassword;
         token.tokenVersion = user.tokenVersion;
+        token.policyExpiresAt = user.policyExpiresAt;
       }
       return token;
     },
     session: async ({ session, token }) => {
       if (!token.sub) return session;
-      const currentUser = await prisma.user.findUnique({
-        where: { id: token.sub },
-        select: {
-          username: true,
-          role: true,
-          status: true,
-          mustChangePassword: true,
-          tokenVersion: true,
-        },
+      const { currentUser, now } = await prisma.$transaction(async (tx) => {
+        const [foundUser, [{ now: databaseNow }]] = await Promise.all([
+          tx.user.findUnique({
+            where: { id: token.sub },
+            select: {
+              username: true,
+              role: true,
+              status: true,
+              mustChangePassword: true,
+              tokenVersion: true,
+            },
+          }),
+          tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        ]);
+        return { currentUser: foundUser, now: databaseNow };
       });
 
       const tokenVersion = Number(token.tokenVersion ?? -1);
+      const policyExpiresAt = typeof token.policyExpiresAt === "string" ? token.policyExpiresAt : "";
+      const policyExpiry = new Date(policyExpiresAt);
       const isCurrent =
         Boolean(currentUser) &&
         currentUser?.status === "ACTIVE" &&
-        currentUser.tokenVersion === tokenVersion;
+        currentUser.tokenVersion === tokenVersion &&
+        !Number.isNaN(policyExpiry.getTime()) &&
+        policyExpiry > now;
       const permissions = isCurrent ? await getUserPermissions(token.sub) : new Set<string>();
       const tags = isCurrent ? await getEffectiveTags(token.sub) : [];
 
@@ -306,8 +326,10 @@ export const authConfig = {
       session.user.status = resolveSessionStatus(currentUser?.status, isCurrent);
       session.user.mustChangePassword = currentUser?.mustChangePassword ?? true;
       session.user.tokenVersion = currentUser?.tokenVersion ?? tokenVersion;
+      session.user.policyExpiresAt = policyExpiresAt;
       session.user.permissions = [...permissions];
       session.user.tags = tags;
+      if (policyExpiresAt) Reflect.set(session, "expires", policyExpiresAt);
       return session;
     },
   },

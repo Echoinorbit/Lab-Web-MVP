@@ -1,3 +1,5 @@
+import type { ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
+
 import { projectScopedTagName } from "./tag-grants";
 
 export type ProjectHardDeleteTransaction = {
@@ -13,7 +15,11 @@ export type ProjectHardDeleteTransaction = {
 
 export async function applyHardDeleteProject(
   tx: ProjectHardDeleteTransaction,
-  { projectId, actorId }: { projectId: string; actorId: string },
+  {
+    projectId,
+    actorId,
+    actorSnapshot,
+  }: { projectId: string; actorId: string; actorSnapshot: ActorSnapshotV1 },
 ) {
   const project = await tx.project.findUniqueOrThrow({
     where: { id: projectId },
@@ -31,6 +37,7 @@ export async function applyHardDeleteProject(
   await tx.auditLog.create({
     data: {
       userId: actorId,
+      actorSnapshot,
       action: "DELETE",
       entityType: "Project",
       entityId: projectId,

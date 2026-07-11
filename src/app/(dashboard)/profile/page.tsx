@@ -4,10 +4,10 @@ import { TagBadge } from "@/features/tags";
 import { buttonStyles } from "@/shared/components/ui/button";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
-import { formatComputedGrade } from "@/shared/lib/grade";
 import { getEffectiveTags } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { formatStudyGrade } from "@/shared/lib/study-identity";
 
 const roleLabels: Record<"ADMIN" | "MEMBER", string> = {
   ADMIN: "管理员",
@@ -37,7 +37,8 @@ export default async function ProfilePage() {
         username: true,
         role: true,
         studentId: true,
-        grade: true,
+        studyDegree: true,
+        studyGrade: true,
         enrollmentDate: true,
         advisor: { select: { displayName: true } },
       },
@@ -49,11 +50,7 @@ export default async function ProfilePage() {
 
   const tagNames = tags.map((tag) => tag.name);
   const displayNameMap = await resolveTagDisplayNames(tagNames);
-  const computedGrade = formatComputedGrade({
-    grade: profile.grade,
-    enrollmentDate: profile.enrollmentDate,
-    tagNames,
-  });
+  const computedGrade = formatStudyGrade(profile.studyDegree, profile.studyGrade);
 
   const fields: Array<{ label: string; value: string }> = [
     { label: "姓名", value: profile.displayName },

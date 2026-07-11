@@ -1,3 +1,5 @@
+import { PERMISSIONS, type Permission } from "@/shared/lib/permissions";
+
 export const PROJECT_UNARCHIVE_COOLDOWN_HOURS = 168;
 export const PROJECT_UNARCHIVE_COOLDOWN_MS = PROJECT_UNARCHIVE_COOLDOWN_HOURS * 60 * 60 * 1000;
 
@@ -15,9 +17,24 @@ export function canUnarchiveProjectAt(archivedAt: Date | string, now = new Date(
 }
 
 export function assertProjectCanArchiveStatus(status: string) {
-  if (status !== "IN_PROGRESS") {
-    throw new Error("只有进行中的项目可以归档。");
+  if (status !== "PLANNING" && status !== "IN_PROGRESS") {
+    throw new Error("只有规划中或进行中的项目可以归档。");
   }
+}
+
+export function resolveProjectArchiveAccess(input: {
+  actorId: string;
+  actorCanLead: boolean;
+  leaderId: string | null;
+  globalPermissions: ReadonlySet<Permission>;
+}) {
+  if (input.actorCanLead && input.leaderId === input.actorId) {
+    return { allowed: true as const, scope: "leader" as const };
+  }
+  if (input.globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)) {
+    return { allowed: true as const, scope: "admin" as const };
+  }
+  return { allowed: false as const };
 }
 
 export function assertProjectCanUnarchive(status: string, archivedAt: Date | string | null, now = new Date()) {

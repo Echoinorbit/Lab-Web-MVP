@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-import type { EffectiveTag } from "@/shared/lib/permissions";
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { PROJECT_LEAD_TAG_PREFIX, PROJECT_MEMBER_TAG_PREFIX } from "@/shared/lib/system-tags";
 
 export type ProjectScopedTagKind = "lead" | "member";
@@ -20,14 +20,6 @@ const tagConfig = {
 
 export function projectScopedTagName(kind: ProjectScopedTagKind, projectId: string) {
   return `${tagConfig[kind].prefix}:${projectId}`;
-}
-
-export function isProjectLeadTagName(tagName: string, projectId: string) {
-  return tagName === projectScopedTagName("lead", projectId);
-}
-
-export function hasEffectiveProjectLeadTag(tags: readonly EffectiveTag[], projectId: string) {
-  return tags.some((tag) => tag.projectId === projectId && isProjectLeadTagName(tag.name, projectId));
 }
 
 export async function ensureProjectScopedTag(
@@ -78,6 +70,19 @@ export async function grantProjectScopedTag(
     grantedById: string;
   },
 ) {
+  const [member, actor, [{ now }]] = await Promise.all([
+    tx.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { displayName: true, studyDegree: true, status: true },
+    }),
+    tx.user.findUniqueOrThrow({
+      where: { id: grantedById },
+      select: { displayName: true, studyDegree: true, status: true },
+    }),
+    tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+  ]);
+  const memberSnapshot = createActorSnapshot(member, now);
+  const actorSnapshot = createActorSnapshot(actor, now);
   await tx.projectMember.upsert({
     where: {
       userId_projectId: {
@@ -88,8 +93,9 @@ export async function grantProjectScopedTag(
     create: {
       userId,
       projectId,
+      memberSnapshot,
     },
-    update: {},
+    update: { memberSnapshot },
   });
 
   const tag = await ensureProjectScopedTag(tx, { kind, projectId, projectName });
@@ -99,7 +105,7 @@ export async function grantProjectScopedTag(
       tagId: tag.id,
       projectId,
       revokedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     },
     select: { id: true },
   });
@@ -110,6 +116,8 @@ export async function grantProjectScopedTag(
         tagId: tag.id,
         projectId,
         grantedById,
+        granterSnapshot: actorSnapshot,
+        source: kind === "lead" ? "PROJECT_LEAD" : "MANUAL",
       },
     });
   }

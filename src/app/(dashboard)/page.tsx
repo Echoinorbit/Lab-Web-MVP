@@ -9,10 +9,12 @@ import { canViewProject, getProjectVisibilityWhere } from "@/features/projects/l
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate, getShanghaiDateParts } from "@/shared/lib/date";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { formatStudyGrade } from "@/shared/lib/study-identity";
 
 export default async function DashboardPage() {
   const user = await requireActiveUser();
@@ -65,7 +67,7 @@ export default async function DashboardPage() {
     }),
     prisma.user.findMany({
       where: progressAudienceWhere,
-      orderBy: [{ grade: "asc" }, { studentId: "asc" }, { displayName: "asc" }],
+      orderBy: [{ displayName: "asc" }, { studentId: "asc" }],
       take: canReadAllProgress || canReadAdviseeProgress ? 8 : 1,
       include: {
         advisor: { select: { displayName: true } },
@@ -82,7 +84,7 @@ export default async function DashboardPage() {
     studentName: member.displayName,
     studentId: member.studentId ?? "-",
     advisorName: member.advisor?.displayName ?? "-",
-    grade: member.grade ?? "-",
+    grade: formatStudyGrade(member.studyDegree, member.studyGrade),
     status: member.progressReports[0]?.status ?? "MISSING",
   }));
   const metrics: Array<{ label: string; value: number; href?: Route }> = [
@@ -145,7 +147,7 @@ export default async function DashboardPage() {
                 id: announcement.id,
                 title: announcement.title,
                 content: announcement.content,
-                authorName: announcement.author.displayName,
+                authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
                 createdAt: formatShanghaiDate(announcement.createdAt),
                 isPinned: announcement.isPinned,
                 isUrgent: announcement.isUrgent,

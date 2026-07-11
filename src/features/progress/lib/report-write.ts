@@ -1,6 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
+import { createActorSnapshot, type ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
+import {
+  getUserPermissionsForClient,
+  type Permission,
+  PermissionDeniedError,
+} from "@/shared/lib/permissions";
 import type { progressReportInputSchema } from "@/shared/lib/validators/progress";
 
 import { assertSubmittedReportEditAllowed, shouldIncrementSubmittedReportEditCount } from "./edit-count";
@@ -22,10 +28,31 @@ async function lockProgressReportWrite(
   `;
 }
 
+export async function requireProgressReportWriteAccess(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  requiredPermissions: readonly Permission[],
+) {
+  const [[{ now }], actor] = await Promise.all([
+    tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+    tx.user.findFirst({
+      where: { id: userId, status: "ACTIVE" },
+      select: { displayName: true, studyDegree: true, status: true },
+    }),
+  ]);
+  const permissions = await getUserPermissionsForClient(tx, userId, now);
+  const missingPermission = requiredPermissions.find((permission) => !permissions.has(permission));
+  if (!actor || missingPermission) {
+    throw new PermissionDeniedError(missingPermission ?? requiredPermissions[0]!);
+  }
+  return { now, actorSnapshot: createActorSnapshot(actor, now) };
+}
+
 export async function writeProgressReport(
   tx: Prisma.TransactionClient,
   userId: string,
   data: ProgressReportInput,
+  actorSnapshot: ActorSnapshotV1,
 ) {
   await lockProgressReportWrite(tx, userId, data);
 
@@ -55,11 +82,14 @@ export async function writeProgressReport(
   const report = existing
     ? await tx.progressReport.update({
         where: { id: existing.id },
-        data: shouldIncrementEditCount ? { ...reportData, editCount: { increment: 1 } } : reportData,
+        data: shouldIncrementEditCount
+          ? { ...reportData, userSnapshot: actorSnapshot, editCount: { increment: 1 } }
+          : { ...reportData, userSnapshot: actorSnapshot },
       })
     : await tx.progressReport.create({
         data: {
           userId,
+          userSnapshot: actorSnapshot,
           year: data.year,
           month: data.month,
           ...reportData,
@@ -69,6 +99,7 @@ export async function writeProgressReport(
   await tx.auditLog.create({
     data: {
       userId,
+      actorSnapshot,
       action: "UPDATE",
       entityType: "ProgressReport",
       entityId: report.id,

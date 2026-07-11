@@ -11,7 +11,7 @@ export type ProjectVisibilityViewer = {
 
 export type ProjectVisibilitySnapshot = {
   advisorId?: string | null;
-  members?: readonly { userId: string }[];
+  members?: readonly { userId: string | null }[];
 };
 
 export type ProjectListTab = "all" | "mine" | "deleted";

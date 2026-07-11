@@ -1,16 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { graduateUserAccount, shouldGraduateByComputedGrade, type GraduationTransaction } from "../src/shared/lib/graduation";
+import {
+  GRADUATION_GRACE_HOURS,
+  getScheduledDeletionAt,
+  isResolvedStudentIdentity,
+} from "../src/features/admin/lib/user-lifecycle";
 import { isSessionCurrent } from "../src/shared/lib/session";
 import { resolveSessionStatus } from "../src/shared/lib/user-status";
 
-test("仅当用户存在、处于激活状态且 tokenVersion 一致时，会话才视为有效", () => {
-  assert.equal(isSessionCurrent({ tokenVersion: 2 }, { status: "ACTIVE", tokenVersion: 2 }), true);
-  assert.equal(isSessionCurrent({ tokenVersion: 2 }, { status: "ACTIVE", tokenVersion: 3 }), false);
-  assert.equal(isSessionCurrent({ tokenVersion: 2 }, { status: "SUSPENDED", tokenVersion: 2 }), false);
-  assert.equal(isSessionCurrent({ tokenVersion: 2 }, { status: "GRADUATED", tokenVersion: 2 }), false);
-  assert.equal(isSessionCurrent({ tokenVersion: 2 }, null), false);
+test("会话必须同时满足账号、状态、tokenVersion 与绝对策略到期时间", () => {
+  const now = new Date("2026-07-10T00:00:00.000Z");
+  const validSession = { tokenVersion: 2, policyExpiresAt: "2026-07-10T01:00:00.000Z" };
+  assert.equal(isSessionCurrent(validSession, { status: "ACTIVE", tokenVersion: 2 }, now), true);
+  assert.equal(isSessionCurrent({ tokenVersion: 2 }, { status: "ACTIVE", tokenVersion: 2 }, now), false);
+  assert.equal(isSessionCurrent(validSession, { status: "ACTIVE", tokenVersion: 3 }, now), false);
+  assert.equal(isSessionCurrent(validSession, { status: "SUSPENDED", tokenVersion: 2 }, now), false);
+  assert.equal(isSessionCurrent(validSession, { status: "GRADUATED", tokenVersion: 2 }, now), false);
+  assert.equal(isSessionCurrent(validSession, null, now), false);
+  assert.equal(
+    isSessionCurrent({ tokenVersion: 2, policyExpiresAt: now }, { status: "ACTIVE", tokenVersion: 2 }, now),
+    false,
+  );
+  assert.equal(
+    isSessionCurrent({ tokenVersion: 2, policyExpiresAt: "invalid" }, { status: "ACTIVE", tokenVersion: 2 }, now),
+    false,
+  );
 });
 
 test("会话状态应保留已毕业语义但仍将失效会话视为不可用", () => {
@@ -21,57 +36,19 @@ test("会话状态应保留已毕业语义但仍将失效会话视为不可用",
   assert.equal(resolveSessionStatus(null, false), "SUSPENDED");
 });
 
-test("处于毕业年限的活跃用户应被毕业协调识别", () => {
-  const now = new Date("2025-08-31T16:00:00.000Z");
+test("只有身份已确认的硕博成员可进入毕业清理期", () => {
   assert.equal(
-    shouldGraduateByComputedGrade(
-      {
-        status: "ACTIVE",
-        enrollmentDate: "2021-08-31T16:00:00.000Z",
-        tags: [{ projectId: null, tag: { name: "grad-master" } }],
-      },
-      now,
-    ),
+    isResolvedStudentIdentity({ role: "MEMBER", studyDegree: "MASTER", identityNeedsReview: false }),
     true,
   );
-  assert.equal(
-    shouldGraduateByComputedGrade(
-      {
-        status: "SUSPENDED",
-        enrollmentDate: "2021-08-31T16:00:00.000Z",
-        tags: [{ projectId: null, tag: { name: "grad-master" } }],
-      },
-      now,
-    ),
-    false,
-  );
+  assert.equal(isResolvedStudentIdentity({ role: "MEMBER", studyDegree: "DOCTOR", identityNeedsReview: false }), true);
+  assert.equal(isResolvedStudentIdentity({ role: "MEMBER", studyDegree: "MENTOR", identityNeedsReview: false }), false);
+  assert.equal(isResolvedStudentIdentity({ role: "MEMBER", studyDegree: "MASTER", identityNeedsReview: true }), false);
+  assert.equal(isResolvedStudentIdentity({ role: "ADMIN", studyDegree: null, identityNeedsReview: false }), false);
 });
 
-test("毕业协调应置为已毕业、吊销会话并撤销有效 Tag", async () => {
-  const userUpdates: Parameters<GraduationTransaction["user"]["updateMany"]>[0][] = [];
-  const tagUpdates: Parameters<GraduationTransaction["userTag"]["updateMany"]>[0][] = [];
-  const tx: GraduationTransaction = {
-    user: {
-      updateMany: async (args) => {
-        userUpdates.push(args);
-        return { count: 1 };
-      },
-    },
-    userTag: {
-      updateMany: async (args) => {
-        tagUpdates.push(args);
-        return { count: 2 };
-      },
-    },
-  };
-
-  await graduateUserAccount(tx, "u1", new Date("2026-06-25T00:00:00.000Z"));
-
-  assert.deepEqual(userUpdates[0], {
-    where: { id: "u1", status: { not: "GRADUATED" } },
-    data: { status: "GRADUATED", tokenVersion: { increment: 1 } },
-  });
-  assert.equal(tagUpdates[0]?.where.userId, "u1");
-  assert.equal(tagUpdates[0]?.where.revokedAt, null);
-  assert.equal(tagUpdates[0]?.data.revokedAt.toISOString(), "2026-06-25T00:00:00.000Z");
+test("毕业删除计划严格使用数据库时刻加 72 小时", () => {
+  const graduatedAt = new Date("2026-07-10T00:00:00.000Z");
+  assert.equal(GRADUATION_GRACE_HOURS, 72);
+  assert.equal(getScheduledDeletionAt(graduatedAt).toISOString(), "2026-07-13T00:00:00.000Z");
 });

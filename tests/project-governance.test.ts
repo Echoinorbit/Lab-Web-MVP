@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { createActorSnapshot } from "../src/shared/lib/actor-snapshot";
 import {
   assertParticipantsBelongToAdvisor,
   canEditProjectSnapshot,
   canHardDeleteProjectSnapshot,
   canRestoreProjectSnapshot,
   canSoftDeleteProjectSnapshot,
+  isEligibleProjectLeaderActor,
   resolveProjectCreationContext,
 } from "../src/features/projects/lib/project-governance";
 import { PERMISSIONS } from "../src/shared/lib/permissions";
@@ -40,24 +42,42 @@ test("导师本人建项目应锁定为自己，普通成员不能绕过项目�
 });
 
 test("项目组长与负责导师可编辑，学生成员和无关导师不可编辑", () => {
-  const advised = { advisorId: "advisor-1", deletedAt: null };
-  assert.equal(canEditProjectSnapshot("lead-1", advised, {
-    projectPermissions: new Set([PERMISSIONS.PROJECT_MANAGE]),
+  const advised = { advisorId: "advisor-1", leaderId: "lead-1", deletedAt: null };
+  assert.equal(canEditProjectSnapshot("lead-1", true, advised, {
+    projectPermissions: new Set(),
     globalPermissions: new Set(),
   }), true);
-  assert.equal(canEditProjectSnapshot("advisor-1", advised, {
+  assert.equal(canEditProjectSnapshot("lead-1", false, advised, {
+    projectPermissions: new Set(),
+    globalPermissions: new Set(),
+  }), false);
+  assert.equal(canEditProjectSnapshot("advisor-1", false, advised, {
     projectPermissions: new Set(),
     globalPermissions: new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
   }), true);
-  assert.equal(canEditProjectSnapshot("member-1", advised, { projectPermissions: new Set(), globalPermissions: new Set() }), false);
-  assert.equal(canEditProjectSnapshot("advisor-2", advised, {
+  assert.equal(canEditProjectSnapshot("member-1", false, advised, { projectPermissions: new Set(), globalPermissions: new Set() }), false);
+  assert.equal(canEditProjectSnapshot("advisor-2", false, advised, {
     projectPermissions: new Set(),
     globalPermissions: new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
   }), false);
-  assert.equal(canEditProjectSnapshot("member-1", advised, {
+  assert.equal(canEditProjectSnapshot("member-1", false, advised, {
     projectPermissions: new Set(),
     globalPermissions: new Set([PERMISSIONS.PROJECT_MANAGE]),
   }), false);
+});
+
+test("canonical 项目组长必须是身份已确认且仍在用的硕博成员", () => {
+  const student = {
+    role: "MEMBER" as const,
+    status: "ACTIVE" as const,
+    studyDegree: "MASTER" as const,
+    identityNeedsReview: false,
+  };
+  assert.equal(isEligibleProjectLeaderActor(student), true);
+  assert.equal(isEligibleProjectLeaderActor({ ...student, role: "ADMIN", studyDegree: null }), false);
+  assert.equal(isEligibleProjectLeaderActor({ ...student, status: "SUSPENDED" }), false);
+  assert.equal(isEligibleProjectLeaderActor({ ...student, studyDegree: "MENTOR" }), false);
+  assert.equal(isEligibleProjectLeaderActor({ ...student, identityNeedsReview: true }), false);
 });
 
 test("导师只可软删自己负责的项目，管理员只走恢复或硬删路径", () => {
@@ -98,6 +118,10 @@ test("硬删除事务必须先解除节点自关联并清理依赖，再删除�
     tag: { deleteMany: async () => { calls.push("tags.delete"); } },
     auditLog: { create: async () => { calls.push("audit.create"); } },
   };
-  await applyHardDeleteProject(tx, { projectId: "project-1", actorId: "admin-1" });
+  await applyHardDeleteProject(tx, {
+    projectId: "project-1",
+    actorId: "admin-1",
+    actorSnapshot: createActorSnapshot({ displayName: "管理员", studyDegree: null, status: "ACTIVE" }),
+  });
   assert.deepEqual(calls, ["nodes.detach", "notifications.delete", "tags.delete", "project.delete", "audit.create"]);
 });

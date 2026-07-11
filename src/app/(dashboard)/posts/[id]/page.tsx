@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
 import { buildCommentTree } from "@/features/posts/lib/comment-tree";
 import { buildVisiblePostWhere } from "@/features/posts/lib/drafts";
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -41,7 +42,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       </Link>
       <PostDetail
         title={post.title}
-        authorName={`${post.author.displayName} · ${formatShanghaiDate(post.createdAt)}`}
+        authorName={`${resolveActorDisplay(post.author, post.authorSnapshot).displayName} · ${formatShanghaiDate(post.createdAt)}`}
         content={post.content}
       />
       {canEditPost || canDeletePost ? (

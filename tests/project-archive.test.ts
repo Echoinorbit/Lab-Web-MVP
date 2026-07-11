@@ -9,17 +9,44 @@ import {
   formatProjectArchiveRemaining,
   getProjectUnarchiveAvailableAt,
   getProjectUnarchiveRemainingMs,
+  resolveProjectArchiveAccess,
 } from "../src/features/projects/lib/archive";
-import { isProjectLeadTagName } from "../src/features/projects/lib/tag-grants";
 import {
   PROJECT_ARCHIVED_WRITE_MESSAGE,
   assertProjectWritableStatus,
 } from "../src/features/projects/lib/writable";
+import { PERMISSIONS } from "../src/shared/lib/permissions";
 
-test("项目归档只允许 IN_PROGRESS 状态", () => {
+test("项目归档允许 PLANNING 与 IN_PROGRESS，拒绝终态", () => {
+  assert.doesNotThrow(() => assertProjectCanArchiveStatus("PLANNING"));
   assert.doesNotThrow(() => assertProjectCanArchiveStatus("IN_PROGRESS"));
-  assert.throws(() => assertProjectCanArchiveStatus("PLANNING"), /进行中/);
-  assert.throws(() => assertProjectCanArchiveStatus("ARCHIVED"), /进行中/);
+  assert.throws(() => assertProjectCanArchiveStatus("COMPLETED"), /规划中或进行中/);
+  assert.throws(() => assertProjectCanArchiveStatus("ARCHIVED"), /规划中或进行中/);
+});
+
+test("项目归档只信任 canonical leaderId 或管理员治理权限", () => {
+  const none = new Set<never>();
+  assert.deepEqual(
+    resolveProjectArchiveAccess({ actorId: "lead", actorCanLead: true, leaderId: "lead", globalPermissions: none }),
+    { allowed: true, scope: "leader" },
+  );
+  assert.deepEqual(
+    resolveProjectArchiveAccess({
+      actorId: "admin",
+      actorCanLead: false,
+      leaderId: "lead",
+      globalPermissions: new Set([PERMISSIONS.PROJECT_ARCHIVE_ANY]),
+    }),
+    { allowed: true, scope: "admin" },
+  );
+  assert.deepEqual(
+    resolveProjectArchiveAccess({ actorId: "member", actorCanLead: true, leaderId: "lead", globalPermissions: none }),
+    { allowed: false },
+  );
+  assert.deepEqual(
+    resolveProjectArchiveAccess({ actorId: "lead", actorCanLead: false, leaderId: "lead", globalPermissions: none }),
+    { allowed: false },
+  );
 });
 
 test("项目反激活冷却期为 168 小时，边界到点才允许", () => {
@@ -41,12 +68,6 @@ test("项目反激活状态机应拒绝非归档或冷却未满", () => {
 test("归档项目应拒绝写操作", () => {
   assert.doesNotThrow(() => assertProjectWritableStatus("IN_PROGRESS"));
   assert.throws(() => assertProjectWritableStatus("ARCHIVED"), { message: PROJECT_ARCHIVED_WRITE_MESSAGE });
-});
-
-test("项目组长身份必须匹配 project-lead scoped tag", () => {
-  assert.equal(isProjectLeadTagName("project-lead:project-1", "project-1"), true);
-  assert.equal(isProjectLeadTagName("project-member:project-1", "project-1"), false);
-  assert.equal(isProjectLeadTagName("project-lead:project-2", "project-1"), false);
 });
 
 test("归档倒计时展示应按剩余时间分段", () => {

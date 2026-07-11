@@ -6,13 +6,13 @@ import {
   ANNOUNCEMENT_CREATE_ROUTE,
   ANNOUNCEMENT_ENTITY_TYPE,
   ANNOUNCEMENT_LIST_ROUTE,
+  resolveAnnouncementUpdateAccess,
 } from "../src/features/announcements/lib/access";
 import {
   ANNOUNCEMENT_ORDER_BY,
   compareAnnouncementsForDisplay,
 } from "../src/features/announcements/lib/sorting";
 import {
-  projectLeadTagName,
   resolveProjectAnnouncementRecipientIds,
   uniqueAnnouncementRecipientIds,
 } from "../src/features/announcements/lib/recipients";
@@ -32,13 +32,40 @@ test("公告发布页应使用独立路由并复用创建权限", () => {
   assert.equal(ANNOUNCEMENT_CREATE_PERMISSION, PERMISSIONS.ANNOUNCEMENT_CREATE);
 });
 
+test("公告编辑允许管理员治理和具备权限的作者本人，拒绝其他导师", () => {
+  const capable = new Set([PERMISSIONS.ANNOUNCEMENT_UPDATE]);
+  assert.deepEqual(resolveAnnouncementUpdateAccess({
+    actorId: "admin",
+    actorRole: "ADMIN",
+    authorId: "author",
+    permissions: capable,
+  }), { allowed: true, scope: "admin" });
+  assert.deepEqual(resolveAnnouncementUpdateAccess({
+    actorId: "author",
+    actorRole: "MEMBER",
+    authorId: "author",
+    permissions: capable,
+  }), { allowed: true, scope: "author" });
+  assert.deepEqual(resolveAnnouncementUpdateAccess({
+    actorId: "other-advisor",
+    actorRole: "MEMBER",
+    authorId: "author",
+    permissions: capable,
+  }), { allowed: false });
+  assert.deepEqual(resolveAnnouncementUpdateAccess({
+    actorId: "author",
+    actorRole: "MEMBER",
+    authorId: "author",
+    permissions: new Set(),
+  }), { allowed: false });
+});
+
 test("全员公告目标文案不应暴露 targetIds 底层结构", () => {
   assert.equal(ALL_TARGET_LABEL, "发送给全体成员");
   assert.equal(ALL_TARGET_LABEL.includes("targetIds"), false);
 });
 
 test("项目公告收件人应包含项目组长与成员、去重并排除发布者", () => {
-  assert.equal(projectLeadTagName("project-1"), "project-lead:project-1");
   assert.deepEqual(uniqueAnnouncementRecipientIds(["u1", "u1", "author", "u2"], "author"), ["u1", "u2"]);
   assert.deepEqual(
     resolveProjectAnnouncementRecipientIds({

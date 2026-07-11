@@ -47,7 +47,7 @@ export async function createComment(input: unknown) {
     });
 
     const recipientIds = await includeActiveAdminsInNotificationRecipients(tx, {
-      recipientIds: [post.authorId],
+      recipientIds: post.authorId ? [post.authorId] : [],
       actorId: user.id,
     });
     if (recipientIds.length > 0) {

@@ -15,7 +15,6 @@
     "e2e:fixtures": "tsx scripts/e2e-fixtures.ts",
     "e2e:browser": "tsx scripts/e2e-browser.ts",
     "e2e:smoke": "tsx scripts/e2e-smoke.ts",
-    "migrate:graduated-tags": "tsx scripts/migrate-graduated-tag.ts",
     "remediation:readiness": "tsx scripts/report-remediation-readiness.ts",
     "cleanup:tags": "tsx scripts/cleanup-tags.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run prisma:validate"

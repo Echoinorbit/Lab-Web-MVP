@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { auditPermissionDenied } from "@/shared/lib/audit";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 
@@ -16,27 +17,44 @@ export async function deleteAnnouncement(input: unknown) {
   const user = await requireActiveUser();
   const data = deleteAnnouncementInputSchema.parse(input);
 
-  await assertPermissionWithAudit({
-    userId: user.id,
-    permission: PERMISSIONS.ANNOUNCEMENT_DELETE,
-    entityType: "Announcement",
-    entityId: data.id,
-  });
-
-  await prisma.$transaction(async (tx) => {
-    await tx.announcement.update({
-      where: { id: data.id },
-      data: { deletedAt: new Date() },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Announcement" WHERE "id" = ${data.id} FOR UPDATE`;
+      const [[{ now }], current, actor] = await Promise.all([
+        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+        tx.announcement.findFirst({ where: { id: data.id, deletedAt: null }, select: { id: true } }),
+        tx.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, status: true, displayName: true, studyDegree: true },
+        }),
+      ]);
+      const permissions = await getUserPermissionsForClient(tx, user.id, now);
+      if (!actor || actor.status !== "ACTIVE" || !permissions.has(PERMISSIONS.ANNOUNCEMENT_DELETE)) {
+        throw new PermissionDeniedError(PERMISSIONS.ANNOUNCEMENT_DELETE);
+      }
+      if (!current) throw new Error("公告不存在或已删除。");
+      await tx.announcement.update({ where: { id: current.id }, data: { deletedAt: now } });
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          actorSnapshot: createActorSnapshot(actor, now),
+          action: "DELETE",
+          entityType: "Announcement",
+          entityId: data.id,
+        },
+      });
     });
-    await tx.auditLog.create({
-      data: {
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
         userId: user.id,
-        action: "DELETE",
+        permission: error.permission,
         entityType: "Announcement",
         entityId: data.id,
-      },
-    });
-  });
+      });
+    }
+    throw error;
+  }
 
   revalidatePath("/announcements");
 }

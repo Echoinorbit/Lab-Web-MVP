@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import ExcelJS from "exceljs";
 
 import { applyHardDeleteProject, type ProjectHardDeleteTransaction } from "../src/features/projects/lib/hard-delete";
+import { createActorSnapshot } from "../src/shared/lib/actor-snapshot";
 import { formatShanghaiDateTime } from "../src/shared/lib/date";
 
 loadEnvConfig(process.cwd());
@@ -1009,12 +1010,12 @@ async function cleanupBrowserArtifacts() {
     if (projects.length > 0) {
       const admin = await prisma.user.findUniqueOrThrow({
         where: { username: adminUsername },
-        select: { id: true },
+        select: { id: true, displayName: true, studyDegree: true, status: true },
       });
       for (const project of projects) {
         await prisma.$transaction((tx) => applyHardDeleteProject(
           tx as unknown as ProjectHardDeleteTransaction,
-          { projectId: project.id, actorId: admin.id },
+          { projectId: project.id, actorId: admin.id, actorSnapshot: createActorSnapshot(admin) },
         ));
       }
     }

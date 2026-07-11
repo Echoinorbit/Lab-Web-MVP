@@ -6,7 +6,7 @@ export type AuthorAccess =
 
 type AccessInput = {
   userId: string;
-  authorId: string;
+  authorId: string | null;
   permissions: ReadonlySet<Permission>;
 };
 

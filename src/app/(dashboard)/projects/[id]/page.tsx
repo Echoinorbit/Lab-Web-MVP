@@ -1,19 +1,22 @@
+import type { Prisma } from "@prisma/client";
 import { notFound, redirect } from "next/navigation";
 
 import { ProjectDetail } from "@/features/projects";
 import type { ProjectCanvasSourceNode } from "@/features/projects/lib/node-canvas";
 import { canViewProject } from "@/features/projects/lib/visibility";
-import { hasEffectiveProjectLeadTag } from "@/features/projects/lib/tag-grants";
 import {
   canEditProjectSnapshot,
   canHardDeleteProjectSnapshot,
   canRestoreProjectSnapshot,
   canSoftDeleteProjectSnapshot,
+  isEligibleProjectLeaderActor,
 } from "@/features/projects/lib/project-governance";
 import { FORBIDDEN_ROUTE } from "@/shared/lib/access-denied";
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { getEffectiveTags, getProjectPermissions, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { formatStudyGrade } from "@/shared/lib/study-identity";
 
 type ProjectNodeWithAuthor = {
   id: string;
@@ -22,10 +25,11 @@ type ProjectNodeWithAuthor = {
   description: string | null;
   nodeType: ProjectCanvasSourceNode["nodeType"];
   parentId: string | null;
-  authorId: string;
+  authorId: string | null;
   colorHex: string | null;
   createdAt: Date;
-  author: { displayName: string };
+  author: { displayName: string } | null;
+  authorSnapshot: Prisma.JsonValue;
 };
 
 function buildCanvasNodes(nodes: readonly ProjectNodeWithAuthor[]): ProjectCanvasSourceNode[] {
@@ -36,8 +40,11 @@ function buildCanvasNodes(nodes: readonly ProjectNodeWithAuthor[]): ProjectCanva
     description: node.description ?? undefined,
     nodeType: node.nodeType,
     parentId: node.parentId,
-    authorId: node.authorId,
-    authorName: node.author.displayName,
+    authorId: node.authorId ?? "deleted-user",
+    authorName: resolveActorDisplay(
+      node.author ? { ...node.author, studyDegree: null, status: "ACTIVE" } : null,
+      node.authorSnapshot,
+    ).displayName,
     createdAt: node.createdAt.toISOString(),
     colorHex: node.colorHex,
   }));
@@ -51,7 +58,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       where: { id },
       include: {
         members: {
-          include: { user: { select: { id: true, username: true, displayName: true } } },
+          include: {
+            user: {
+              select: { id: true, username: true, displayName: true, studyDegree: true, status: true },
+            },
+          },
           orderBy: { joinedAt: "asc" },
         },
         nodes: {
@@ -66,8 +77,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             displayName: true,
             students: {
               where: { role: "MEMBER", status: "ACTIVE" },
-              orderBy: [{ grade: "asc" }, { displayName: "asc" }],
-              select: { id: true, username: true, displayName: true, grade: true, studentId: true },
+              orderBy: [{ displayName: "asc" }],
+              select: { id: true, username: true, displayName: true, studyDegree: true, studyGrade: true, studentId: true },
             },
           },
         },
@@ -86,12 +97,25 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     getUserPermissions(user.id),
   ]);
   const combinedPermissions = new Set([...projectPermissions, ...globalPermissions]);
-  const isProjectLead = hasEffectiveProjectLeadTag(effectiveTags, id);
+  const isProjectLead = isEligibleProjectLeaderActor({
+    role: user.role,
+    status: "ACTIVE",
+    studyDegree: user.studyDegree,
+    identityNeedsReview: user.identityNeedsReview,
+  }) && project.leaderId === user.id;
   const isArchived = project.status === "ARCHIVED";
   const isDeleted = Boolean(project.deletedAt);
-  const memberIds = new Set(project.members.map((member) => member.userId));
-  const availableAdvisor = projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE) && !isArchived && !isDeleted && project.advisor
-    ? { ...project.advisor, students: project.advisor.students.filter((student) => !memberIds.has(student.id)) }
+  const canManageMembers = (isProjectLead || projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE))
+    && !isArchived
+    && !isDeleted;
+  const memberIds = new Set(project.members.flatMap((member) => member.userId ? [member.userId] : []));
+  const availableAdvisor = canManageMembers && project.advisor
+    ? {
+        ...project.advisor,
+        students: project.advisor.students
+          .filter((student) => !memberIds.has(student.id))
+          .map((student) => ({ ...student, grade: formatStudyGrade(student.studyDegree, student.studyGrade) })),
+      }
     : undefined;
 
   return (
@@ -105,16 +129,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       viewerId={user.id}
       canvasNodes={buildCanvasNodes(project.nodes)}
       members={project.members.map((member) => ({
-        id: member.user.id,
-        username: member.user.username,
-        displayName: member.user.displayName,
+        id: member.user?.id ?? member.id,
+        username: member.user?.username ?? null,
+        displayName: resolveActorDisplay(member.user, member.memberSnapshot).displayName,
       }))}
       availableAdvisor={availableAdvisor}
       parentOptions={project.nodes.map((node) => ({ id: node.id, title: node.title }))}
-      canManageMembers={projectPermissions.has(PERMISSIONS.PROJECT_MEMBER_MANAGE) && !isDeleted}
-      canCreateNode={projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE) && !isDeleted}
-      canArchive={isProjectLead && projectPermissions.has(PERMISSIONS.PROJECT_MANAGE) && !isDeleted}
-      canEdit={canEditProjectSnapshot(user.id, project, { globalPermissions, projectPermissions })}
+      canManageMembers={canManageMembers}
+      canCreateNode={(isProjectLead || projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE)) && !isDeleted}
+      canArchive={(isProjectLead || globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)) && !isDeleted}
+      canEdit={canEditProjectSnapshot(user.id, isProjectLead, project, { globalPermissions, projectPermissions })}
       canSoftDelete={canSoftDeleteProjectSnapshot(user.id, project, combinedPermissions)}
       canRestore={canRestoreProjectSnapshot(project, combinedPermissions)}
       canHardDelete={canHardDeleteProjectSnapshot(combinedPermissions)}

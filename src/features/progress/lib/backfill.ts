@@ -15,17 +15,22 @@ export async function resolveProgressWriteWindow(
   userId: string,
   year: number,
   month: number,
+  client: Pick<Prisma.TransactionClient, "$queryRaw" | "systemSetting" | "progressBackfillWindow"> = prisma,
 ): Promise<ProgressWriteWindow> {
-  if (canWriteProgressReport(year, month)) {
+  const [settings, [{ now }]] = await Promise.all([
+    client.systemSetting.findUniqueOrThrow({ where: { id: "singleton" } }),
+    client.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+  ]);
+  if (canWriteProgressReport(year, month, now, settings)) {
     return { allowed: true, backfillWindowId: null };
   }
 
-  const backfill = await prisma.progressBackfillWindow.findFirst({
+  const backfill = await client.progressBackfillWindow.findFirst({
     where: {
       userId,
       year,
       month,
-      expiresAt: { gt: new Date() },
+      expiresAt: { gt: now },
       usedAt: null,
     },
     select: { id: true },

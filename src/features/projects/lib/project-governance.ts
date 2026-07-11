@@ -2,8 +2,21 @@ import { PERMISSIONS, type Permission, type RoleName } from "@/shared/lib/permis
 
 type ProjectGovernanceSnapshot = {
   advisorId?: string | null;
+  leaderId?: string | null;
   deletedAt?: Date | string | null;
 };
+
+export function isEligibleProjectLeaderActor(input: {
+  role: RoleName;
+  status: "ACTIVE" | "SUSPENDED" | "GRADUATED";
+  studyDegree: "MASTER" | "DOCTOR" | "MENTOR" | null;
+  identityNeedsReview: boolean;
+}) {
+  return input.role === "MEMBER"
+    && input.status === "ACTIVE"
+    && !input.identityNeedsReview
+    && (input.studyDegree === "MASTER" || input.studyDegree === "DOCTOR");
+}
 
 export function resolveProjectCreationContext({
   actorId,
@@ -36,6 +49,7 @@ export function assertParticipantsBelongToAdvisor(
 
 export function canEditProjectSnapshot(
   actorId: string,
+  actorCanLead: boolean,
   project: ProjectGovernanceSnapshot,
   {
     projectPermissions,
@@ -46,7 +60,8 @@ export function canEditProjectSnapshot(
   },
 ) {
   if (project.deletedAt) return false;
-  return projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)
+  return (actorCanLead && project.leaderId === actorId)
+    || projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)
     || (project.advisorId === actorId && globalPermissions.has(PERMISSIONS.PROJECT_UPDATE_ADVISED));
 }
 

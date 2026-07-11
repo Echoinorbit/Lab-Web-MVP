@@ -9,7 +9,7 @@ export function resolveProjectNodeAuthorAccess({
   authorId,
 }: {
   userId: string;
-  authorId: string;
+  authorId: string | null;
   isProjectLead?: boolean;
 }): ProjectNodeAuthorAccess {
   if (userId === authorId) {

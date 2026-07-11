@@ -1,15 +1,18 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { updateUserAdvisorInputSchema } from "@/shared/lib/validators/admin";
 
+import { lockUserIdentity } from "../lib/study-identity-service";
 import { canAssignAdvisorToTarget } from "../lib/user-governance";
-import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
+import { getDatabaseNow } from "../lib/user-lifecycle";
 
 export async function updateUserAdvisor(input: unknown) {
   const admin = await requireActiveUser();
@@ -23,58 +26,63 @@ export async function updateUserAdvisor(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
-    const now = new Date();
-    const target = await tx.user.findUniqueOrThrow({
-      where: { id: data.userId },
-      select: {
-        role: true,
-        status: true,
-        tags: {
-          where: {
-            revokedAt: null,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-            tag: { name: ADVISOR_TAG_NAME },
-          },
-          select: { id: true },
+    await lockUserIdentity(tx, data.userId);
+    const [target, currentAdmin, now] = await Promise.all([
+      tx.user.findUniqueOrThrow({
+        where: { id: data.userId },
+        select: {
+          role: true,
+          status: true,
+          studyDegree: true,
+          identityNeedsReview: true,
+          advisorId: true,
         },
-      },
-    });
+      }),
+      tx.user.findFirst({
+        where: { id: admin.id, role: "ADMIN", status: "ACTIVE" },
+        select: { displayName: true, studyDegree: true, status: true },
+      }),
+      getDatabaseNow(tx),
+    ]);
+    if (!currentAdmin) throw new Error("执行导师变更的管理员账号已失效。");
     if (target.status !== "ACTIVE") throw new Error("仅可为在用成员设置导师。");
-    if (!canAssignAdvisorToTarget({ role: target.role, hasAdvisorTag: target.tags.length > 0 })) {
+    if (target.identityNeedsReview) throw new Error("请先修复该账号的培养身份。");
+    if (!canAssignAdvisorToTarget({ role: target.role, hasAdvisorTag: target.studyDegree === "MENTOR" })) {
       throw new Error("管理员和导师账号不需要设置导师。");
     }
-    if (data.advisorId) {
-      const advisor = await tx.user.findFirst({
+    const advisor = data.advisorId
+      ? await tx.user.findFirst({
         where: {
           id: data.advisorId,
           role: "MEMBER",
           status: "ACTIVE",
-          tags: {
-            some: {
-              revokedAt: null,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-              tag: { name: ADVISOR_TAG_NAME },
-            },
-          },
+          studyDegree: "MENTOR",
+          identityNeedsReview: false,
         },
-        select: { id: true },
-      });
-      if (!advisor) throw new Error("所选导师不存在或导师资格已失效。");
-    }
+        select: { id: true, displayName: true, studyDegree: true, status: true },
+      })
+      : null;
+    if (data.advisorId && !advisor) throw new Error("所选导师不存在或导师资格已失效。");
+    const actorSnapshot = createActorSnapshot(currentAdmin, now);
     await tx.user.update({
       where: { id: data.userId },
-      data: { advisorId: data.advisorId || null },
+      data: {
+        advisorId: advisor?.id ?? null,
+        advisorSnapshot: advisor ? createActorSnapshot(advisor, now) : Prisma.DbNull,
+      },
     });
     await tx.auditLog.create({
       data: {
         userId: admin.id,
+        actorSnapshot,
         action: "ADVISOR_CHANGE",
         entityType: "User",
         entityId: data.userId,
-        details: { advisorId: data.advisorId ?? null },
+        details: { beforeAdvisorId: target.advisorId, advisorId: advisor?.id ?? null },
       },
     });
   });
 
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${data.userId}/edit`);
 }

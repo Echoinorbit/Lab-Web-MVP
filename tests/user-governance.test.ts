@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { Prisma } from "@prisma/client";
+
 import {
   applyAdminUserRoleUpdate,
   buildUserIdentityUpdateData,
@@ -40,21 +42,45 @@ test("转为 ADMIN 应清空导师、吊销会话并撤销全部有效 Tag", asy
     userTag: { updateMany: async (args) => { revokes.push(args); return { count: 3 }; } },
     auditLog: { create: async (args) => { audits.push(args); } },
   };
+  const actorSnapshot = {
+    v: 1 as const,
+    displayName: "管理员",
+    studyDegree: null,
+    accountState: "ACTIVE" as const,
+    capturedAt: "2026-06-25T00:00:00.000Z",
+  };
 
   await applyAdminUserRoleUpdate(tx, {
     adminId: "admin-1",
     userId: "user-1",
     role: "ADMIN",
     now: new Date("2026-06-25T00:00:00.000Z"),
+    actorSnapshot,
   });
 
   assert.deepEqual(updates[0], {
     where: { id: "user-1" },
-    data: { role: "ADMIN", advisorId: null, tokenVersion: { increment: 1 } },
+    data: {
+      role: "ADMIN",
+      advisorId: null,
+      advisorSnapshot: Prisma.DbNull,
+      studyDegree: null,
+      studyGrade: null,
+      identityNeedsReview: false,
+      identityMigrationNote: null,
+      graduatedAt: null,
+      scheduledDeletionAt: null,
+      tokenVersion: { increment: 1 },
+    },
   });
   assert.deepEqual(revokes[0], {
     where: { userId: "user-1", revokedAt: null },
-    data: { revokedAt: new Date("2026-06-25T00:00:00.000Z"), revokedById: "admin-1" },
+    data: {
+      revokedAt: new Date("2026-06-25T00:00:00.000Z"),
+      revokedById: "admin-1",
+      revokerSnapshot: actorSnapshot,
+    },
   });
   assert.equal(audits.length, 1);
+  assert.deepEqual((audits[0] as { data: { actorSnapshot: unknown } }).data.actorSnapshot, actorSnapshot);
 });

@@ -1,3 +1,6 @@
+import type { Prisma } from "@prisma/client";
+
+import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 
 import type { CommentRow } from "../types";
@@ -8,7 +11,8 @@ export type CommentTreeSource = {
   createdAt: Date;
   parentId: string | null;
   deletedAt: Date | null;
-  author: { id: string; displayName: string };
+  author: { id: string; displayName: string; studyDegree?: null; status?: "ACTIVE" } | null;
+  authorSnapshot?: Prisma.JsonValue;
 };
 
 function pruneDeletedLeaves(rows: readonly CommentRow[]): CommentRow[] {
@@ -27,11 +31,15 @@ export function buildCommentTree(comments: readonly CommentTreeSource[]): Commen
 
   for (const comment of comments) {
     const isDeleted = comment.deletedAt !== null;
+    const actor = resolveActorDisplay(
+      comment.author ? { ...comment.author, studyDegree: null, status: "ACTIVE" } : null,
+      comment.authorSnapshot,
+    );
     byId.set(comment.id, {
       id: comment.id,
       content: isDeleted ? "" : comment.content,
-      authorId: isDeleted ? "" : comment.author.id,
-      authorName: isDeleted ? "已删除评论" : comment.author.displayName,
+      authorId: isDeleted ? "" : comment.author?.id ?? "",
+      authorName: isDeleted ? "已删除评论" : actor.displayName,
       createdAt: formatShanghaiDate(comment.createdAt),
       isDeleted,
       children: [],
