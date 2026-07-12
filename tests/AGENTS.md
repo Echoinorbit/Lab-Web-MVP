@@ -23,7 +23,7 @@ DB-free unit and static-contract suites that lock in the platform's security-cri
 - Run with `npm run test` (matches `tests/*.test.ts`); included in `npm run verify`.
 - Tests import pure functions from `@/shared/...`. Keep them DB-free: test the `*FromSnapshot`/`select*`/`is*` pure helpers, not the `async` Prisma wrappers.
 - When you change any security helper (permissions, session, auth security, rate-limits, date windows, validators), add or update the matching test in the same PR — these suites are the guardrails for the architecture's invariants.
-- Changes to migrations, database triggers, lifecycle deletion, actor snapshots, settings persistence, or concurrency also require the disposable PostgreSQL integration runner; unit tests alone are insufficient.
+- Changes to migrations, database triggers, lifecycle deletion, actor snapshots, settings persistence, or concurrency also require the disposable PostgreSQL integration runner; unit tests alone are insufficient. The runner must preserve both stages: legacy migrations plus adversarial legacy data upgraded by the remediation migration, then a separate clean install with real lock contention and four-cycle audit archive cleanup.
 - Changes to destructive interactions, avatar persistence, admin onboarding/editing, project lifecycle, or settings behavior require a real-browser E2E path with cleanup in `finally`.
 
 ### Common Patterns

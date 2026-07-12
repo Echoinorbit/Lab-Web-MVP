@@ -33,16 +33,26 @@ migration deployment requires the reviewed reverse procedure below or a full res
 
 ## Isolated migration rehearsal
 
-The preferred automated rehearsal derives a unique `remediation_it_*` schema from the
-database in `.env`, applies all six migrations and the seed, executes the PostgreSQL
-transaction/trigger/concurrency checks, and drops the schema in `finally`:
+The preferred automated rehearsal derives two unique schemas from the database in `.env`:
+
+1. `remediation_upgrade_*` applies migrations only through
+   `20260629131356_drop_unused_user_post_tags`, inserts representative and adversarial
+   legacy users, Tags, projects, leaders, and attribution rows, then applies only
+   `20260710140000_fullstack_remediation`. It asserts the exact identity-review ledger,
+   protected Tag projections, 72-hour lifecycle schedule, leader reconstruction,
+   status derivation, actor snapshots, migration history, and pre/post rollback counts.
+   Its deliberate conflicts remain visible in the readiness report, with exact expected
+   counts, rather than being guessed away.
+2. `remediation_it_*` keeps the clean-install path: all six migrations, seed, persisted
+   settings, lifecycle/deletion, trigger, attribution, and concurrent leader checks.
 
 ```sh
 npm run test:integration
 ```
 
 The database role must be allowed to create and drop schemas. The runner never mutates
-the source URL's existing application schema.
+the source URL's existing application schema, and drops both disposable schemas in
+`finally` on success or failure.
 
 For a manual non-production rehearsal, use a unique disposable schema on the same
 PostgreSQL major version. Keep the order `migrate deploy` → `seed` → fixtures → readiness:
@@ -72,12 +82,12 @@ npm run test:integration
 npm run build
 ```
 
-The readiness JSON is read-only. `ready` must be `true`. Deliberately ambiguous
-identities may remain in `unresolvedIdentities`, but the stable reason ledger must be
-reviewed and assigned to an administrator for repair. The following arrays/counts must
-be empty or zero: identity projection drift, conflicting effective identity Tags,
-active projects without a leader, project-status drift, lifecycle drift, and missing
-actor snapshots. Exactly one settings row with id `singleton` must exist.
+The production readiness JSON is read-only and must report `ready: true`. If deliberately
+ambiguous identities remain in `unresolvedIdentities`, readiness stays false: review the
+stable reason ledger, repair those accounts through the administrator workflow, and rerun
+the check. Identity projection drift, conflicting effective identity Tags, active projects
+without a leader, project-status drift, lifecycle drift, and missing actor snapshots must
+all be empty or zero. Exactly one settings row with id `singleton` must exist.
 
 After the application is live, run fixtures and the authenticated smoke/browser suites
 against a non-production environment. Provision an external scheduler for the

@@ -20,7 +20,7 @@ The automated PostgreSQL rehearsal is:
 npm run test:integration
 ```
 
-It derives a unique `remediation_it_*` schema from `.env` `DATABASE_URL`, applies every migration, runs the seed, verifies settings/lifecycle/snapshot/project-trigger/concurrency behavior, and drops that schema in `finally`. The database role therefore needs schema create/drop privileges. The runner never targets the source URL's existing application schema.
+It derives two unique schemas from `.env` `DATABASE_URL`: `remediation_upgrade_*` stages adversarial legacy data before applying the remediation migration, then `remediation_it_*` verifies a clean install, seed, settings, lifecycle/snapshot, project-trigger, and concurrency behavior. Both schemas are dropped in `finally`. The database role therefore needs schema create/drop privileges. The runner never targets the source URL's existing application schema.
 
 ## Runtime settings
 
@@ -30,7 +30,9 @@ It derives a unique `remediation_it_*` schema from `.env` `DATABASE_URL`, applie
 - login policy duration in whole hours, from 1 through 720;
 - optimistic revision and updater snapshot used for conflict detection/audit.
 
-Progress submission reads this row on the server for every decision. Successful login reads `sessionHours` using database time and stamps a policy expiry into the JWT-backed session. A duration change applies to subsequent logins; revoke existing sessions when immediate enforcement is required.
+Progress submission reads this row on the server for every decision. Successful login reads `sessionHours` using database time and stamps a policy expiry into the JWT-backed session. Changing `sessionHours` also increments every user's `tokenVersion` in the same transaction, so all existing sessions are invalid immediately and every user must sign in again under the new duration.
+
+Bulk invalidation takes the lifecycle-set exclusive lock before any user row; ordinary user mutations take its shared form. Advisor relation changes add a single relation lock before sorted per-user locks. Keep this order when adding mutations: lifecycle set → advisor relation (when applicable) → sorted users → entity rows.
 
 The migration creates/backfills the singleton row. A missing row is a deployment error, not a reason to fall back to environment constants.
 
@@ -78,6 +80,8 @@ curl -sS --fail-with-body \
 
 Schedule it independently (for example weekly). Store generated exports according to the deployment's retention and access-control policy.
 
+Each run creates the `AuditExportArchive` before advancing the counter. The fourth run in a cycle clears only source `AuditLog` rows older than that archive's range end; the workbook already contains lifecycle-aware actor name/state columns, so deleted or graduated attribution remains readable after cleanup.
+
 ## Avatar storage
 
 The default asset is immutable application content at `public/avatar/default.png`. Managed user files live under `public/uploads/avatars` and are UUID-named PNG files. The server accepts only a fully decoded 512 × 512, 8-bit, non-interlaced RGB/RGBA PNG smaller than 2 MiB, writes it through an exclusive temporary file plus atomic rename, and stores only the managed public path in PostgreSQL.
@@ -92,6 +96,8 @@ Operational requirements:
 - allow the purge/update path to remove managed files only after the corresponding database transaction succeeds.
 
 Orphan cleanup has a 15-minute grace period to avoid racing an in-flight atomic write. A database restore without the matching avatar backup may legitimately fall back to the default image; it cannot reconstruct deleted custom avatar bytes.
+
+Avatar replacement and manual permanent deletion report cleanup failure explicitly instead of claiming an unconditional success. The database change remains committed, while the scheduled graduated-account purge performs the same orphan sweep on later runs; alert if the warning persists and verify avatar-volume permissions and availability.
 
 ## Member import operations
 

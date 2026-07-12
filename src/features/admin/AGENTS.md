@@ -25,7 +25,8 @@ Governance console widgets used by the `/admin/*` pages: user management, audit-
 - Privileged mutations (create/import users, role/status/advisor changes) must write the matching `AuditLog` action (`IMPORT`, `ROLE_CHANGE`, `STATUS_CHANGE`, `ADVISOR_CHANGE`, etc.). New users follow the seeded-admin pattern: `mustChangePassword=true`.
 - Create/edit/import must call the shared study-identity service so role, degree, grade, and canonical system Tags change atomically under stable actor/target locks. Mentors have no grade; master/doctor grades use their own bounded enums.
 - Graduation revokes active Tags and schedules eligible students for deletion after three days. Cancellation restores only the canonical study Tag. Manual permanent deletion requires the exact username, cannot delete self/last active admin, and preserves historical snapshots.
-- Settings are optimistic-concurrency controlled and stored in `SystemSetting(id = "singleton")`; form defaults must come from the database, not constants.
+- Status, graduation, identity, session-revocation, and deletion mutations share the stable per-user lifecycle lock with content writes. Advisor assignment/removal takes the advisor-relation lock before resolving old/new participants; then lock actor, target, old advisor, new advisor, and deletion advisees in sorted order before re-reading state.
+- Settings are optimistic-concurrency controlled and stored in `SystemSetting(id = "singleton")`; form defaults must come from the database, not constants. A `sessionHours` change takes the lifecycle-set exclusive lock before any user row and increments every `tokenVersion` atomically.
 - Import uses the downloadable six-column template, signed five-minute preview, 5 MiB/500-row limits, strict password/degree-grade validation, and atomic creation. Formula/hyperlink identity cells are rejected.
 
 ### Testing Requirements

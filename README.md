@@ -270,7 +270,7 @@ PostgreSQL 事务、触发器、并发组长投影和账号清理集成套件：
 npm run test:integration
 ```
 
-该命令从 `.env` 的数据库连接派生唯一的 `remediation_it_*` 可丢弃 schema，依次执行全部 migration 和 seed，并在 `finally` 自动删除该 schema；运行账号必须具有创建/删除 schema 的权限。它不会把测试表写入连接中原有的应用 schema。
+该命令从 `.env` 的数据库连接派生两个可丢弃 schema：先在 `remediation_upgrade_*` 中部署旧迁移、注入对抗性旧数据并单独执行整改迁移，再在 `remediation_it_*` 中验证全量迁移、seed 与运行时并发契约。两者都会在 `finally` 自动删除；运行账号必须具有创建/删除 schema 的权限。它不会把测试表写入连接中原有的应用 schema。
 
 端到端 / 浏览器冒烟测试（需要本地数据库与开发服务器在运行）：
 
@@ -312,9 +312,9 @@ env DATABASE_URL="postgresql://lab:lab@localhost:5432/lab_platform?schema=public
 
 这是架构约束。`ADMIN` 是治理角色，不是内容创作者，因此不能发帖，也不能把自己设为项目导师；它只能选择持有效 `advisor` Tag 的成员代为创建项目。需要以导师身份创作内容时，应使用 `MEMBER` 账号并授予 `advisor` Tag。
 
-### 为什么修改 Session 时长后当前登录没有立即延长或缩短？
+### 为什么修改 Session 时长后需要重新登录？
 
-Session 时长在成功登录时从数据库读取并写入该会话的策略过期时间。设置变更影响后续登录；需要立即应用时，管理员应再吊销目标账号会话，让其重新登录。系统不会仅靠客户端 Cookie 的理论最大时长绕过数据库策略过期。
+Session 时长在成功登录时从数据库读取并写入该会话的策略过期时间。管理员修改时长时，系统会在同一事务内递增所有账号的 `tokenVersion`，立即使现有会话失效；所有用户重新登录后按新时长建立会话。系统不会仅靠客户端 Cookie 的理论最大时长绕过数据库策略过期。
 
 ### 为什么顶部没有全局搜索？
 
