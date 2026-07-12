@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
-import { getUserPermissions, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getUserPermissionsForClient, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { splitCommaList } from "@/shared/lib/utils";
 import { updatePostInputSchema } from "@/shared/lib/validators/posts";
 
@@ -18,48 +18,52 @@ export async function updatePost(input: unknown) {
   const user = await requireActiveUser();
   const data = updatePostInputSchema.parse(input);
 
-  const post = await prisma.post.findFirst({
-    where: { id: data.postId, deletedAt: null },
-    select: { id: true, authorId: true },
-  });
-  if (!post) throw new Error("Post not found.");
+  try {
+    await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, user.id);
+      await tx.$queryRaw`SELECT "id" FROM "Post" WHERE "id" = ${data.postId} FOR UPDATE`;
+      const post = await tx.post.findFirst({
+        where: { id: data.postId, deletedAt: null },
+        select: { id: true, authorId: true },
+      });
+      if (!post) throw new Error("帖子不存在或已删除。");
 
-  const permissions = await getUserPermissions(user.id);
-  const access = resolvePostUpdateAccess({ userId: user.id, authorId: post.authorId, permissions });
-  if (!access.allowed) {
-    await auditPermissionDenied({
-      userId: user.id,
-      permission: access.permission,
-      entityType: "Post",
-      entityId: data.postId,
+      const permissions = await getUserPermissionsForClient(tx, user.id, currentActor?.now);
+      const access = resolvePostUpdateAccess({ userId: user.id, authorId: post.authorId, permissions });
+      if (!currentActor || !access.allowed) throw new PermissionDeniedError(access.permission);
+
+      await tx.post.update({
+        where: { id: data.postId },
+        data: {
+          title: data.title,
+          content: data.content,
+          category: data.category,
+          tags: data.tags,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          actorSnapshot: currentActor.actorSnapshot,
+          action: "UPDATE",
+          entityType: "Post",
+          entityId: data.postId,
+          details: { category: data.category, scope: access.scope },
+        },
+      });
     });
-    throw new PermissionDeniedError(access.permission);
-  }
-
-  await prisma.$transaction(async (tx) => {
-    const actorSnapshot = await loadActorSnapshot(tx, user.id);
-    if (!actorSnapshot) throw new Error("Active user not found.");
-    await tx.post.update({
-      where: { id: data.postId },
-      data: {
-        title: data.title,
-        content: data.content,
-        category: data.category,
-        tags: data.tags,
-      },
-    });
-
-    await tx.auditLog.create({
-      data: {
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
         userId: user.id,
-        actorSnapshot,
-        action: "UPDATE",
+        permission: error.permission,
         entityType: "Post",
         entityId: data.postId,
-        details: { category: data.category, scope: access.scope },
-      },
-    });
-  });
+      });
+    }
+    throw error;
+  }
 
   revalidatePath("/posts");
   revalidatePath(`/posts/${data.postId}`);
@@ -84,7 +88,10 @@ export async function updatePostFormAction(
       tags,
     });
   } catch (error) {
-    return { ok: false, message: formatPostValidationError(error, "保存失败") };
+    return {
+      ok: false,
+      message: formatPostValidationError(error, "保存失败，请稍后重试。", ["帖子不存在或已删除。"]),
+    };
   }
   redirect(`/posts/${postId}`);
 }

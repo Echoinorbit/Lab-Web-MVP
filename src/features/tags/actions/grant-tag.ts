@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
-import { getDatabaseNow, lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
+import { getDatabaseNow } from "@/features/admin/lib/user-lifecycle";
 import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
@@ -11,7 +11,7 @@ import { assertAnyPermissionWithAudit } from "@/shared/lib/authorization";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { ADVISOR_TAG_NAME } from "@/shared/lib/system-tags";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { grantTagInputSchema } from "@/shared/lib/validators/tags";
 
 import { assertManualTagTargetEligible, assertManuallyManageableTagName } from "../lib/project-tag-guard";
@@ -91,10 +91,6 @@ export async function grantTag(input: unknown) {
         select: { id: true },
       });
       if (existing) return existing;
-
-      if (tag.name === ADVISOR_TAG_NAME) {
-        await tx.user.update({ where: { id: data.userId }, data: { advisorId: null } });
-      }
 
       const created = await tx.userTag.create({
         data: {

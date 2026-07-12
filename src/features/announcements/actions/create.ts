@@ -4,14 +4,15 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { enforceRateLimit } from "@/shared/lib/rate-limits";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { splitCommaList } from "@/shared/lib/utils";
 import { announcementInputSchema } from "@/shared/lib/validators/announcements";
 
@@ -104,25 +105,19 @@ export async function createAnnouncement(input: unknown) {
   let announcement: { id: string };
   try {
     announcement = await prisma.$transaction(async (tx) => {
-      const [[{ now }], currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.user.findUnique({
-          where: { id: user.id },
-          select: { role: true, status: true, displayName: true, studyDegree: true },
-        }),
-      ]);
-      const currentPermissions = await getUserPermissionsForClient(tx, user.id, now);
+      const access = await getLockedActiveActor(tx, user.id);
+      const currentPermissions = await getUserPermissionsForClient(tx, user.id, access?.now);
       const missingPermission = !currentPermissions.has(PERMISSIONS.ANNOUNCEMENT_CREATE)
         ? PERMISSIONS.ANNOUNCEMENT_CREATE
         : data.targetType !== "ALL" && !currentPermissions.has(PERMISSIONS.ANNOUNCEMENT_NOTIFY_TARGETED)
           ? PERMISSIONS.ANNOUNCEMENT_NOTIFY_TARGETED
           : null;
-      if (!currentActor || currentActor.status !== "ACTIVE" || missingPermission) {
+      if (!access || missingPermission) {
         throw new PermissionDeniedError(missingPermission ?? PERMISSIONS.ANNOUNCEMENT_CREATE);
       }
 
+      const { actorSnapshot, now } = access;
       await enforceRateLimit(tx, user.id, PERMISSIONS.ANNOUNCEMENT_CREATE, now);
-      const actorSnapshot = createActorSnapshot(currentActor, now);
       const domainRecipientIds = await resolveAnnouncementRecipients(
         tx,
         data.targetType,
@@ -210,7 +205,10 @@ export async function createAnnouncementFormAction(
       targetIds,
     });
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "发布失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, { fallbackMessage: "公告发布失败，请稍后重试。" }),
+    };
   }
   redirect(ANNOUNCEMENT_LIST_ROUTE);
 }

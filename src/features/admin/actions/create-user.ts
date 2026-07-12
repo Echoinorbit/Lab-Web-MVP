@@ -13,11 +13,15 @@ import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { validatePasswordPolicy } from "@/shared/lib/security";
 import { requireActiveUser } from "@/shared/lib/session";
+import {
+  lockUserAdvisorRelations,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "@/shared/lib/user-lifecycle-lock";
 import { STUDY_GRADE_LABELS } from "@/shared/lib/study-identity";
 import { createUserInputSchema } from "@/shared/lib/validators/admin";
 
 import { syncStudyIdentity } from "../lib/study-identity-service";
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
 
 class CreateUserFeedbackError extends Error {}
 
@@ -38,6 +42,7 @@ export async function createUser(input: unknown) {
 
   const passwordHash = await bcrypt.hash(data.password, 12);
   const user = await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
     for (const userId of orderUserLifecycleLockIds([
       admin.id,
       ...(data.advisorId ? [data.advisorId] : []),

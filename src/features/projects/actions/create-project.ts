@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { projectInputSchema } from "@/shared/lib/validators/projects";
 
 import { resolveProjectCreationAssignments } from "../lib/create-project";
@@ -193,7 +194,17 @@ export async function createProjectFormAction(
     });
     projectId = project.id;
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "创建失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "项目创建失败，请稍后重试。",
+        knownMessages: [
+          "项目组长或成员不存在、身份未确认，或账号不可用。",
+          "所选负责导师不存在、已停用或导师身份已失效。",
+          "项目组长不存在或账号不可用。",
+        ],
+      }),
+    };
   }
   // redirect() throws, so it must run outside the try/catch.
   redirect(`/projects/${projectId}`);

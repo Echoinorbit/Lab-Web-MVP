@@ -26,14 +26,21 @@ export async function permanentlyDeleteUser(input: unknown) {
     actorId: actor.id,
     confirmUsername: data.confirmUsername,
   }));
-  if (result.deleted) await removeManagedAvatar(result.avatar).catch(() => undefined);
+  let avatarCleanupPending = false;
+  if (result.deleted) {
+    try {
+      await removeManagedAvatar(result.avatar);
+    } catch {
+      avatarCleanupPending = true;
+    }
+  }
 
   revalidatePath("/");
   revalidatePath("/admin/users");
   revalidatePath("/admin/tags");
   revalidatePath("/admin/audit");
   revalidatePath("/projects");
-  return result;
+  return { ...result, avatarCleanupPending };
 }
 
 export async function permanentlyDeleteUserResult(input: unknown) {

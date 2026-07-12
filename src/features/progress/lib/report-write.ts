@@ -1,12 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
-import { createActorSnapshot, type ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
+import type { ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
 import {
   getUserPermissionsForClient,
   type Permission,
   PermissionDeniedError,
 } from "@/shared/lib/permissions";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import type { progressReportInputSchema } from "@/shared/lib/validators/progress";
 
 import { assertSubmittedReportEditAllowed, shouldIncrementSubmittedReportEditCount } from "./edit-count";
@@ -33,19 +34,13 @@ export async function requireProgressReportWriteAccess(
   userId: string,
   requiredPermissions: readonly Permission[],
 ) {
-  const [[{ now }], actor] = await Promise.all([
-    tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-    tx.user.findFirst({
-      where: { id: userId, status: "ACTIVE" },
-      select: { displayName: true, studyDegree: true, status: true },
-    }),
-  ]);
-  const permissions = await getUserPermissionsForClient(tx, userId, now);
+  const actor = await getLockedActiveActor(tx, userId);
+  const permissions = await getUserPermissionsForClient(tx, userId, actor?.now);
   const missingPermission = requiredPermissions.find((permission) => !permissions.has(permission));
   if (!actor || missingPermission) {
     throw new PermissionDeniedError(missingPermission ?? requiredPermissions[0]!);
   }
-  return { now, actorSnapshot: createActorSnapshot(actor, now) };
+  return { now: actor.now, actorSnapshot: actor.actorSnapshot };
 }
 
 export async function writeProgressReport(

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getProjectPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { projectMembersInputSchema } from "@/shared/lib/validators/projects";
 
 import { grantProjectScopedTag } from "../lib/tag-grants";
@@ -132,6 +133,12 @@ export async function addProjectMemberFormAction(
     });
     return { ok: true, message: "成员已加入" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "添加失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "项目成员添加失败，请稍后重试。",
+        knownMessages: ["项目未设置负责导师，不能添加学生。", "已归档项目不可写入。"],
+      }),
+    };
   }
 }

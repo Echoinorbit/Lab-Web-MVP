@@ -2,14 +2,10 @@ import { Prisma, type StudyDegree } from "@prisma/client";
 
 import { createActorSnapshot, type ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
 import { studyDegreeTagName } from "@/shared/lib/study-identity";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 
-export const USER_LIFECYCLE_LOCK_PREFIX = "lab-platform:user-lifecycle:v1:";
 export const ADMIN_GOVERNANCE_LOCK_KEY = "lab-platform:admin-governance:v1";
 export const GRADUATION_GRACE_HOURS = 72;
-
-export function orderUserLifecycleLockIds(userIds: readonly string[]) {
-  return [...new Set(userIds)].sort((left, right) => left.localeCompare(right));
-}
 
 export function isResolvedStudentIdentity<T extends {
   role: "ADMIN" | "MEMBER";
@@ -27,13 +23,6 @@ export function isResolvedStudentIdentity<T extends {
 
 export function getScheduledDeletionAt(graduatedAt: Date) {
   return new Date(graduatedAt.getTime() + GRADUATION_GRACE_HOURS * 60 * 60 * 1000);
-}
-
-export async function lockUserLifecycle(tx: Prisma.TransactionClient, userId: string) {
-  await tx.$executeRaw(Prisma.sql`
-    SELECT pg_advisory_xact_lock(hashtextextended(${USER_LIFECYCLE_LOCK_PREFIX + userId}, 0))
-  `);
-  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`);
 }
 
 export async function lockAdminGovernance(tx: Prisma.TransactionClient) {

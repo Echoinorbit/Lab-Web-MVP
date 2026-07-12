@@ -6,6 +6,7 @@ import { getEffectiveTags, getUserPermissions } from "./permissions";
 import { prisma } from "./prisma";
 import { verifyPasswordWithDummyFallback } from "./security";
 import { resolveSessionStatus } from "./user-status";
+import { getLockedActor, lockUserLifecycle } from "./user-lifecycle-lock";
 import { MAX_SESSION_HOURS, SYSTEM_SETTING_ID } from "./system-settings";
 import { loginSchema } from "./validators/auth";
 
@@ -153,12 +154,11 @@ export function resolveFailedLoginUpdate(
 
 async function incrementFailedLogin(userId: string) {
   await prisma.$transaction(async (tx) => {
-    const [user] = await tx.$queryRaw<Array<{ loginAttempts: number; lockedUntil: Date | null }>>`
-      SELECT "loginAttempts", "lockedUntil"
-      FROM "User"
-      WHERE "id" = ${userId}
-      FOR UPDATE
-    `;
+    await lockUserLifecycle(tx, userId);
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { loginAttempts: true, lockedUntil: true },
+    });
     if (!user) return;
 
     const next = resolveFailedLoginUpdate(user);
@@ -241,38 +241,84 @@ export const authConfig = {
           return failLogin({ userId: user.id, username, reason: "invalid", ipAddress });
         }
 
-        const policyExpiresAt = await prisma.$transaction(async (tx) => {
-          const [settings, [{ now }]] = await Promise.all([
-            tx.systemSetting.findUniqueOrThrow({ where: { id: SYSTEM_SETTING_ID } }),
-            tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-          ]);
+        const login = await prisma.$transaction(async (tx) => {
+          const access = await getLockedActor(tx, user.id);
+          const current = access
+            ? await tx.user.findUnique({
+                where: { id: user.id },
+                select: {
+                  id: true,
+                  username: true,
+                  passwordHash: true,
+                  displayName: true,
+                  role: true,
+                  status: true,
+                  mustChangePassword: true,
+                  tokenVersion: true,
+                  lockedUntil: true,
+                },
+              })
+            : null;
+          if (!access || !current) return { ok: false as const, reason: "invalid" as const };
+          if (current.lockedUntil && current.lockedUntil > access.now) {
+            return { ok: false as const, reason: "locked" as const, userId: current.id };
+          }
+          if (current.status !== "ACTIVE") {
+            return {
+              ok: false as const,
+              reason: getInactiveLoginReason(current.status),
+              userId: current.id,
+            };
+          }
+          if (current.passwordHash !== user.passwordHash) {
+            return { ok: false as const, reason: "invalid" as const, userId: current.id };
+          }
+
+          const settings = await tx.systemSetting.findUniqueOrThrow({ where: { id: SYSTEM_SETTING_ID } });
           await tx.user.update({
-            where: { id: user.id },
+            where: { id: current.id },
             data: {
               loginAttempts: 0,
               lockedUntil: null,
-              lastLoginAt: now,
+              lastLoginAt: access.now,
             },
           });
-          return new Date(now.getTime() + settings.sessionHours * 60 * 60 * 1000).toISOString();
+          await tx.auditLog.create({
+            data: {
+              userId: current.id,
+              actorSnapshot: access.actorSnapshot,
+              action: "LOGIN",
+              entityType: "User",
+              entityId: current.id,
+            },
+          });
+          return {
+            ok: true as const,
+            user: current,
+            policyExpiresAt: new Date(
+              access.now.getTime() + settings.sessionHours * 60 * 60 * 1000,
+            ).toISOString(),
+          };
         });
-        await appendAuditLog({
-          userId: user.id,
-          action: "LOGIN",
-          entityType: "User",
-          entityId: user.id,
-        });
+        if (!login.ok) {
+          return failLogin({
+            userId: login.userId,
+            username,
+            reason: login.reason,
+            ipAddress,
+          });
+        }
         await releaseIpLoginFailureSlot(ipFailureReservation);
 
         return {
-          id: user.id,
-          username: user.username,
-          name: user.displayName,
-          role: user.role,
-          status: user.status,
-          mustChangePassword: user.mustChangePassword,
-          tokenVersion: user.tokenVersion,
-          policyExpiresAt,
+          id: login.user.id,
+          username: login.user.username,
+          name: login.user.displayName,
+          role: login.user.role,
+          status: login.user.status,
+          mustChangePassword: login.user.mustChangePassword,
+          tokenVersion: login.user.tokenVersion,
+          policyExpiresAt: login.policyExpiresAt,
         };
       },
     }),

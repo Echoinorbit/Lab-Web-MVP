@@ -7,14 +7,17 @@ import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import {
+  lockUserAdvisorRelations,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "@/shared/lib/user-lifecycle-lock";
 import { updateUserRoleInputSchema } from "@/shared/lib/validators/admin";
 
 import { applyAdminUserRoleUpdate } from "../lib/user-governance";
 import {
   getDatabaseNow,
   lockAdminGovernance,
-  lockUserLifecycle,
-  orderUserLifecycleLockIds,
 } from "../lib/user-lifecycle";
 import { toUserActionResult } from "../lib/user-action-result";
 
@@ -33,6 +36,7 @@ export async function updateUserRole(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
     for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
       await lockUserLifecycle(tx, userId);
     }

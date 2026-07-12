@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { updateProjectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { ProjectNodeAuthorError, resolveProjectNodeAuthorAccess } from "../lib/node-author-ops";
@@ -23,8 +24,9 @@ export async function updateProjectNode(input: unknown) {
   let updated;
   try {
     updated = await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${locatedNode.projectId} FOR UPDATE`;
-      const [project, node, currentActor, [{ now }]] = await Promise.all([
+      const [project, node] = await Promise.all([
         tx.project.findFirstOrThrow({
           where: { id: locatedNode.projectId, deletedAt: null },
           select: { status: true },
@@ -33,11 +35,6 @@ export async function updateProjectNode(input: unknown) {
           where: { id: locatedNode.id, projectId: locatedNode.projectId, deletedAt: null },
           select: { id: true, authorId: true },
         }),
-        tx.user.findFirst({
-          where: { id: actor.id, status: "ACTIVE" },
-          select: { displayName: true, studyDegree: true, status: true },
-        }),
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
       ]);
       assertProjectWritableStatus(project.status);
       const access = resolveProjectNodeAuthorAccess({ userId: actor.id, authorId: node.authorId });
@@ -55,7 +52,7 @@ export async function updateProjectNode(input: unknown) {
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "UPDATE",
           entityType: "ProjectNode",
           entityId: row.id,
@@ -98,7 +95,13 @@ export async function updateProjectNodeFormAction(
     });
     projectId = node.projectId;
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "更新失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "节点更新失败，请稍后重试。",
+        knownMessages: ["只有节点作者可以编辑或删除该节点。", "已归档项目不可写入。"],
+      }),
+    };
   }
   redirect(`/projects/${projectId}`);
 }

@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { loadActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { auditPermissionDenied } from "@/shared/lib/audit";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { RateLimitExceededError, enforceRateLimit } from "@/shared/lib/rate-limits";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { splitCommaList } from "@/shared/lib/utils";
 import { publishPostInputSchema } from "@/shared/lib/validators/posts";
 
@@ -29,9 +30,13 @@ export async function createPost(input: unknown) {
   let post: { id: string };
   try {
     post = await prisma.$transaction(async (tx) => {
-      const actorSnapshot = await loadActorSnapshot(tx, user.id);
-      if (!actorSnapshot) throw new Error("Active user not found.");
-      await enforceRateLimit(tx, user.id, PERMISSIONS.POST_CREATE);
+      const access = await getLockedActiveActor(tx, user.id);
+      const permissions = await getUserPermissionsForClient(tx, user.id, access?.now);
+      if (!access || !permissions.has(PERMISSIONS.POST_CREATE)) {
+        throw new PermissionDeniedError(PERMISSIONS.POST_CREATE);
+      }
+      const { actorSnapshot, now } = access;
+      await enforceRateLimit(tx, user.id, PERMISSIONS.POST_CREATE, now);
 
       if (data.postId) {
         const draft = await tx.post.findFirst({
@@ -43,7 +48,7 @@ export async function createPost(input: unknown) {
           },
           select: { id: true },
         });
-        if (!draft) throw new Error("Draft not found.");
+        if (!draft) throw new Error("草稿不存在或已删除。");
 
         const published = await tx.post.update({
           where: { id: data.postId },
@@ -99,6 +104,13 @@ export async function createPost(input: unknown) {
     if (error instanceof RateLimitExceededError) {
       throw new PostRateLimitError(formatPostRateLimitExceeded(error.result));
     }
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
+        userId: user.id,
+        permission: error.permission,
+        entityType: "Post",
+      });
+    }
     throw error;
   }
 
@@ -135,7 +147,7 @@ export async function createPostFormAction(
     } catch (error) {
       return {
         ok: false,
-        message: formatPostValidationError(error, "草稿保存失败"),
+        message: formatPostValidationError(error, "草稿保存失败，请稍后重试。", ["草稿不存在或已删除。"]),
         draftId: draftPostId,
       };
     }
@@ -154,7 +166,9 @@ export async function createPostFormAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof PostRateLimitError ? error.message : formatPostValidationError(error, "保存失败"),
+      message: error instanceof PostRateLimitError
+        ? error.message
+        : formatPostValidationError(error, "发布失败，请稍后重试。", ["草稿不存在或已删除。"]),
       draftId: draftPostId,
       tone: error instanceof PostRateLimitError ? "info" : "error",
     };

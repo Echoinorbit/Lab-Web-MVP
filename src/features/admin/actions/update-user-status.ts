@@ -7,14 +7,13 @@ import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { updateUserStatusInputSchema } from "@/shared/lib/validators/admin";
 
 import {
   getDatabaseNow,
   graduateUser,
   lockAdminGovernance,
-  lockUserLifecycle,
-  orderUserLifecycleLockIds,
 } from "../lib/user-lifecycle";
 import { toUserActionResult } from "../lib/user-action-result";
 

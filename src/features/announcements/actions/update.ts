@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { toActionResult } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
-import { computePermissionsFromSnapshot, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { updateAnnouncementInputSchema } from "@/shared/lib/validators/announcements";
 
 import { resolveAnnouncementUpdateAccess } from "../lib/access";
@@ -18,51 +18,25 @@ export async function updateAnnouncement(input: unknown) {
   let updated;
   try {
     updated = await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Announcement" WHERE "id" = ${data.id} FOR UPDATE`;
-      const [current, currentActor, [{ now }]] = await Promise.all([
-        tx.announcement.findFirst({
-          where: { id: data.id, deletedAt: null },
-          select: {
-            authorId: true,
-            title: true,
-            content: true,
-            isPinned: true,
-            isUrgent: true,
-          },
-        }),
-        tx.user.findUnique({
-          where: { id: actor.id },
-          select: {
-            role: true,
-            status: true,
-            displayName: true,
-            studyDegree: true,
-            tags: {
-              where: { revokedAt: null },
-              select: {
-                projectId: true,
-                expiresAt: true,
-                revokedAt: true,
-                tag: {
-                  select: {
-                    name: true,
-                    permissions: true,
-                    template: { select: { permissions: true } },
-                  },
-                },
-              },
-            },
-          },
-        }),
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-      ]);
+      const current = await tx.announcement.findFirst({
+        where: { id: data.id, deletedAt: null },
+        select: {
+          authorId: true,
+          title: true,
+          content: true,
+          isPinned: true,
+          isUrgent: true,
+        },
+      });
       if (!current) throw new Error("公告不存在或已删除。");
       if (!currentActor) throw new PermissionDeniedError(PERMISSIONS.ANNOUNCEMENT_UPDATE);
 
-      const permissions = computePermissionsFromSnapshot(currentActor, now);
+      const permissions = await getUserPermissionsForClient(tx, actor.id, currentActor.now);
       const access = resolveAnnouncementUpdateAccess({
         actorId: actor.id,
-        actorRole: currentActor.role,
+        actorRole: currentActor.actor.role,
         authorId: current.authorId,
         permissions,
       });
@@ -80,7 +54,7 @@ export async function updateAnnouncement(input: unknown) {
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "UPDATE",
           entityType: "Announcement",
           entityId: data.id,

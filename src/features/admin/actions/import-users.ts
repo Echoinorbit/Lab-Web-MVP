@@ -5,14 +5,14 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { toActionResult } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { enrollmentDateForGrade } from "@/shared/lib/grade";
-import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { STUDY_GRADE_LABELS } from "@/shared/lib/study-identity";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { confirmUserImportInputSchema, importUsersInputSchema } from "@/shared/lib/validators/admin";
 
 import { syncStudyIdentity } from "../lib/study-identity-service";
@@ -137,14 +137,11 @@ export async function confirmUserImport(input: unknown): Promise<ImportUsersResu
 
   try {
     await prisma.$transaction(async (tx) => {
-      const [currentAdmin, [{ transactionNow }]] = await Promise.all([
-        tx.user.findFirst({
-          where: { id: admin.id, role: "ADMIN", status: "ACTIVE" },
-          select: { displayName: true, studyDegree: true, status: true },
-        }),
-        tx.$queryRaw<Array<{ transactionNow: Date }>>`SELECT transaction_timestamp() AS "transactionNow"`,
-      ]);
-      if (!currentAdmin) throw new PermissionDeniedError(PERMISSIONS.ADMIN_USER_MANAGE);
+      const currentAdmin = await getLockedActiveActor(tx, admin.id);
+      const permissions = await getUserPermissionsForClient(tx, admin.id, currentAdmin?.now);
+      if (!currentAdmin || currentAdmin.actor.role !== "ADMIN" || !permissions.has(PERMISSIONS.ADMIN_USER_MANAGE)) {
+        throw new PermissionDeniedError(PERMISSIONS.ADMIN_USER_MANAGE);
+      }
       const commitConflicts = await findDatabaseConflicts(prepared, tx);
       if (commitConflicts.length > 0) throw new ImportCommitConflictError(commitConflicts);
       for (const candidate of prepared) {
@@ -178,7 +175,7 @@ export async function confirmUserImport(input: unknown): Promise<ImportUsersResu
       await tx.auditLog.create({
         data: {
           userId: admin.id,
-          actorSnapshot: createActorSnapshot(currentAdmin, transactionNow),
+          actorSnapshot: currentAdmin.actorSnapshot,
           action: "IMPORT",
           entityType: "User",
           details: {

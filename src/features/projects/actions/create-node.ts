@@ -4,11 +4,12 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getProjectPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { projectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { assertProjectNodeParentAllowed, buildProjectNodeParentLookupWhere } from "../lib/node-parent-guard";
@@ -49,31 +50,18 @@ export async function createProjectNode(input: unknown) {
   let node: { id: string; projectId: string };
   try {
     node = await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, user.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${data.projectId} FOR UPDATE`;
-      const [[{ now }], project, currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.project.findFirstOrThrow({
-          where: { id: data.projectId, deletedAt: null },
-          select: { status: true, leaderId: true },
-        }),
-        tx.user.findUnique({
-          where: { id: user.id },
-          select: {
-            role: true,
-            status: true,
-            displayName: true,
-            studyDegree: true,
-            identityNeedsReview: true,
-          },
-        }),
-      ]);
-      const projectPermissions = await getProjectPermissionsForClient(tx, user.id, data.projectId, now);
+      const project = await tx.project.findFirstOrThrow({
+        where: { id: data.projectId, deletedAt: null },
+        select: { status: true, leaderId: true },
+      });
+      const projectPermissions = await getProjectPermissionsForClient(tx, user.id, data.projectId, currentActor?.now);
       const isCurrentLeader = currentActor
-        ? isEligibleProjectLeaderActor(currentActor) && project.leaderId === user.id
+        ? isEligibleProjectLeaderActor(currentActor.actor) && project.leaderId === user.id
         : false;
       if (
         !currentActor
-        || currentActor.status !== "ACTIVE"
         || (!isCurrentLeader && !projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE))
       ) {
         throw new PermissionDeniedError(PERMISSIONS.PROJECT_NODE_CREATE);
@@ -89,7 +77,7 @@ export async function createProjectNode(input: unknown) {
           description: data.description,
           nodeType: data.nodeType,
           authorId: user.id,
-          authorSnapshot: createActorSnapshot(currentActor, now),
+          authorSnapshot: currentActor.actorSnapshot,
         },
       });
 
@@ -106,7 +94,7 @@ export async function createProjectNode(input: unknown) {
           data: recipientIds.map((recipientId) => ({
             userId: recipientId,
             senderId: user.id,
-            senderSnapshot: createActorSnapshot(currentActor, now),
+            senderSnapshot: currentActor.actorSnapshot,
             type: "PROJECT_NODE_NEW",
             title: "项目节点更新",
             content: data.title,
@@ -119,7 +107,7 @@ export async function createProjectNode(input: unknown) {
       await tx.auditLog.create({
         data: {
           userId: user.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "CREATE",
           entityType: "ProjectNode",
           entityId: created.id,
@@ -161,6 +149,9 @@ export async function createProjectNodeFormAction(
     });
     return { ok: true, message: "节点已创建" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "创建失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, { fallbackMessage: "节点创建失败，请稍后重试。" }),
+    };
   }
 }

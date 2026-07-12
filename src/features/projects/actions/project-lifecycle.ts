@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { toActionResult } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 
 import { applyHardDeleteProject, type ProjectHardDeleteTransaction } from "../lib/hard-delete";
 import { canRestoreProjectSnapshot, canSoftDeleteProjectSnapshot } from "../lib/project-governance";
@@ -17,22 +17,15 @@ export async function softDeleteAdvisedProject(projectId: string) {
   const actor = await requireActiveUser();
   try {
     return await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
-      const [[{ now }], project, currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.project.findUnique({
-          where: { id: projectId },
-          select: { name: true, advisorId: true, status: true, archivedAt: true, deletedAt: true },
-        }),
-        tx.user.findUnique({
-          where: { id: actor.id },
-          select: { role: true, status: true, displayName: true, studyDegree: true },
-        }),
-      ]);
-      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
+      const project = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, advisorId: true, status: true, archivedAt: true, deletedAt: true },
+      });
+      const permissions = await getUserPermissionsForClient(tx, actor.id, currentActor?.now);
       if (
         !currentActor
-        || currentActor.status !== "ACTIVE"
         || !project
         || !canSoftDeleteProjectSnapshot(actor.id, project, permissions)
       ) {
@@ -40,17 +33,17 @@ export async function softDeleteAdvisedProject(projectId: string) {
       }
       const result = await tx.project.updateMany({
         where: { id: projectId, advisorId: actor.id, deletedAt: null },
-        data: { deletedAt: now },
+        data: { deletedAt: currentActor.now },
       });
       if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "DELETE",
           entityType: "Project",
           entityId: projectId,
-          details: { mode: "SOFT", deletedAt: now, before: project },
+          details: { mode: "SOFT", deletedAt: currentActor.now, before: project },
         },
       });
     });
@@ -71,19 +64,15 @@ export async function restoreProject(projectId: string) {
   const actor = await requireActiveUser();
   try {
     return await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
-      const [[{ now }], project, currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.project.findUnique({ where: { id: projectId }, select: { name: true, deletedAt: true } }),
-        tx.user.findUnique({
-          where: { id: actor.id },
-          select: { role: true, status: true, displayName: true, studyDegree: true },
-        }),
-      ]);
-      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
+      const project = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, deletedAt: true },
+      });
+      const permissions = await getUserPermissionsForClient(tx, actor.id, currentActor?.now);
       if (
         !currentActor
-        || currentActor.status !== "ACTIVE"
         || !project
         || !canRestoreProjectSnapshot(project, permissions)
       ) {
@@ -97,11 +86,11 @@ export async function restoreProject(projectId: string) {
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "UPDATE",
           entityType: "Project",
           entityId: projectId,
-          details: { mode: "SOFT", before: project, restoredAt: now },
+          details: { mode: "SOFT", before: project, restoredAt: currentActor.now },
         },
       });
     });
@@ -122,21 +111,15 @@ export async function hardDeleteProject(projectId: string) {
   const actor = await requireActiveUser();
   try {
     return await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
-      const [[{ now }], currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.user.findUnique({
-          where: { id: actor.id },
-          select: { role: true, status: true, displayName: true, studyDegree: true },
-        }),
-      ]);
-      const permissions = await getUserPermissionsForClient(tx, actor.id, now);
-      if (!currentActor || currentActor.status !== "ACTIVE" || !permissions.has(PERMISSIONS.PROJECT_DELETE_ANY)) {
+      const permissions = await getUserPermissionsForClient(tx, actor.id, currentActor?.now);
+      if (!currentActor || !permissions.has(PERMISSIONS.PROJECT_DELETE_ANY)) {
         throw new PermissionDeniedError(PERMISSIONS.PROJECT_DELETE_ANY);
       }
       return applyHardDeleteProject(
         tx as unknown as ProjectHardDeleteTransaction,
-        { projectId, actorId: actor.id, actorSnapshot: createActorSnapshot(currentActor, now) },
+        { projectId, actorId: actor.id, actorSnapshot: currentActor.actorSnapshot },
       );
     });
   } catch (error) {

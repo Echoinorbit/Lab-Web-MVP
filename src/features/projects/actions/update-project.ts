@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import {
   getProjectPermissionsForClient,
@@ -12,6 +12,7 @@ import {
 } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { updateProjectInputSchema } from "@/shared/lib/validators/projects";
 
 import { canEditProjectSnapshot, isEligibleProjectLeaderActor } from "../lib/project-governance";
@@ -24,41 +25,28 @@ export async function updateProject(input: unknown) {
   let updated;
   try {
     updated = await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${data.projectId} FOR UPDATE`;
-      const [[{ now }], current, currentActor] = await Promise.all([
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-        tx.project.findFirstOrThrow({
-          where: { id: data.projectId, deletedAt: null },
-          select: {
-            name: true,
-            description: true,
-            status: true,
-            advisorId: true,
-            leaderId: true,
-            deletedAt: true,
-          },
-        }),
-        tx.user.findUnique({
-          where: { id: actor.id },
-          select: {
-            role: true,
-            status: true,
-            displayName: true,
-            studyDegree: true,
-            identityNeedsReview: true,
-          },
-        }),
-      ]);
+      const current = await tx.project.findFirstOrThrow({
+        where: { id: data.projectId, deletedAt: null },
+        select: {
+          name: true,
+          description: true,
+          status: true,
+          advisorId: true,
+          leaderId: true,
+          deletedAt: true,
+        },
+      });
       const [globalPermissions, projectPermissions] = await Promise.all([
-        getUserPermissionsForClient(tx, actor.id, now),
-        getProjectPermissionsForClient(tx, actor.id, data.projectId, now),
+        getUserPermissionsForClient(tx, actor.id, currentActor?.now),
+        getProjectPermissionsForClient(tx, actor.id, data.projectId, currentActor?.now),
       ]);
       if (
         !currentActor
-        || currentActor.status !== "ACTIVE"
         || !canEditProjectSnapshot(
           actor.id,
-          isEligibleProjectLeaderActor(currentActor),
+          isEligibleProjectLeaderActor(currentActor.actor),
           current,
           { globalPermissions, projectPermissions },
         )
@@ -83,7 +71,7 @@ export async function updateProject(input: unknown) {
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "UPDATE",
           entityType: "Project",
           entityId: data.projectId,
@@ -126,6 +114,12 @@ export async function updateProjectFormAction(
     });
     return { ok: true, message: "项目信息已更新" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "更新失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "项目信息更新失败，请稍后重试。",
+        knownMessages: ["已归档项目不可写入。"],
+      }),
+    };
   }
 }

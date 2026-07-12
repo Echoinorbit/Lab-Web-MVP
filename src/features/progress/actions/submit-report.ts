@@ -1,5 +1,6 @@
 "use server";
 
+import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
@@ -111,7 +112,14 @@ export async function reportFormAction(
     return {
       ...previousState,
       ok: false,
-      message: error instanceof Error ? error.message : "操作失败",
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "进度报告操作失败，请稍后重试。",
+        knownMessages: [
+          "进度报告不在管理员配置的填报窗口内；历史月份需由管理员开启补填窗口。",
+          "进度报告不在管理员配置的提交窗口内；历史月份需由管理员开启补填窗口。",
+          "只有草稿状态的进度报告可以提交，已提交报告不能重复提交。",
+        ],
+      }),
     };
   }
 }

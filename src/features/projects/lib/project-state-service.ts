@@ -1,11 +1,18 @@
 import { Prisma } from "@prisma/client";
 
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 
 import { ensureProjectScopedTag } from "./tag-grants";
 
 const PROJECT_LEADER_LOCK_PREFIX = "lab-platform:project-leader:v1:";
+
+export async function lockProjectLeaderAssignment(tx: Prisma.TransactionClient, projectId: string) {
+  await tx.$executeRaw(Prisma.sql`
+    SELECT pg_advisory_xact_lock(hashtextextended(${PROJECT_LEADER_LOCK_PREFIX + projectId}, 0))
+  `);
+  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`);
+}
 
 export async function assignProjectLeader(
   tx: Prisma.TransactionClient,
@@ -14,10 +21,7 @@ export async function assignProjectLeader(
   for (const userId of orderUserLifecycleLockIds([input.actorId, input.leaderId])) {
     await lockUserLifecycle(tx, userId);
   }
-  await tx.$executeRaw(Prisma.sql`
-    SELECT pg_advisory_xact_lock(hashtextextended(${PROJECT_LEADER_LOCK_PREFIX + input.projectId}, 0))
-  `);
-  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Project" WHERE "id" = ${input.projectId} FOR UPDATE`);
+  await lockProjectLeaderAssignment(tx, input.projectId);
   const [project, leader, actor, [{ now }]] = await Promise.all([
     tx.project.findFirstOrThrow({
       where: { id: input.projectId, deletedAt: null },

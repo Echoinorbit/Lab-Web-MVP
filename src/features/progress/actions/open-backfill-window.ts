@@ -1,12 +1,14 @@
 "use server";
 
-import { appendAuditLog } from "@/shared/lib/audit";
+import { getActionErrorMessage } from "@/shared/lib/action-result";
+import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { getProgressBackfillExpiresAt } from "@/shared/lib/date";
-import { PERMISSIONS } from "@/shared/lib/permissions";
+import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { progressBackfillInputSchema } from "@/shared/lib/validators/progress";
+
+import { openProgressBackfillWindowForUser } from "../lib/backfill";
 
 export async function openProgressBackfillWindow(input: unknown) {
   const manager = await requireActiveUser();
@@ -17,43 +19,21 @@ export async function openProgressBackfillWindow(input: unknown) {
     entityType: "ProgressBackfillWindow",
   });
 
-  const expiresAt = getProgressBackfillExpiresAt();
-  const window = await prisma.progressBackfillWindow.upsert({
-    where: {
-      userId_year_month: {
-        userId: data.userId,
-        year: data.year,
-        month: data.month,
-      },
-    },
-    create: {
-      userId: data.userId,
-      year: data.year,
-      month: data.month,
-      openedById: manager.id,
-      expiresAt,
-    },
-    update: {
-      openedById: manager.id,
-      expiresAt,
-      usedAt: null,
-    },
-  });
-
-  await appendAuditLog({
-    userId: manager.id,
-    action: "PROGRESS_BACKFILL",
-    entityType: "ProgressBackfillWindow",
-    entityId: window.id,
-    details: {
-      studentUserId: data.userId,
-      year: data.year,
-      month: data.month,
-      expiresAt: expiresAt.toISOString(),
-    },
-  });
-
-  return window;
+  try {
+    return await prisma.$transaction((tx) => openProgressBackfillWindowForUser(tx, {
+      managerId: manager.id,
+      ...data,
+    }));
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      await auditPermissionDenied({
+        userId: manager.id,
+        permission: error.permission,
+        entityType: "ProgressBackfillWindow",
+      });
+    }
+    throw error;
+  }
 }
 
 export type BackfillFormState = { ok: boolean; message: string | null };
@@ -70,6 +50,12 @@ export async function openBackfillWindowFormAction(
     });
     return { ok: true, message: "补填窗口已开启" };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "开启失败" };
+    return {
+      ok: false,
+      message: getActionErrorMessage(error, {
+        fallbackMessage: "补填窗口开启失败，请稍后重试。",
+        knownMessages: ["目标成员不存在或账号不可用。"],
+      }),
+    };
   }
 }

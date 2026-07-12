@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { toActionResult } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import {
   cleanupAvatarOrphans,
   decodeAvatarBase64,
@@ -14,6 +13,7 @@ import {
 } from "@/shared/lib/avatar-storage";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 
 const avatarInputSchema = z.object({
   pngBase64: z.string().min(1).max(Math.ceil(MAX_AVATAR_PNG_BYTES * 4 / 3) + 8),
@@ -49,20 +49,17 @@ export async function updateAvatar(input: unknown) {
   let previousAvatar: string | null = null;
   try {
     previousAvatar = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${actor.id} FOR UPDATE`;
-      const [current, [{ now }]] = await Promise.all([
-        tx.user.findFirst({
-          where: { id: actor.id },
-          select: { avatar: true, displayName: true, studyDegree: true, status: true },
-        }),
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
-      ]);
-      if (!current || current.status !== "ACTIVE") throw new Error("账号已失效，无法更新头像。");
+      const currentActor = await getLockedActiveActor(tx, actor.id);
+      if (!currentActor) throw new Error("账号已失效，无法更新头像。");
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id: actor.id },
+        select: { avatar: true },
+      });
       await tx.user.update({ where: { id: actor.id }, data: { avatar: nextAvatar } });
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(current, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "UPDATE",
           entityType: "UserAvatar",
           entityId: actor.id,
@@ -72,25 +69,40 @@ export async function updateAvatar(input: unknown) {
       return current.avatar;
     });
   } catch (error) {
-    await removeManagedAvatar(nextAvatar).catch(() => undefined);
+    try {
+      await removeManagedAvatar(nextAvatar);
+    } catch {
+      throw new Error("头像保存失败；未使用文件将在后台任务中重试清理。", { cause: error });
+    }
     throw error;
   }
 
-  if (previousAvatar !== nextAvatar) await removeManagedAvatar(previousAvatar).catch(() => undefined);
+  let cleanupPending = false;
+  if (previousAvatar !== nextAvatar) {
+    try {
+      await removeManagedAvatar(previousAvatar);
+    } catch {
+      cleanupPending = true;
+    }
+  }
   const referenced = new Set((await prisma.user.findMany({
     where: { avatar: { not: null } },
     select: { avatar: true },
   })).flatMap((user) => user.avatar ? [user.avatar] : []));
-  await cleanupAvatarOrphans(referenced).catch(() => undefined);
+  try {
+    await cleanupAvatarOrphans(referenced);
+  } catch {
+    cleanupPending = true;
+  }
 
   revalidatePath("/");
   revalidatePath("/profile");
-  return { avatar: nextAvatar };
+  return { avatar: nextAvatar, cleanupPending };
 }
 
 export async function updateAvatarResult(input: unknown) {
   return toActionResult(() => updateAvatar(input), {
     fallbackMessage: "头像保存失败，请稍后重试。",
-    knownMessages: avatarFeedbackMessages,
+    knownMessages: [...avatarFeedbackMessages, "头像保存失败；未使用文件将在后台任务中重试清理。"],
   });
 }

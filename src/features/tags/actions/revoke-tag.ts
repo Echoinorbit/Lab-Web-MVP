@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getDatabaseNow, lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
+import { getDatabaseNow } from "@/features/admin/lib/user-lifecycle";
 import { toActionResult } from "@/shared/lib/action-result";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
@@ -10,6 +10,7 @@ import { assertAnyPermissionWithAudit } from "@/shared/lib/authorization";
 import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { revokeTagInputSchema } from "@/shared/lib/validators/tags";
 
 import { assertManualTagTargetEligible, assertManuallyManageableTagName } from "../lib/project-tag-guard";

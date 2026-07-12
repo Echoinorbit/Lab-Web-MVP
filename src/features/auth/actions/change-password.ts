@@ -3,68 +3,56 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
-import { appendAuditLog } from "@/shared/lib/audit";
 import { requireActiveUser } from "@/shared/lib/session";
 import { prisma } from "@/shared/lib/prisma";
 import { validatePasswordPolicy, verifyPasswordWithDummyFallback } from "@/shared/lib/security";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { changePasswordSchema } from "@/shared/lib/validators/auth";
 
 export async function changePassword(input: unknown) {
   const sessionUser = await requireActiveUser({ allowPasswordChange: true });
   const parsed = changePasswordSchema.parse(input);
 
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: sessionUser.id },
-    select: {
-      id: true,
-      username: true,
-      studentId: true,
-      passwordHash: true,
-      displayName: true,
-      studyDegree: true,
-      status: true,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    const actor = await getLockedActiveActor(tx, sessionUser.id);
+    if (!actor) throw new Error("账号已失效，无法修改密码。");
+    const user = await tx.user.findUniqueOrThrow({
+      where: { id: sessionUser.id },
+      select: { id: true, username: true, studentId: true, passwordHash: true },
+    });
+    const currentOk = await verifyPasswordWithDummyFallback(parsed.currentPassword, user.passwordHash);
+    if (!currentOk) throw new Error("Current password is incorrect.");
 
-  const currentOk = await verifyPasswordWithDummyFallback(parsed.currentPassword, user.passwordHash);
-  if (!currentOk) {
-    throw new Error("Current password is incorrect.");
-  }
+    const policy = validatePasswordPolicy(parsed.newPassword, [user.username, user.studentId ?? ""]);
+    if (!policy.ok) throw new Error(policy.errors.join(" "));
 
-  const policy = validatePasswordPolicy(parsed.newPassword, [user.username, user.studentId ?? ""]);
-  if (!policy.ok) {
-    throw new Error(policy.errors.join(" "));
-  }
-
-  const actorSnapshot = createActorSnapshot(user);
-
-  await prisma.$transaction([
-    prisma.user.update({
+    await tx.user.update({
       where: { id: user.id },
       data: {
         passwordHash: await bcrypt.hash(parsed.newPassword, 12),
         mustChangePassword: false,
         tokenVersion: { increment: 1 },
       },
-    }),
-    prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        actorSnapshot,
-        action: "PASSWORD_CHANGE",
-        entityType: "User",
-        entityId: user.id,
-      },
-    }),
-  ]);
-
-  await appendAuditLog({
-    userId: user.id,
-    action: "SESSION_REVOKE",
-    entityType: "User",
-    entityId: user.id,
-    details: { reason: "password-change" },
+    });
+    await tx.auditLog.createMany({
+      data: [
+        {
+          userId: user.id,
+          actorSnapshot: actor.actorSnapshot,
+          action: "PASSWORD_CHANGE",
+          entityType: "User",
+          entityId: user.id,
+        },
+        {
+          userId: user.id,
+          actorSnapshot: actor.actorSnapshot,
+          action: "SESSION_REVOKE",
+          entityType: "User",
+          entityId: user.id,
+          details: { reason: "password-change" },
+        },
+      ],
+    });
   });
 }
 

@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { toActionResult } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { appendAuditLog } from "@/shared/lib/audit";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { deleteProjectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { ProjectNodeAuthorError, resolveProjectNodeAuthorAccess } from "../lib/node-author-ops";
@@ -22,8 +22,9 @@ export async function deleteProjectNode(input: unknown) {
   });
   try {
     await prisma.$transaction(async (tx) => {
+      const currentActor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${locatedNode.projectId} FOR UPDATE`;
-      const [project, node, currentActor, [{ now }]] = await Promise.all([
+      const [project, node] = await Promise.all([
         tx.project.findFirstOrThrow({
           where: { id: locatedNode.projectId, deletedAt: null },
           select: { status: true },
@@ -32,11 +33,6 @@ export async function deleteProjectNode(input: unknown) {
           where: { id: locatedNode.id, projectId: locatedNode.projectId, deletedAt: null },
           select: { id: true, authorId: true },
         }),
-        tx.user.findFirst({
-          where: { id: actor.id, status: "ACTIVE" },
-          select: { displayName: true, studyDegree: true, status: true },
-        }),
-        tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
       ]);
       assertProjectWritableStatus(project.status);
       const access = resolveProjectNodeAuthorAccess({ userId: actor.id, authorId: node.authorId });
@@ -44,12 +40,12 @@ export async function deleteProjectNode(input: unknown) {
 
       await tx.projectNode.update({
         where: { id: node.id },
-        data: { deletedAt: now },
+        data: { deletedAt: currentActor.now },
       });
       await tx.auditLog.create({
         data: {
           userId: actor.id,
-          actorSnapshot: createActorSnapshot(currentActor, now),
+          actorSnapshot: currentActor.actorSnapshot,
           action: "DELETE",
           entityType: "ProjectNode",
           entityId: node.id,

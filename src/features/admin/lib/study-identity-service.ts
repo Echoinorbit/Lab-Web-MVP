@@ -2,8 +2,7 @@ import { Prisma, type Role, type StudyDegree, type StudyGrade } from "@prisma/cl
 
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertStudyIdentity, studyDegreeTagName } from "@/shared/lib/study-identity";
-
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "./user-lifecycle";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 
 export type CanonicalStudyIdentity = {
   role: Role;

@@ -8,11 +8,12 @@ import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserAdvisorRelations, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { updateUserAdvisorInputSchema } from "@/shared/lib/validators/admin";
 
 import { lockUserIdentity } from "../lib/study-identity-service";
 import { canAssignAdvisorToTarget } from "../lib/user-governance";
-import { getDatabaseNow, orderUserLifecycleLockIds } from "../lib/user-lifecycle";
+import { getDatabaseNow } from "../lib/user-lifecycle";
 import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserAdvisor(input: unknown) {
@@ -27,9 +28,15 @@ export async function updateUserAdvisor(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
+    const currentRelation = await tx.user.findUnique({
+      where: { id: data.userId },
+      select: { advisorId: true },
+    });
     for (const userId of orderUserLifecycleLockIds([
       admin.id,
       data.userId,
+      ...(currentRelation?.advisorId ? [currentRelation.advisorId] : []),
       ...(data.advisorId ? [data.advisorId] : []),
     ])) {
       await lockUserIdentity(tx, userId);

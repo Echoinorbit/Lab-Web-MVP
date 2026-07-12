@@ -7,11 +7,11 @@ import { enrollmentDateForGrade } from "@/shared/lib/grade";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
+import { lockUserAdvisorRelations, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 import { STUDY_GRADE_LABELS } from "@/shared/lib/study-identity";
 import { updateUserStudyIdentityInputSchema } from "@/shared/lib/validators/admin";
 
 import { lockUserIdentity, syncStudyIdentity } from "../lib/study-identity-service";
-import { orderUserLifecycleLockIds } from "../lib/user-lifecycle";
 import { toUserActionResult } from "../lib/user-action-result";
 
 export async function updateUserStudyIdentity(input: unknown) {
@@ -25,6 +25,7 @@ export async function updateUserStudyIdentity(input: unknown) {
   });
 
   await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
     for (const userId of orderUserLifecycleLockIds([actor.id, data.userId])) {
       await lockUserIdentity(tx, userId);
     }

@@ -5,13 +5,13 @@ import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 
 import { getActionErrorMessage } from "@/shared/lib/action-result";
-import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { auditPermissionDenied } from "@/shared/lib/audit";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
-import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { assertRuntimeSettings, SYSTEM_SETTING_ID } from "@/shared/lib/system-settings";
+import { getLockedActiveActor, lockAllUserLifecycles } from "@/shared/lib/user-lifecycle-lock";
 import { updateSystemSettingsInputSchema } from "@/shared/lib/validators/admin";
 
 import { parseSystemSettingsRevision, parseSystemSettingsTime } from "../lib/system-settings-form";
@@ -30,22 +30,20 @@ export async function updateSystemSettings(input: unknown) {
   let result;
   try {
     result = await prisma.$transaction(async (tx) => {
+      await lockAllUserLifecycles(tx);
+      const editor = await getLockedActiveActor(tx, actor.id);
       await tx.$queryRaw(Prisma.sql`
         SELECT "id" FROM "SystemSetting" WHERE "id" = ${SYSTEM_SETTING_ID} FOR UPDATE
       `);
-      const [current, editor, [{ now }]] = await Promise.all([
-        tx.systemSetting.findUniqueOrThrow({ where: { id: SYSTEM_SETTING_ID } }),
-        tx.user.findFirst({
-          where: { id: actor.id, role: "ADMIN", status: "ACTIVE" },
-          select: { displayName: true, studyDegree: true, status: true },
-        }),
-        tx.$queryRaw<Array<{ now: Date }>>(Prisma.sql`SELECT transaction_timestamp() AS now`),
-      ]);
-      if (!editor) throw new PermissionDeniedError(PERMISSIONS.ADMIN_SETTINGS);
+      const current = await tx.systemSetting.findUniqueOrThrow({ where: { id: SYSTEM_SETTING_ID } });
+      const permissions = await getUserPermissionsForClient(tx, actor.id, editor?.now);
+      if (!editor || editor.actor.role !== "ADMIN" || !permissions.has(PERMISSIONS.ADMIN_SETTINGS)) {
+        throw new PermissionDeniedError(PERMISSIONS.ADMIN_SETTINGS);
+      }
       if (current.revision !== data.revision) throw new Error("设置已被其他管理员更新，请刷新后重试。");
 
       const sessionPolicyChanged = current.sessionHours !== data.sessionHours;
-      const updatedBySnapshot = createActorSnapshot(editor, now);
+      const updatedBySnapshot = editor.actorSnapshot;
       const updated = await tx.systemSetting.update({
         where: { id: SYSTEM_SETTING_ID },
         data: {

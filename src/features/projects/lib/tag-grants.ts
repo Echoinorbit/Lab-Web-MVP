@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/features/admin/lib/user-lifecycle";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { PROJECT_LEAD_TAG_PREFIX, PROJECT_MEMBER_TAG_PREFIX } from "@/shared/lib/system-tags";
+import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
 
 import { isEligibleProjectLeaderActor } from "./project-governance";
 
