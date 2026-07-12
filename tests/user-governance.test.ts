@@ -83,4 +83,10 @@ test("转为 ADMIN 应清空导师、吊销会话并撤销全部有效 Tag", asy
   });
   assert.equal(audits.length, 1);
   assert.deepEqual((audits[0] as { data: { actorSnapshot: unknown } }).data.actorSnapshot, actorSnapshot);
+  assert.deepEqual((audits[0] as { data: { details: unknown } }).data.details, {
+    role: "ADMIN",
+    revokedTagCount: 3,
+    releasedAdviseeCount: 0,
+    releasedProjectLeaderIds: [],
+  });
 });

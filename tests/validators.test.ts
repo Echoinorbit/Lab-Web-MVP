@@ -114,6 +114,7 @@ test("培养身份编辑与创建使用同一组学位年级约束", () => {
     userId: "u1",
     studyDegree: "MASTER",
     studyGrade: "MASTER_2",
+    confirmGraduatedRepair: true,
   }).success, true);
   assert.equal(updateUserStudyIdentityInputSchema.safeParse({
     userId: "u1",

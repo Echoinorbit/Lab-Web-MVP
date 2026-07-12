@@ -11,7 +11,10 @@ import ExcelJS from "exceljs";
 
 import { deleteUserAccount } from "../src/features/admin/lib/delete-user-account";
 import { executeAuditExport } from "../src/features/admin/lib/audit-export";
-import { syncStudyIdentity } from "../src/features/admin/lib/study-identity-service";
+import {
+  applyStudyIdentityUpdate,
+  syncStudyIdentity,
+} from "../src/features/admin/lib/study-identity-service";
 import { applyAdminUserRoleUpdate } from "../src/features/admin/lib/user-governance";
 import { cancelUserGraduation, graduateUser } from "../src/features/admin/lib/user-lifecycle";
 import {
@@ -21,6 +24,7 @@ import {
 import { assignProjectLeader } from "../src/features/projects/lib/project-state-service";
 import {
   ACTIVE_PROJECT_ADVISOR_RESPONSIBILITY_MESSAGE,
+  getProjectAdvisorLifecycleUserIds,
   reconcileCanonicalProjectLeadershipForUser,
 } from "../src/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "../src/shared/lib/actor-snapshot";
@@ -294,6 +298,128 @@ function snapshot(value: unknown) {
   return value as Record<string, unknown>;
 }
 
+const legacyIdentityDecisions: Array<{
+  userId: string;
+  studyDegree: StudyDegree;
+  studyGrade: StudyGrade | null;
+  confirmGraduatedRepair?: boolean;
+}> = [
+  { userId: "legacy-grade-conflict", studyDegree: "DOCTOR", studyGrade: "DOCTOR_2" },
+  {
+    userId: "legacy-graduated-mentor",
+    studyDegree: "MASTER",
+    studyGrade: "MASTER_3",
+    confirmGraduatedRepair: true,
+  },
+  { userId: "legacy-mentor-grade", studyDegree: "MENTOR", studyGrade: null },
+  { userId: "legacy-missing", studyDegree: "MASTER", studyGrade: "MASTER_0" },
+  { userId: "legacy-tag-conflict", studyDegree: "MASTER", studyGrade: "MASTER_1" },
+  { userId: "legacy-unmapped", studyDegree: "MASTER", studyGrade: "MASTER_1" },
+];
+
+async function reconcileRetainedLegacyAmbiguity(
+  prisma: PrismaClient,
+  initialReport: Awaited<ReturnType<typeof buildReport>>,
+) {
+  await prisma.$transaction(async (tx) => {
+    const [[{ now }], admin] = await Promise.all([
+      tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`,
+      tx.user.findUniqueOrThrow({
+        where: { id: "legacy-admin" },
+        select: { displayName: true, studyDegree: true, status: true },
+      }),
+    ]);
+    const actorSnapshot = createActorSnapshot(admin, now);
+    for (const project of initialReport.projectsWithoutLeader) {
+      await tx.project.update({
+        where: { id: project.id },
+        data: {
+          status: "ARCHIVED",
+          archivedAt: now,
+          archivedById: "legacy-admin",
+          archivedBySnapshot: actorSnapshot,
+          leaderNeedsReassignment: false,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: "legacy-admin",
+          actorSnapshot,
+          action: "UPDATE",
+          entityType: "Project",
+          entityId: project.id,
+          details: { status: "ARCHIVED", scope: "ADMIN_MIGRATION_RECONCILIATION" },
+        },
+      });
+    }
+  });
+
+  for (const decision of legacyIdentityDecisions) {
+    await prisma.$transaction(async (tx) => {
+      await lockUserAdvisorRelations(tx);
+      const relatedUserIds = await getProjectAdvisorLifecycleUserIds(tx, decision.userId);
+      for (const userId of orderUserLifecycleLockIds([
+        "legacy-admin",
+        decision.userId,
+        ...relatedUserIds,
+      ])) {
+        await lockUserLifecycle(tx, userId);
+      }
+      const result = await applyStudyIdentityUpdate(tx, {
+        ...decision,
+        actorId: "legacy-admin",
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: "legacy-admin",
+          actorSnapshot: result.identitySync.actorSnapshot,
+          action: "UPDATE",
+          entityType: "User",
+          entityId: decision.userId,
+          details: {
+            repairedGraduatedIdentity: result.repairingGraduatedIdentity,
+            releasedAdviseeCount: result.identitySync.releasedAdviseeCount,
+            releasedProjectLeaderIds: result.identitySync.reconciledProjectIds,
+          },
+        },
+      });
+    });
+  }
+
+  const repairedGraduatedUser = await prisma.user.findUniqueOrThrow({
+    where: { id: "legacy-graduated-mentor" },
+  });
+  assert.equal(repairedGraduatedUser.status, "GRADUATED");
+  assert.equal(repairedGraduatedUser.studyDegree, "MASTER");
+  assert.equal(repairedGraduatedUser.studyGrade, "MASTER_3");
+  assert.equal(repairedGraduatedUser.identityNeedsReview, false);
+  assert.equal(repairedGraduatedUser.identityMigrationNote, null);
+  assert(repairedGraduatedUser.graduatedAt);
+  assert(repairedGraduatedUser.scheduledDeletionAt);
+  assert.equal(
+    repairedGraduatedUser.scheduledDeletionAt.getTime() - repairedGraduatedUser.graduatedAt.getTime(),
+    72 * 60 * 60 * 1000,
+  );
+  const releasedAdvisee = await prisma.user.findUniqueOrThrow({
+    where: { id: "legacy-invalid-advisor-student" },
+  });
+  assert.equal(releasedAdvisee.advisorId, null);
+  assert.equal(snapshot(releasedAdvisee.advisorSnapshot).displayName, "旧库毕业导师");
+
+  const finalReport = await buildReport(prisma);
+  assert.equal(finalReport.ready, true);
+  assert.deepEqual(finalReport.unresolvedIdentities, []);
+  assert.deepEqual(finalReport.conflictingEffectiveIdentityTags, []);
+  assert.deepEqual(finalReport.identityProjectionDrift, []);
+  assert.deepEqual(finalReport.invalidAdvisorRelations, []);
+  assert.deepEqual(finalReport.projectsWithoutLeader, []);
+  assert.deepEqual(finalReport.invalidProjectLeaders, []);
+  assert.deepEqual(finalReport.projectStatusDrift, []);
+  assert.deepEqual(finalReport.lifecycleDrift, []);
+  assert(Object.values(finalReport.missingSnapshots).every((count) => count === 0));
+  return finalReport;
+}
+
 async function assertLegacyUpgrade(
   prisma: PrismaClient,
   beforeCounts: Record<string, number>,
@@ -509,6 +635,32 @@ async function assertLegacyUpgrade(
     { userId: "legacy-tag-conflict", username: "legacy-tag-conflict", assignmentCount: 2 },
   ]);
   assert.deepEqual(report.identityProjectionDrift, []);
+  assert.deepEqual(report.invalidAdvisorRelations, [
+    {
+      userId: "legacy-invalid-advisor-student",
+      username: "legacy-invalid-advisor-student",
+      role: "MEMBER",
+      studyDegree: "MASTER",
+      identityNeedsReview: false,
+      advisorId: "legacy-graduated-mentor",
+      advisorUsername: "legacy-graduated-mentor",
+      advisorRole: "MEMBER",
+      advisorStudyDegree: "MENTOR",
+      advisorIdentityNeedsReview: true,
+    },
+    {
+      userId: "legacy-unmapped",
+      username: "legacy-unmapped",
+      role: "MEMBER",
+      studyDegree: "MASTER",
+      identityNeedsReview: true,
+      advisorId: "legacy-mentor",
+      advisorUsername: "legacy-mentor",
+      advisorRole: "MEMBER",
+      advisorStudyDegree: "MENTOR",
+      advisorIdentityNeedsReview: false,
+    },
+  ]);
   assert.deepEqual(
     report.projectsWithoutLeader
       .map((project) => ({ id: project.id, leaderNeedsReassignment: project.leaderNeedsReassignment }))
@@ -557,19 +709,32 @@ async function assertLegacyUpgrade(
   assert.equal(snapshot(revokedGrant.granterSnapshot).displayName, "旧库管理员");
   assert.equal(snapshot(revokedGrant.revokerSnapshot).displayName, "旧库管理员");
 
+  const migrationStructuralCounts = {
+    tags: { before: beforeTagCount, after: await prisma.tag.count() },
+    userTags: { before: beforeUserTagCount, after: await prisma.userTag.count() },
+    systemSettings: await prisma.systemSetting.count(),
+  };
+  const reconciledReport = await reconcileRetainedLegacyAmbiguity(prisma, report);
+
   return {
     migrationHistory: await migrationHistory(prisma),
     rowCounts: { before: beforeCounts, after: afterCounts },
-    structuralCounts: {
-      tags: { before: beforeTagCount, after: await prisma.tag.count() },
-      userTags: { before: beforeUserTagCount, after: await prisma.userTag.count() },
-      systemSettings: await prisma.systemSetting.count(),
-    },
+    structuralCounts: migrationStructuralCounts,
     identityReasonLedger: report.identityReasonLedger,
     readiness: {
-      ready: report.ready,
-      unresolvedIdentityCount: report.unresolvedIdentities.length,
-      projectsNeedingLeader: report.projectsWithoutLeader.length,
+      initial: {
+        ready: report.ready,
+        unresolvedIdentityCount: report.unresolvedIdentities.length,
+        invalidAdvisorRelationCount: report.invalidAdvisorRelations.length,
+        projectsNeedingLeader: report.projectsWithoutLeader.length,
+        missingSnapshots: report.missingSnapshots,
+      },
+      reconciled: {
+        ready: reconciledReport.ready,
+        unresolvedIdentityCount: reconciledReport.unresolvedIdentities.length,
+        invalidAdvisorRelationCount: reconciledReport.invalidAdvisorRelations.length,
+        projectsNeedingLeader: reconciledReport.projectsWithoutLeader.length,
+      },
       missingSnapshots: report.missingSnapshots,
     },
   };

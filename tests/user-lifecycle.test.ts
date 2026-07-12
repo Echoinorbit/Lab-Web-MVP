@@ -92,7 +92,10 @@ test("毕业撤销全部旧授权，取消毕业只恢复培养身份 Tag", asyn
   const tagNames: string[] = [];
   const transaction = {
     userTag: {
-      updateMany: async (args: unknown) => { updates.push(args); return { count: 1 }; },
+      updateMany: async (args: { where?: { source?: string } }) => {
+        updates.push(args);
+        return { count: args.where?.source === "STUDY_IDENTITY" ? 0 : 1 };
+      },
       create: async (args: unknown) => { creates.push(args); return { id: `grant-${creates.length}` }; },
     },
     tag: {
@@ -130,6 +133,16 @@ test("毕业撤销全部旧授权，取消毕业只恢复培养身份 Tag", asyn
       where: { userId: "student", revokedAt: null, projectId: null, tag: { name: "graduated" } },
       data: { revokedAt: now, revokedById: "admin", revokerSnapshot: actorSnapshot },
     },
+    {
+      where: {
+        userId: "student",
+        tagId: "tag-grad-master",
+        projectId: null,
+        source: "STUDY_IDENTITY",
+        revokedAt: null,
+      },
+      data: { expiresAt: null },
+    },
   ]);
   assert.equal(creates.length, 2);
   assert.deepEqual(creates[1], {
@@ -141,6 +154,39 @@ test("毕业撤销全部旧授权，取消毕业只恢复培养身份 Tag", asyn
       granterSnapshot: actorSnapshot,
     },
   });
+});
+
+test("取消迁移修复后的毕业状态应复用现有培养身份投影", async () => {
+  const creates: unknown[] = [];
+  const transaction = {
+    userTag: {
+      updateMany: async (args: { where?: { source?: string } }) => ({
+        count: args.where?.source === "STUDY_IDENTITY" ? 1 : 1,
+      }),
+      create: async (args: unknown) => { creates.push(args); return { id: "unexpected" }; },
+    },
+    tag: {
+      findFirstOrThrow: async () => ({ id: "tag-grad-master" }),
+    },
+  };
+  const now = new Date("2026-07-10T00:00:00.000Z");
+  await restoreStudyIdentityAfterCancelledGraduation(
+    transaction as unknown as Parameters<typeof restoreStudyIdentityAfterCancelledGraduation>[0],
+    {
+      userId: "student",
+      actorId: "admin",
+      actorSnapshot: {
+        v: 1,
+        displayName: "治理管理员",
+        studyDegree: null,
+        accountState: "ACTIVE",
+        capturedAt: now.toISOString(),
+      },
+      now,
+      studyDegree: "MASTER",
+    },
+  );
+  assert.equal(creates.length, 0);
 });
 
 test("跨项目批量成员变更以稳定顺序获取用户生命周期锁", () => {

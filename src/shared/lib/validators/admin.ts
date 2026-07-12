@@ -78,6 +78,7 @@ export const updateUserStudyIdentityInputSchema = z.object({
   userId: z.string().min(1),
   studyDegree: studyDegreeSchema,
   studyGrade: studyGradeSchema.optional(),
+  confirmGraduatedRepair: z.boolean().optional(),
 }).superRefine(addStudyIdentityIssue);
 
 export const revokeUserSessionsInputSchema = z.object({

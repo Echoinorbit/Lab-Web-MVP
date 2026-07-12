@@ -102,7 +102,11 @@ administrator workflow to repair the listed accounts and project leaders, then r
 command. The final production readiness JSON must report `ready: true`. If deliberately
 ambiguous identities remain in `unresolvedIdentities`, readiness stays false: review the
 stable reason ledger, repair those accounts through the administrator workflow, and rerun
-the check. Identity projection drift, conflicting effective identity Tags, active projects
+the check. Retained graduated accounts flagged `identityNeedsReview` are repaired through
+the user editor's confirm-gated repair flow, which fixes the real master/doctor identity in
+place and restarts the 72-hour deletion grace from the confirmation time. Identity projection
+drift, conflicting effective identity Tags, `invalidAdvisorRelations` (advisee/advisor pairs
+whose roles, degrees, or review flags violate the canonical mentor contract), active projects
 without a leader, `invalidProjectLeaders`, project-status drift, lifecycle drift, and missing
 actor snapshots must all be empty or zero. Exactly one settings row with id `singleton`
 must exist. Open public traffic and enable destructive schedulers only after this final gate.

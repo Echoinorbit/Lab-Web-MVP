@@ -56,7 +56,12 @@ export type AdminUserRoleTransaction = {
         action: "ROLE_CHANGE";
         entityType: "User";
         entityId: string;
-        details: { role: "ADMIN" | "MEMBER"; revokedTagCount: number };
+        details: {
+          role: "ADMIN" | "MEMBER";
+          revokedTagCount: number;
+          releasedAdviseeCount: number;
+          releasedProjectLeaderIds: string[];
+        };
       };
     }): PromiseLike<unknown>;
   };
@@ -70,12 +75,16 @@ export async function applyAdminUserRoleUpdate(
     role,
     now,
     actorSnapshot,
+    releasedAdviseeCount = 0,
+    releasedProjectLeaderIds = [],
   }: {
     adminId: string;
     userId: string;
     role: "ADMIN" | "MEMBER";
     now: Date;
     actorSnapshot: ActorSnapshotV1;
+    releasedAdviseeCount?: number;
+    releasedProjectLeaderIds?: string[];
   },
 ) {
   await tx.user.update({
@@ -107,7 +116,7 @@ export async function applyAdminUserRoleUpdate(
       action: "ROLE_CHANGE",
       entityType: "User",
       entityId: userId,
-      details: { role, revokedTagCount },
+      details: { role, revokedTagCount, releasedAdviseeCount, releasedProjectLeaderIds },
     },
   });
 }

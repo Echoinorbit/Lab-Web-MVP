@@ -99,15 +99,27 @@ export async function restoreStudyIdentityAfterCancelledGraduation(
     },
     select: { id: true },
   });
-  await tx.userTag.create({
-    data: {
+  const existingProjection = await tx.userTag.updateMany({
+    where: {
       userId: input.userId,
       tagId: identityTag.id,
+      projectId: null,
       source: "STUDY_IDENTITY",
-      grantedById: input.actorId,
-      granterSnapshot: input.actorSnapshot,
+      revokedAt: null,
     },
+    data: { expiresAt: null },
   });
+  if (existingProjection.count === 0) {
+    await tx.userTag.create({
+      data: {
+        userId: input.userId,
+        tagId: identityTag.id,
+        source: "STUDY_IDENTITY",
+        grantedById: input.actorId,
+        granterSnapshot: input.actorSnapshot,
+      },
+    });
+  }
 }
 
 async function getLockedLifecycleUser(tx: Prisma.TransactionClient, userId: string, actorId: string) {

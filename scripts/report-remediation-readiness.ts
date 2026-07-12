@@ -26,6 +26,19 @@ type IdentityProjectionDrift = {
   protectedProjectionCount: number;
 };
 
+type InvalidAdvisorRelation = {
+  userId: string;
+  username: string;
+  role: string;
+  studyDegree: string | null;
+  identityNeedsReview: boolean;
+  advisorId: string;
+  advisorUsername: string;
+  advisorRole: string;
+  advisorStudyDegree: string | null;
+  advisorIdentityNeedsReview: boolean;
+};
+
 type ProjectLeaderDrift = {
   id: string;
   name: string;
@@ -67,6 +80,7 @@ export async function buildReport(prisma: PrismaClient) {
       identityReasons,
       tagConflicts,
       identityProjectionDrift,
+      invalidAdvisorRelations,
       projectsWithoutLeader,
       invalidProjectLeaders,
       projectDrift,
@@ -152,6 +166,30 @@ export async function buildReport(prisma: PrismaClient) {
             )
           )
         ORDER BY "username"
+      `),
+      tx.$queryRaw<InvalidAdvisorRelation[]>(Prisma.sql`
+        SELECT
+          student."id" AS "userId",
+          student."username",
+          student."role"::text AS role,
+          student."studyDegree"::text AS "studyDegree",
+          student."identityNeedsReview",
+          advisor."id" AS "advisorId",
+          advisor."username" AS "advisorUsername",
+          advisor."role"::text AS "advisorRole",
+          advisor."studyDegree"::text AS "advisorStudyDegree",
+          advisor."identityNeedsReview" AS "advisorIdentityNeedsReview"
+        FROM "User" student
+        JOIN "User" advisor ON advisor."id" = student."advisorId"
+        WHERE
+          student."role" <> 'MEMBER'
+          OR student."studyDegree" IS NULL
+          OR student."studyDegree" NOT IN ('MASTER', 'DOCTOR')
+          OR student."identityNeedsReview" = true
+          OR advisor."role" <> 'MEMBER'
+          OR advisor."studyDegree" IS DISTINCT FROM 'MENTOR'
+          OR advisor."identityNeedsReview" = true
+        ORDER BY student."username"
       `),
       tx.project.findMany({
         where: {
@@ -313,6 +351,7 @@ export async function buildReport(prisma: PrismaClient) {
         unresolvedIdentities.length === 0
         && tagConflicts.length === 0
         && identityProjectionDrift.length === 0
+        && invalidAdvisorRelations.length === 0
         && projectsWithoutLeader.length === 0
         && invalidProjectLeaders.length === 0
         && projectDrift.length === 0
@@ -328,6 +367,7 @@ export async function buildReport(prisma: PrismaClient) {
       })),
       conflictingEffectiveIdentityTags: tagConflicts,
       identityProjectionDrift,
+      invalidAdvisorRelations,
       projectsWithoutLeader,
       invalidProjectLeaders,
       projectStatusDrift: projectDrift,

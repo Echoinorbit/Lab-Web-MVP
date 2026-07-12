@@ -108,3 +108,20 @@ test("批量会话吊销与导师关系写入必须先取得全局锁再锁用�
   assert.match(responsibilitySource, /where: \{ advisorId \}/);
   assert.match(responsibilitySource, /where: \{ advisorId, leaderId: \{ not: null \} \}/);
 });
+
+test("待审毕业账号必须经显式确认修复身份并重建 72 小时生命周期", () => {
+  const actionSource = readFileSync("src/features/admin/actions/update-user-study-identity.ts", "utf8");
+  assert.match(actionSource, /applyStudyIdentityUpdate\(tx, \{/);
+  assert.match(actionSource, /confirmGraduatedRepair: data\.confirmGraduatedRepair/);
+
+  const serviceSource = readFileSync("src/features/admin/lib/study-identity-service.ts", "utf8");
+  assert.match(serviceSource, /target\.status === "GRADUATED" && target\.identityNeedsReview/);
+  assert.match(serviceSource, /input\.confirmGraduatedRepair !== true/);
+  assert.match(serviceSource, /input\.studyDegree === "MENTOR"/);
+  assert.match(serviceSource, /scheduledDeletionAt: getScheduledDeletionAt\(identitySync\.now\)/);
+
+  const editorSource = readFileSync("src/features/admin/components/user-editor.tsx", "utf8");
+  assert.match(editorSource, /setConfirmation\("repair-graduated-identity"\)/);
+  assert.match(editorSource, /confirmGraduatedRepair: true/);
+  assert.match(editorSource, /修复完成后可在此取消毕业并恢复账号/);
+});

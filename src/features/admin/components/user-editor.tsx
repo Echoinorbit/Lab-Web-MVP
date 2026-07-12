@@ -57,7 +57,14 @@ export type UserEditorAdvisor = {
   username: string;
 };
 
-type Confirmation = "role" | "suspend" | "graduate" | "cancel-graduation" | "delete" | null;
+type Confirmation =
+  | "role"
+  | "suspend"
+  | "graduate"
+  | "cancel-graduation"
+  | "repair-graduated-identity"
+  | "delete"
+  | null;
 
 const degreeLabels: Record<StudyDegree, string> = {
   MASTER: "硕士",
@@ -111,9 +118,16 @@ export function UserEditor({
       ? "姓名不能超过 120 个字符。"
       : null;
   const studentIdError = studentId.trim().length > 80 ? "学号不能超过 80 个字符。" : null;
+  const canRepairGraduatedIdentity = user.role === "MEMBER"
+    && user.status === "GRADUATED"
+    && user.identityNeedsReview;
+  const graduatedIdentityError = canRepairGraduatedIdentity && studyDegree === "MENTOR"
+    ? "毕业账号只能修复为硕士或博士身份。"
+    : null;
   const studyGradeError = user.role === "MEMBER" && studyDegree !== "MENTOR" && !studyGrade
     ? "请选择与培养身份匹配的年级。"
     : null;
+  const identityEditorDisabled = user.status === "GRADUATED" && !canRepairGraduatedIdentity;
   const canGraduate = user.role === "MEMBER"
     && (user.studyDegree === "MASTER" || user.studyDegree === "DOCTOR")
     && !user.identityNeedsReview
@@ -264,7 +278,9 @@ export function UserEditor({
               <>
                 {user.identityNeedsReview ? (
                   <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    当前身份未完成迁移或刚从管理员切换为成员，请在此重新确认。
+                    {canRepairGraduatedIdentity
+                      ? "该毕业账号来自无法自动判定的旧数据。请选择真实硕士/博士身份；保存后仍处于毕业清理期，并从确认时重新计算 72 小时宽限。"
+                      : "当前身份未完成迁移或刚从管理员切换为成员，请在此重新确认。"}
                   </div>
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -273,7 +289,7 @@ export function UserEditor({
                     <Select
                       value={studyDegree}
                       onChange={(event) => changeDegree(event.target.value as StudyDegree)}
-                      disabled={isPending || user.status === "GRADUATED"}
+                      disabled={isPending || identityEditorDisabled}
                     >
                       {Object.entries(degreeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </Select>
@@ -283,29 +299,39 @@ export function UserEditor({
                     <Select
                       value={studyGrade}
                       onChange={(event) => setStudyGrade(event.target.value as StudyGrade)}
-                      disabled={isPending || user.status === "GRADUATED" || studyDegree === "MENTOR"}
-                      aria-invalid={Boolean(studyGradeError)}
-                      aria-describedby={studyGradeError ? "user-editor-study-grade-error" : undefined}
+                      disabled={isPending || identityEditorDisabled || studyDegree === "MENTOR"}
+                      aria-invalid={Boolean(studyGradeError || graduatedIdentityError)}
+                      aria-describedby={studyGradeError || graduatedIdentityError ? "user-editor-study-grade-error" : undefined}
                     >
                       {studyDegree === "MENTOR" ? <option value="">导师不设置年级</option> : null}
                       {gradeOptions.map((grade) => <option key={grade} value={grade}>{STUDY_GRADE_LABELS[grade]}</option>)}
                     </Select>
-                    {studyGradeError ? <span id="user-editor-study-grade-error" className="text-xs text-destructive">{studyGradeError}</span> : null}
+                    {studyGradeError || graduatedIdentityError ? (
+                      <span id="user-editor-study-grade-error" className="text-xs text-destructive">
+                        {studyGradeError ?? graduatedIdentityError}
+                      </span>
+                    ) : null}
                   </label>
                 </div>
                 <Button
                   className="w-fit"
-                  disabled={isPending || user.status === "GRADUATED" || Boolean(studyGradeError)}
-                  onClick={() => runAction(
-                    () => updateUserStudyIdentityResult({
-                      userId: user.id,
-                      studyDegree,
-                      studyGrade: studyDegree === "MENTOR" ? undefined : studyGrade,
-                    }),
-                    "培养身份已更新",
-                  )}
+                  disabled={isPending || identityEditorDisabled || Boolean(studyGradeError || graduatedIdentityError)}
+                  onClick={() => {
+                    if (canRepairGraduatedIdentity) {
+                      setConfirmation("repair-graduated-identity");
+                      return;
+                    }
+                    runAction(
+                      () => updateUserStudyIdentityResult({
+                        userId: user.id,
+                        studyDegree,
+                        studyGrade: studyDegree === "MENTOR" ? undefined : studyGrade,
+                      }),
+                      "培养身份已更新",
+                    );
+                  }}
                 >
-                  保存培养身份
+                  {canRepairGraduatedIdentity ? "修复培养身份" : "保存培养身份"}
                 </Button>
 
                 {studyDegree !== "MENTOR" ? (
@@ -432,7 +458,11 @@ export function UserEditor({
               {user.graduatedAt ? <p className="mt-2 text-xs text-muted-foreground">毕业时间：{user.graduatedAt}</p> : null}
               {user.scheduledDeletionAt ? <p className="text-xs font-medium text-destructive">计划永久删除：{user.scheduledDeletionAt}</p> : null}
             </div>
-            {user.status === "GRADUATED" ? (
+            {user.status === "GRADUATED" && user.identityNeedsReview ? (
+              <p className="max-w-xs text-sm font-medium text-destructive">
+                请先在上方修复培养身份；修复完成后可在此取消毕业并恢复账号。
+              </p>
+            ) : user.status === "GRADUATED" ? (
               <Button variant="secondary" disabled={isPending} onClick={() => setConfirmation("cancel-graduation")}>
                 取消毕业
               </Button>
@@ -486,6 +516,24 @@ export function UserEditor({
         destructive
         pending={isPending}
         onConfirm={() => runAction(() => updateUserStatusResult({ userId: user.id, status: "GRADUATED" }), "账号已进入毕业清理期")}
+      />
+      <ConfirmDialog
+        open={confirmation === "repair-graduated-identity"}
+        onOpenChange={(open) => setConfirmation(open ? "repair-graduated-identity" : null)}
+        title="确认修复毕业账号身份？"
+        description="系统会保存所选硕士/博士身份，账号仍保持毕业状态，并从现在重新计算 72 小时删除宽限。如需恢复登录，请随后单独执行取消毕业。"
+        confirmLabel="确认修复"
+        destructive
+        pending={isPending}
+        onConfirm={() => runAction(
+          () => updateUserStudyIdentityResult({
+            userId: user.id,
+            studyDegree,
+            studyGrade,
+            confirmGraduatedRepair: true,
+          }),
+          "毕业账号身份已修复",
+        )}
       />
       <ConfirmDialog
         open={confirmation === "cancel-graduation"}

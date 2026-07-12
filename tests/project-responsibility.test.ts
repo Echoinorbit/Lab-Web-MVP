@@ -76,6 +76,14 @@ test("用户生命周期与导师关系变更统一经过项目责任协调器",
   ]) {
     const source = readFileSync(file, "utf8");
     assert.match(source, /assertNoActiveProjectAdvisorResponsibilities/, file);
-    assert.match(source, /reconcileCanonicalProjectLeadershipForAdvisor/, file);
+    assert.match(
+      source,
+      /reconcileCanonicalProjectLeadershipForAdvisor|releaseFormerMentorResponsibilities/,
+      file,
+    );
   }
+
+  const identityServiceSource = readFileSync("src/features/admin/lib/study-identity-service.ts", "utf8");
+  assert.match(identityServiceSource, /releaseFormerMentorResponsibilities/);
+  assert.match(identityServiceSource, /reconcileCanonicalProjectLeadershipForAdvisor/);
 });
