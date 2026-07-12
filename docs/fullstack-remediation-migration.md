@@ -7,7 +7,7 @@ Never use `prisma migrate reset` against a shared or production database.
 
 ## Scope and compatibility
 
-The migration is an expand/backfill/contract rollout. It keeps the legacy physical
+The migration is a maintenance-window backfill/contract rollout. It keeps the legacy physical
 `User.grade` data as `User.legacyGrade`, adds canonical study identity, actor
 snapshots, project leadership/status projection, lifecycle scheduling, and the
 singleton runtime settings row. Existing ambiguous identity evidence is retained as
@@ -77,24 +77,40 @@ cleanup in `finally`; the manual sequence does not.
 
 ## Deploy and verify
 
+The previous application cannot run after the physical `User.grade` rename. Prepare and
+verify the matching application artifact first, then block public traffic and mutating jobs
+for the complete migration/reconciliation window. Do not require readiness before the new
+administrator workflow is available: start the new application behind a maintenance gate
+with access restricted to designated administrators.
+
 ```sh
 npx prisma migrate deploy
 npx prisma generate
 npm run seed
 npm run prisma:validate
+# Start the matching release behind the maintenance gate before repairing retained ambiguity.
 npm run remediation:readiness
 npm run verify
 npm run test:integration
 npm run build
 ```
 
-The production readiness JSON is read-only and must report `ready: true`. If deliberately
+The first production readiness result is a read-only reconciliation ledger and may be false
+when the migration deliberately retains ambiguous evidence. While public traffic, permanent
+account deletion, and the graduated-account purge remain disabled, use the restricted new
+administrator workflow to repair the listed accounts and project leaders, then rerun the
+command. The final production readiness JSON must report `ready: true`. If deliberately
 ambiguous identities remain in `unresolvedIdentities`, readiness stays false: review the
 stable reason ledger, repair those accounts through the administrator workflow, and rerun
 the check. Identity projection drift, conflicting effective identity Tags, active projects
 without a leader, `invalidProjectLeaders`, project-status drift, lifecycle drift, and missing
 actor snapshots must all be empty or zero. Exactly one settings row with id `singleton`
-must exist.
+must exist. Open public traffic and enable destructive schedulers only after this final gate.
+
+The pre-migration database and avatar backup is the rollback checkpoint before the first
+hard account deletion. If reconciliation cannot finish safely, restore that backup into a
+separate database, validate the previous application against it, and switch traffic there;
+never downgrade the only migrated database in place.
 
 After the application is live, run fixtures and the authenticated smoke/browser suites
 against a non-production environment. Provision an external scheduler for the

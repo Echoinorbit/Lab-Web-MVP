@@ -4,13 +4,33 @@ This document covers the operational controls added by the full-stack remediatio
 
 ## Deployment order
 
-1. Record the application commit and run `npx prisma migrate status`.
-2. Back up PostgreSQL with `pg_dump --format=custom` and back up `public/uploads/avatars`.
-3. Rehearse migrations and the integration suite against a unique disposable PostgreSQL schema.
-4. Deploy with `npx prisma migrate deploy`, then run `npx prisma generate`.
-5. Require `npm run remediation:readiness` to return `"ready": true`.
-6. Run `npm run verify`, the disposable-schema integration suite, `npm run build`, and non-production E2E tests.
-7. Deploy the application and configure the two authenticated cron routes below.
+This migration is not compatible with the previous application after the physical
+`User.grade` rename, so production rollout requires a maintenance window rather than a
+zero-downtime mixed-version deployment:
+
+1. Record the application commit and migration status. Stop mutating jobs, disable both
+   cron routes, and put public traffic behind a maintenance gate.
+2. Back up PostgreSQL with `pg_dump --format=custom` and back up `public/uploads/avatars`
+   from the same recovery point.
+3. Rehearse migrations and the integration suite against a unique disposable PostgreSQL
+   schema. Build and verify the matching application release before touching production.
+4. With public traffic still blocked, run `npx prisma migrate deploy`, `npx prisma generate`,
+   and the reviewed seed step.
+5. Start the matching new application behind the maintenance gate. Permit only designated
+   administrators to sign in; keep permanent account deletion and graduated-account purge
+   disabled during reconciliation.
+6. Run `npm run remediation:readiness`. If it reports retained identity or project-leader
+   ambiguity, repair the listed rows through the restricted administrator workflow and
+   rerun the command until it returns `"ready": true`.
+7. Run the final schema/status, application, disposable-schema, build, and non-production
+   E2E checks against the exact release commit.
+8. Open public traffic only after readiness and final checks pass, then configure and
+   enable the authenticated cron routes below.
+
+The backup in step 2 is the rollback checkpoint. Before any hard account deletion or purge,
+rollback means restoring that backup into a separate database and switching the previous
+application to it after validation. Once irreversible lifecycle writes begin, follow the
+post-deletion recovery procedure instead.
 
 Never use `prisma migrate reset` or a test schema name that resolves to `public` in a shared environment.
 
@@ -35,6 +55,20 @@ Progress submission reads this row on the server for every decision. Successful 
 Bulk invalidation takes the lifecycle-set exclusive lock before any user row; ordinary user mutations take its shared form. Advisor relation changes add a single relation lock before sorted per-user locks. Keep this order when adding mutations: lifecycle set → advisor relation (when applicable) → sorted users → entity rows.
 
 The migration creates/backfills the singleton row. A missing row is a deployment error, not a reason to fall back to environment constants.
+
+## Trusted proxy and login IP limiting
+
+`TRUSTED_PROXY_HOPS` is the exact number of trusted reverse proxies between the client and
+the application that append their observed upstream address to `X-Forwarded-For`. Keep it
+at `0` for direct traffic or when the proxy chain is not controlled; client-supplied IP
+headers are then ignored and the account limiter remains the security boundary.
+
+For one trusted edge that sends `X-Forwarded-For: client`, set `TRUSTED_PROXY_HOPS=1`. For
+two trusted proxies that send `X-Forwarded-For: client, first-proxy`, set it to `2`. The
+application selects the first address to the left of the trusted suffix and ignores any
+farther-left spoofed values. Confirm the actual ingress header shape before enabling this
+setting; a configured hop count larger than the received chain intentionally resolves to
+`unknown` instead of trusting an unverified header.
 
 ## Graduated-account purge scheduler
 

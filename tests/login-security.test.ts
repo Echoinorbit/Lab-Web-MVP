@@ -35,13 +35,18 @@ test("未配置可信代理时应忽略可伪造的客户端 IP 头", () => {
   assert.equal(parseTrustedProxyHops("not-a-number"), 0);
 });
 
-test("可信代理跳数应选择可信代理追加的最近客户端候选", () => {
-  assert.equal(selectClientIpFromHeaders({ xForwardedFor: "client" }, 1), "unknown");
+test("可信代理跳数应选择可信链之外最近的客户端地址", () => {
+  assert.equal(selectClientIpFromHeaders({ xForwardedFor: "actual-client" }, 1), "actual-client");
   assert.equal(selectClientIpFromHeaders({ xForwardedFor: "spoofed, actual-client" }, 1), "actual-client");
+  assert.equal(
+    selectClientIpFromHeaders({ xForwardedFor: "actual-client, trusted-edge" }, 2),
+    "actual-client",
+  );
   assert.equal(
     selectClientIpFromHeaders({ xForwardedFor: "spoofed, actual-client, trusted-edge" }, 2),
     "actual-client",
   );
+  assert.equal(selectClientIpFromHeaders({ xForwardedFor: "actual-client" }, 2), "unknown");
   assert.equal(selectClientIpFromHeaders({ xForwardedFor: "" }, 1), "unknown");
 });
 

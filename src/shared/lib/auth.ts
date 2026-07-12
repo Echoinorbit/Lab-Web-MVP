@@ -67,7 +67,7 @@ export function selectClientIpFromHeaders(
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
-  if (chain.length <= trustedProxyHops) return "unknown";
+  if (chain.length < trustedProxyHops) return "unknown";
 
   const index = chain.length - trustedProxyHops;
   return chain[index] ?? "unknown";
