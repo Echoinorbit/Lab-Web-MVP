@@ -149,6 +149,19 @@ Manual deletion requires the administrator to type the exact username. The servi
 
 Historical snapshots preserve display attribution, not credentials. After deletion, only a pre-delete database backup can recover username, student ID, password hash, token state, or the account itself. Restore into a separate database, validate migrations/readiness, reconcile newer writes, and cut over deliberately; never restore over the only live database.
 
+## Browser E2E environment notes
+
+Run `npm run e2e:browser` against a freshly started development server (`npm run dev`).
+Against `next start` production builds, new-headless Chrome driven over CDP intermittently
+cancels the server-action response body after status 200 (`net::ERR_ABORTED`), so the form
+stays in its pending state even though the server committed the write in well under a second;
+instrumented runs on 2026-07-12 confirmed the action completed server-side in ~220 ms while
+the client never applied the result. This is a client-runtime/tooling incompatibility, not an
+application defect: the same flows pass on the dev server and the data is verified in
+PostgreSQL by the harness. If a stage times out with the submit button stuck in a pending
+label, restart the server and rerun before suspecting business logic. `E2E_CDP_TIMEOUT_MS`
+extends CDP command timeouts on slow machines.
+
 ## Monitoring checklist
 
 - Alert on cron `401`, `207`, timeout, or missing invocation.

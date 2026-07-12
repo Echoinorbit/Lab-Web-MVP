@@ -1774,6 +1774,13 @@ function startChrome(userDataDir: string) {
       "--disable-dev-shm-usage",
       "--no-first-run",
       "--no-default-browser-check",
+      // 无头/被遮挡渲染进程会被后台节流，导致 server action 响应已到达
+      // 但页面状态迟迟不更新，表单按钮停留在 pending，等待条件随机超时。
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-ipc-flooding-protection",
+      "--disable-hang-monitor",
       "--window-size=1440,1000",
       "about:blank",
     ],
