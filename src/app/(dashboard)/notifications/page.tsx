@@ -1,6 +1,7 @@
 import { NotificationList } from "@/features/notifications";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/features/notifications/lib/pagination";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDateTime } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { prisma } from "@/shared/lib/prisma";
@@ -33,18 +34,19 @@ export default async function NotificationsPage({
       content: true,
       type: true,
       relatedType: true,
-      sender: { select: { displayName: true } },
+      sender: { select: { displayName: true, status: true } },
+      senderSnapshot: true,
       createdAt: true,
       isRead: true,
     },
   });
 
   const pageData = {
-    items: notifications.map((notification) => ({
+    items: notifications.map(({ sender, senderSnapshot, ...notification }) => ({
       ...notification,
       content: notification.content ?? undefined,
       relatedType: notification.relatedType ?? undefined,
-      senderName: notification.sender?.displayName,
+      senderName: formatActorDisplayName(resolveActorDisplay(sender, senderSnapshot)),
       createdAt: formatShanghaiDateTime(notification.createdAt),
     })),
     page: pagination.currentPage,

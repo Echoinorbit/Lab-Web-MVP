@@ -1,6 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, UserStatus } from "@prisma/client";
 
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 
 import type { CommentRow } from "../types";
@@ -11,7 +11,7 @@ export type CommentTreeSource = {
   createdAt: Date;
   parentId: string | null;
   deletedAt: Date | null;
-  author: { id: string; displayName: string; studyDegree?: null; status?: "ACTIVE" } | null;
+  author: { id: string; displayName: string; studyDegree?: null; status?: UserStatus } | null;
   authorSnapshot?: Prisma.JsonValue;
 };
 
@@ -32,14 +32,14 @@ export function buildCommentTree(comments: readonly CommentTreeSource[]): Commen
   for (const comment of comments) {
     const isDeleted = comment.deletedAt !== null;
     const actor = resolveActorDisplay(
-      comment.author ? { ...comment.author, studyDegree: null, status: "ACTIVE" } : null,
+      comment.author ? { ...comment.author, studyDegree: null } : null,
       comment.authorSnapshot,
     );
     byId.set(comment.id, {
       id: comment.id,
       content: isDeleted ? "" : comment.content,
       authorId: isDeleted ? "" : comment.author?.id ?? "",
-      authorName: isDeleted ? "已删除评论" : actor.displayName,
+      authorName: isDeleted ? "已删除评论" : formatActorDisplayName(actor),
       createdAt: formatShanghaiDate(comment.createdAt),
       isDeleted,
       children: [],

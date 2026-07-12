@@ -39,6 +39,18 @@ export function withoutEffectiveAdvisorTagWhere(now = new Date()): Prisma.UserWh
   };
 }
 
+export function progressReportExportWhere(year: number, month: number, now = new Date()): Prisma.ProgressReportWhereInput {
+  return {
+    year,
+    month,
+    deletedAt: null,
+    OR: [
+      { user: null },
+      { user: withoutEffectiveAdvisorTagWhere(now) },
+    ],
+  };
+}
+
 export function getProgressAudienceWhere({
   userId,
   canReadAll,

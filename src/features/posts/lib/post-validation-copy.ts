@@ -1,5 +1,7 @@
 import { ZodError } from "zod";
 
+import { getActionErrorMessage } from "@/shared/lib/action-result";
+
 const POST_FIELD_MESSAGES: Record<string, string> = {
   title: "标题至少需要 2 个字符。",
   content: "正文不能为空。",
@@ -7,9 +9,13 @@ const POST_FIELD_MESSAGES: Record<string, string> = {
   tags: "标签最多 12 个，每个标签不超过 40 个字符。",
 };
 
-export function formatPostValidationError(error: unknown, fallback: string) {
+export function formatPostValidationError(
+  error: unknown,
+  fallback: string,
+  knownMessages: readonly string[] = [],
+) {
   if (!(error instanceof ZodError)) {
-    return error instanceof Error ? error.message : fallback;
+    return getActionErrorMessage(error, { fallbackMessage: fallback, knownMessages });
   }
 
   const field = String(error.issues[0]?.path[0] ?? "");

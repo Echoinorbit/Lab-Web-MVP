@@ -96,3 +96,21 @@ export function resolveActorDisplay(
     isDeleted: true,
   };
 }
+
+export function getActorDisplayAccountState(actor: ReturnType<typeof resolveActorDisplay>) {
+  return actor.isDeleted && actor.accountState === "ACTIVE"
+    ? "DELETED"
+    : actor.accountState;
+}
+
+export function formatActorDisplayName(actor: ReturnType<typeof resolveActorDisplay>) {
+  const accountState = getActorDisplayAccountState(actor);
+  const suffix = accountState === "GRADUATED"
+    ? "（已毕业）"
+    : accountState === "DELETED"
+      ? "（账号已删除）"
+      : accountState === "SUSPENDED"
+        ? "（已停用）"
+        : "";
+  return `${actor.displayName}${suffix}`;
+}

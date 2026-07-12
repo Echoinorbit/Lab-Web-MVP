@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/shared/components/ui/badge";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
+import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
 import { ArchiveProjectButton } from "./archive-project-button";
@@ -11,6 +12,7 @@ import type { ProjectAdvisorOption } from "./advisor-student-tree";
 import { ProjectArchiveCountdown } from "./project-archive-countdown";
 import { ProjectEditForm } from "./project-edit-form";
 import { ProjectLifecycleActions } from "./project-lifecycle-actions";
+import { ProjectLeaderReassignmentForm } from "./project-leader-reassignment-form";
 import { ProjectMemberForm } from "./project-member-form";
 import { ProjectNodeForm, type ProjectNodeOption } from "./project-node-form";
 import { ProjectNodeViews } from "./project-node-views";
@@ -38,7 +40,10 @@ export function ProjectDetail({
   canvasNodes,
   members,
   availableAdvisor,
+  leaderCandidates,
   parentOptions,
+  leaderNeedsReassignment,
+  canReassignLeader,
   canManageMembers,
   canCreateNode,
   canArchive,
@@ -57,7 +62,10 @@ export function ProjectDetail({
   canvasNodes: readonly ProjectCanvasSourceNode[];
   members: readonly ProjectMemberRow[];
   availableAdvisor?: ProjectAdvisorOption;
+  leaderCandidates: ProjectAdvisorOption["students"];
   parentOptions: readonly ProjectNodeOption[];
+  leaderNeedsReassignment: boolean;
+  canReassignLeader: boolean;
   canManageMembers: boolean;
   canCreateNode: boolean;
   canArchive: boolean;
@@ -70,7 +78,7 @@ export function ProjectDetail({
 }) {
   const isArchived = status === "ARCHIVED";
   const isDeleted = Boolean(deletedAt);
-  const hasProjectTools = canEdit || (canManageMembers && !isArchived) || (canCreateNode && !isArchived);
+  const hasProjectTools = canReassignLeader || canEdit || (canManageMembers && !isArchived) || (canCreateNode && !isArchived);
 
   return (
     <div className="space-y-10">
@@ -91,6 +99,14 @@ export function ProjectDetail({
           </div>
         )}
       />
+
+      {leaderNeedsReassignment ? (
+        <StatusNotice variant="warning" title="项目负责人待重新分配">
+          {canReassignLeader
+            ? "原负责人账号已删除。请从负责导师的直属在读硕博成员中指定新的负责人。"
+            : "原负责人账号已删除，负责人专属的成员与节点管理能力已暂停；请联系负责导师或管理员处理。"}
+        </StatusNotice>
+      ) : null}
 
       {canArchive || canSoftDelete || canRestore || canHardDelete ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-border/80 pb-6">
@@ -133,6 +149,7 @@ export function ProjectDetail({
         <section className="space-y-5 border-t border-border/80 pt-8">
           <SectionHeader title="项目工具" description="编辑项目信息、成员与节点；归档项目保持只读。" />
           <div className="grid items-start gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+            {canReassignLeader ? <ProjectLeaderReassignmentForm projectId={id} candidates={leaderCandidates} /> : null}
             {canEdit ? <ProjectEditForm projectId={id} name={name} description={description} /> : null}
             {canManageMembers && !isArchived ? <ProjectMemberForm projectId={id} advisor={availableAdvisor} /> : null}
             {canCreateNode && !isArchived ? <ProjectNodeForm projectId={id} parentOptions={parentOptions} /> : null}

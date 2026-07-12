@@ -6,6 +6,17 @@ type ProjectGovernanceSnapshot = {
   deletedAt?: Date | string | null;
 };
 
+export function canManageProjectLeaderReassignment(
+  actorId: string,
+  actorRole: RoleName,
+  project: ProjectGovernanceSnapshot,
+  globalPermissions: ReadonlySet<Permission>,
+) {
+  if (project.deletedAt) return false;
+  return actorRole === "ADMIN"
+    || (project.advisorId === actorId && globalPermissions.has(PERMISSIONS.PROJECT_UPDATE_ADVISED));
+}
+
 export function isEligibleProjectLeaderActor(input: {
   role: RoleName;
   status: "ACTIVE" | "SUSPENDED" | "GRADUATED";

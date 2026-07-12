@@ -4,14 +4,14 @@ import ExcelJS from "exceljs";
 
 import { toActionResult } from "@/shared/lib/action-result";
 import { appendAuditLog } from "@/shared/lib/audit";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { formatStudyGrade } from "@/shared/lib/study-identity";
 
-import { withoutEffectiveAdvisorTagWhere } from "../lib/advisor-filter";
+import { progressReportExportWhere } from "../lib/advisor-filter";
 
 export async function exportProgressReports(year: number, month: number) {
   const user = await requireActiveUser();
@@ -22,7 +22,7 @@ export async function exportProgressReports(year: number, month: number) {
   });
 
   const reports = await prisma.progressReport.findMany({
-    where: { year, month, deletedAt: null, user: withoutEffectiveAdvisorTagWhere() },
+    where: progressReportExportWhere(year, month),
     include: { user: { include: { advisor: true } } },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
@@ -34,7 +34,7 @@ export async function exportProgressReports(year: number, month: number) {
     const author = resolveActorDisplay(report.user, report.userSnapshot);
     sheet.addRow([
       formatStudyGrade(author.studyDegree, report.user?.studyGrade ?? null),
-      author.displayName,
+      formatActorDisplayName(author),
       report.user?.studentId ?? "",
       report.user?.advisor?.displayName ?? "",
       report.studySummary ?? "",

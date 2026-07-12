@@ -37,6 +37,11 @@ export const projectMembersInputSchema = z.object({
   userIds: z.array(z.string().min(1)).min(1).transform((values) => [...new Set(values)]),
 });
 
+export const projectLeaderReassignmentInputSchema = z.object({
+  projectId: z.string().min(1),
+  leaderId: z.string().min(1),
+});
+
 export const updateProjectInputSchema = z.object({
   projectId: z.string().min(1),
   name: z.string().trim().min(2).max(120),

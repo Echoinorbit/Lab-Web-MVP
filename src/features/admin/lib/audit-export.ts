@@ -1,5 +1,11 @@
+import type { Prisma } from "@prisma/client";
 import ExcelJS from "exceljs";
 
+import {
+  formatActorDisplayName,
+  getActorDisplayAccountState,
+  resolveActorDisplay,
+} from "@/shared/lib/actor-snapshot";
 import { isBearerSecretAuthorized } from "@/shared/lib/cron-auth";
 import { getShanghaiDateParts } from "@/shared/lib/date";
 
@@ -11,6 +17,8 @@ export type AuditExportCounterSnapshot = {
 export type AuditLogExportRow = {
   createdAt: Date;
   userId: string | null;
+  actorName: string;
+  actorState: string;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -70,14 +78,97 @@ export function buildAuditExportPlan(input: {
   };
 }
 
+export async function executeAuditExport(tx: Prisma.TransactionClient, now = new Date()) {
+  const year = getShanghaiDateParts(now).year;
+  const counter = await tx.auditExportCounter.upsert({
+    where: { year },
+    create: { year },
+    update: {},
+    select: { exportsInYear: true, cycleCount: true },
+  });
+  const latestArchive = await tx.auditExportArchive.findFirst({
+    orderBy: { rangeEnd: "desc" },
+    select: { rangeEnd: true },
+  });
+  const earliestLog = latestArchive
+    ? null
+    : await tx.auditLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } });
+  const rangeStart = resolveAuditExportRangeStart({
+    previousRangeEnd: latestArchive?.rangeEnd ?? null,
+    earliestLogCreatedAt: earliestLog?.createdAt ?? null,
+    now,
+  });
+  const logs = await tx.auditLog.findMany({
+    where: { createdAt: { gte: rangeStart, lt: now } },
+    orderBy: { createdAt: "asc" },
+    select: {
+      createdAt: true,
+      userId: true,
+      actorSnapshot: true,
+      action: true,
+      entityType: true,
+      entityId: true,
+      ipAddress: true,
+      details: true,
+    },
+  });
+  const users = await tx.user.findMany({
+    where: { id: { in: logs.flatMap((log) => log.userId ? [log.userId] : []) } },
+    select: { id: true, displayName: true, status: true },
+  });
+  const userById = new Map(users.map((user) => [user.id, user]));
+  const plan = buildAuditExportPlan({ counter, rangeStart, rangeEnd: now, now });
+  const excelData = await buildAuditWorkbookBuffer(logs.map(({ actorSnapshot, ...log }) => {
+    const actor = resolveActorDisplay(log.userId ? userById.get(log.userId) : null, actorSnapshot);
+    return {
+      ...log,
+      actorName: formatActorDisplayName(actor),
+      actorState: getActorDisplayAccountState(actor),
+    };
+  }));
+
+  await tx.auditExportArchive.create({
+    data: {
+      fileName: plan.fileName,
+      excelData,
+      seqInYear: plan.seqInYear,
+      rangeStart: plan.rangeStart,
+      rangeEnd: plan.rangeEnd,
+      rowCount: logs.length,
+      expiresAt: plan.expiresAt,
+    },
+  });
+  await tx.auditExportCounter.update({
+    where: { year },
+    data: {
+      exportsInYear: plan.exportsInYear,
+      cycleCount: plan.cycleCount,
+      lastExportAt: now,
+    },
+  });
+  if (plan.shouldClearAuditLogs) {
+    await tx.auditLog.deleteMany({ where: { createdAt: { lt: plan.rangeEnd } } });
+  }
+  await tx.auditExportArchive.deleteMany({ where: { expiresAt: { lt: now } } });
+
+  return {
+    fileName: plan.fileName,
+    rowCount: logs.length,
+    cycleCount: plan.cycleCount,
+    seqInYear: plan.seqInYear,
+  };
+}
+
 export async function buildAuditWorkbookBuffer(rows: readonly AuditLogExportRow[]) {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("audit_logs");
-  sheet.addRow(["createdAt", "userId", "action", "entityType", "entityId", "ipAddress", "details"]);
+  sheet.addRow(["createdAt", "userId", "actorName", "actorState", "action", "entityType", "entityId", "ipAddress", "details"]);
   for (const row of rows) {
     sheet.addRow([
       row.createdAt.toISOString(),
       row.userId ?? "",
+      row.actorName,
+      row.actorState,
       row.action,
       row.entityType,
       row.entityId ?? "",

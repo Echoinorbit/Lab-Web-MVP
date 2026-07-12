@@ -212,7 +212,13 @@ export function AvatarEditor({ currentAvatar, displayName }: { currentAvatar: st
           toast({ title: "头像保存失败", description: result.message, variant: "error" });
           return;
         }
-        toast({ title: "头像已更新", description: "导航栏与个人资料已同步刷新。", variant: "success" });
+        toast({
+          title: "头像已更新",
+          description: result.data.cleanupPending
+            ? "新头像已生效；旧文件清理未完成，后台任务会继续重试。"
+            : "导航栏与个人资料已同步刷新。",
+          variant: result.data.cleanupPending ? "info" : "success",
+        });
         resetEditor();
         router.refresh();
       } catch {

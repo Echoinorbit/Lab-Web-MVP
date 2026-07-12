@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AnnouncementCard } from "@/features/announcements";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { resolveAnnouncementUpdateAccess } from "@/features/announcements/lib/access";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { prisma } from "@/shared/lib/prisma";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -24,7 +24,7 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
       id,
       AND: [buildAnnouncementVisibilityWhere(viewer, now)],
     },
-    include: { author: { select: { displayName: true } } },
+    include: { author: { select: { displayName: true, status: true } } },
   });
 
   if (!announcement) notFound();
@@ -46,7 +46,7 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
-          authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
+          authorName: formatActorDisplayName(resolveActorDisplay(announcement.author, announcement.authorSnapshot)),
           createdAt: formatShanghaiDate(announcement.createdAt),
           updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()
             ? formatShanghaiDate(announcement.updatedAt)

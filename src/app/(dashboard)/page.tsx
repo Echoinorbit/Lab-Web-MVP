@@ -9,7 +9,7 @@ import { canViewProject, getProjectVisibilityWhere } from "@/features/projects/l
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate, getShanghaiDateParts } from "@/shared/lib/date";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
       where: announcementWhere,
       orderBy: ANNOUNCEMENT_ORDER_BY,
       take: 3,
-      include: { author: { select: { displayName: true } } },
+      include: { author: { select: { displayName: true, status: true } } },
     }),
     prisma.project.findMany({
       where: projectVisibilityWhere,
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
               id: announcement.id,
               title: announcement.title,
               content: announcement.content,
-              authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
+              authorName: formatActorDisplayName(resolveActorDisplay(announcement.author, announcement.authorSnapshot)),
               createdAt: formatShanghaiDate(announcement.createdAt),
               updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()
                 ? formatShanghaiDate(announcement.updatedAt)

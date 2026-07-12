@@ -2,7 +2,7 @@ import { PostForm, PostList } from "@/features/posts";
 import { buildMyDraftsWhere, buildPublicPostWhere } from "@/features/posts/lib/drafts";
 import { formatPostQuotaNotice } from "@/features/posts/lib/rate-limit-copy";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -18,14 +18,14 @@ export default async function PostsPage() {
       where: buildPublicPostWhere(),
       orderBy: { createdAt: "desc" },
       take: 50,
-      include: { author: { select: { displayName: true, avatar: true } } },
+      include: { author: { select: { displayName: true, avatar: true, status: true } } },
     }),
     canCreate
       ? prisma.post.findMany({
           where: buildMyDraftsWhere(user.id),
           orderBy: { updatedAt: "desc" },
           take: 20,
-          include: { author: { select: { displayName: true, avatar: true } } },
+          include: { author: { select: { displayName: true, avatar: true, status: true } } },
         })
       : Promise.resolve([]),
     canCreate ? getRateLimitStatus(user.id, PERMISSIONS.POST_CREATE) : Promise.resolve(null),
@@ -42,7 +42,7 @@ export default async function PostsPage() {
               posts={posts.map((post) => ({
                 id: post.id,
                 title: post.title,
-                authorName: resolveActorDisplay(post.author, post.authorSnapshot).displayName,
+                authorName: formatActorDisplayName(resolveActorDisplay(post.author, post.authorSnapshot)),
                 authorAvatar: post.author?.avatar ?? null,
                 category: post.category,
                 createdAt: formatShanghaiDate(post.createdAt),
@@ -59,7 +59,7 @@ export default async function PostsPage() {
                 posts={drafts.map((post) => ({
                   id: post.id,
                   title: post.title || "未命名草稿",
-                  authorName: resolveActorDisplay(post.author, post.authorSnapshot).displayName,
+                  authorName: formatActorDisplayName(resolveActorDisplay(post.author, post.authorSnapshot)),
                   authorAvatar: post.author?.avatar ?? null,
                   category: post.category,
                   createdAt: formatShanghaiDate(post.updatedAt),

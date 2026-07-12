@@ -8,7 +8,7 @@ import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } fro
 import { buttonStyles } from "@/shared/components/ui/button";
 import { PageHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -39,7 +39,7 @@ export default async function AnnouncementsPage({
     orderBy: ANNOUNCEMENT_ORDER_BY,
     skip: pagination.skip,
     take: pagination.pageSize,
-    include: { author: { select: { displayName: true } } },
+    include: { author: { select: { displayName: true, status: true } } },
   });
   const canCreate = permissions.has(PERMISSIONS.ANNOUNCEMENT_CREATE);
 
@@ -60,7 +60,7 @@ export default async function AnnouncementsPage({
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
-          authorName: resolveActorDisplay(announcement.author, announcement.authorSnapshot).displayName,
+          authorName: formatActorDisplayName(resolveActorDisplay(announcement.author, announcement.authorSnapshot)),
           createdAt: formatShanghaiDate(announcement.createdAt),
           updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()
             ? formatShanghaiDate(announcement.updatedAt)

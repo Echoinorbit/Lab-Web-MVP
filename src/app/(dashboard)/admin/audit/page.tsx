@@ -2,6 +2,7 @@ import { AuditLogTable } from "@/features/admin";
 import { DataTable } from "@/shared/components/data-table";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { requirePermission } from "@/shared/lib/authorization";
 import { formatShanghaiDateTime } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
@@ -44,7 +45,7 @@ export default async function AdminAuditPage({
   });
   const users = await prisma.user.findMany({
     where: { id: { in: rows.map((row) => row.userId).filter((userId): userId is string => Boolean(userId)) } },
-    select: { id: true, username: true, displayName: true },
+    select: { id: true, username: true, displayName: true, status: true },
   });
   const userById = new Map(users.map((user) => [user.id, user]));
   const archiveRows = archives.map((archive) => ({
@@ -65,7 +66,10 @@ export default async function AdminAuditPage({
         <AuditLogTable
           rows={rows.map((row) => ({
             createdAt: formatShanghaiDateTime(row.createdAt),
-            actor: row.userId ? formatActor(userById.get(row.userId)) : "-",
+            actor: formatActor(
+              resolveActorDisplay(row.userId ? userById.get(row.userId) : null, row.actorSnapshot),
+              row.userId ? userById.get(row.userId)?.username : undefined,
+            ),
             action: row.action,
             entityType: row.entityType,
             entityId: row.entityId ?? undefined,
@@ -102,6 +106,7 @@ export default async function AdminAuditPage({
   );
 }
 
-function formatActor(user: { username: string; displayName: string } | undefined) {
-  return user ? `${user.displayName} (${user.username})` : "-";
+function formatActor(actor: ReturnType<typeof resolveActorDisplay>, username: string | undefined) {
+  const label = formatActorDisplayName(actor);
+  return username ? `${label} (${username})` : label;
 }

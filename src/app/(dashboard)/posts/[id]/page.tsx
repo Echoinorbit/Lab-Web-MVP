@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
 import { buildCommentTree } from "@/features/posts/lib/comment-tree";
 import { buildVisiblePostWhere } from "@/features/posts/lib/drafts";
-import { resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -19,10 +19,10 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   const post = await prisma.post.findFirst({
     where: buildVisiblePostWhere(user.id, id),
     include: {
-      author: { select: { id: true, displayName: true, avatar: true } },
+      author: { select: { id: true, displayName: true, avatar: true, status: true } },
       comments: {
         orderBy: { createdAt: "asc" },
-        include: { author: { select: { id: true, displayName: true } } },
+        include: { author: { select: { id: true, displayName: true, status: true } } },
       },
     },
   });
@@ -42,7 +42,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       </Link>
       <PostDetail
         title={post.title}
-        authorName={`${resolveActorDisplay(post.author, post.authorSnapshot).displayName} · ${formatShanghaiDate(post.createdAt)}`}
+        authorName={`${formatActorDisplayName(resolveActorDisplay(post.author, post.authorSnapshot))} · ${formatShanghaiDate(post.createdAt)}`}
         authorAvatar={post.author?.avatar ?? null}
         content={post.content}
       />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { buildNotificationReadUpdate, notificationReadStateSchema } from "@/features/notifications/lib/read-state";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/features/notifications/lib/pagination";
+import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDateTime } from "@/shared/lib/date";
 import { getPaginationState, parsePageParam } from "@/shared/lib/pagination";
 import { prisma } from "@/shared/lib/prisma";
@@ -33,15 +34,16 @@ export async function GET(request: Request) {
       type: true,
       relatedId: true,
       relatedType: true,
-      sender: { select: { displayName: true } },
+      sender: { select: { displayName: true, status: true } },
+      senderSnapshot: true,
     },
   });
 
   return NextResponse.json({
-    items: notifications.map(({ sender, ...notification }) => ({
+    items: notifications.map(({ sender, senderSnapshot, ...notification }) => ({
       ...notification,
       relatedType: notification.relatedType ?? undefined,
-      senderName: sender?.displayName,
+      senderName: formatActorDisplayName(resolveActorDisplay(sender, senderSnapshot)),
       createdAt: formatShanghaiDateTime(notification.createdAt),
     })),
     page: pagination.currentPage,

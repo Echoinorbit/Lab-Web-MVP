@@ -509,7 +509,17 @@ export function UserEditor({
         pending={isPending}
         confirmDisabled={confirmUsername !== user.username}
         onConfirm={() => runAction(
-          () => permanentlyDeleteUserResult({ userId: user.id, confirmUsername }),
+          async () => {
+            const result = await permanentlyDeleteUserResult({ userId: user.id, confirmUsername });
+            if (result.ok && result.data.avatarCleanupPending) {
+              toast({
+                title: "账号已删除，头像待清理",
+                description: "账号与权限已永久删除；头像文件将在后台清理任务中重试。",
+                variant: "info",
+              });
+            }
+            return result;
+          },
           "账号已永久删除",
           () => router.push("/admin/users"),
         )}
