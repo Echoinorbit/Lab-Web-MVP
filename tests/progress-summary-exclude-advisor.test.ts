@@ -5,6 +5,7 @@ import {
   ADVISOR_TAG_NAME,
   getProgressAudienceWhere,
   hasEffectiveAdvisorTag,
+  progressReportExportWhere,
   withoutEffectiveAdvisorTagWhere,
 } from "../src/features/progress/lib/advisor-filter";
 
@@ -73,5 +74,18 @@ test("进度统计查询条件应排除有效 advisor Tag", () => {
         },
       },
     },
+  });
+});
+
+test("进度导出保留已删除学生报告，同时只排除仍存在的有效导师", () => {
+  const now = new Date("2026-06-25T04:00:00.000Z");
+  assert.deepEqual(progressReportExportWhere(2026, 6, now), {
+    year: 2026,
+    month: 6,
+    deletedAt: null,
+    OR: [
+      { user: null },
+      { user: withoutEffectiveAdvisorTagWhere(now) },
+    ],
   });
 });

@@ -10,8 +10,8 @@ import {
 import {
   restoreStudyIdentityAfterCancelledGraduation,
   revokeTagsForGraduation,
-  orderUserLifecycleLockIds,
 } from "../src/features/admin/lib/user-lifecycle";
+import { orderUserLifecycleLockIds } from "../src/shared/lib/user-lifecycle-lock";
 
 const target = {
   id: "target",

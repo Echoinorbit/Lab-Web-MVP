@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createActorSnapshot,
+  formatActorDisplayName,
   loadActorSnapshot,
   parseActorSnapshot,
   resolveActorDisplay,
@@ -70,6 +71,15 @@ test("署名快照有版本、隐私边界和损坏回退", () => {
   });
   assert.equal(resolveActorDisplay(null, { v: 99 }).displayName, "已删除用户");
   assert.equal(resolveActorDisplay({ displayName: "实时姓名", studyDegree: "DOCTOR", status: "ACTIVE" }, snapshot).displayName, "实时姓名");
+  assert.equal(formatActorDisplayName(resolveActorDisplay(null, snapshot)), "张同学（账号已删除）");
+  assert.equal(
+    formatActorDisplayName(resolveActorDisplay(null, { ...snapshot, accountState: "GRADUATED" })),
+    "张同学（已毕业）",
+  );
+  assert.equal(
+    formatActorDisplayName(resolveActorDisplay({ displayName: "暂停用户", status: "SUSPENDED" }, null)),
+    "暂停用户（已停用）",
+  );
 });
 
 test("署名快照加载器只读取有界公开身份字段", async () => {

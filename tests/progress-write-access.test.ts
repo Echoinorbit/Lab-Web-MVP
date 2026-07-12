@@ -10,15 +10,18 @@ const now = new Date("2026-07-11T00:00:00.000Z");
 
 function transactionWithPermissions(permissions: string[], active = true) {
   return {
+    $executeRaw: async () => 1,
     $queryRaw: async () => [{ now }],
     user: {
-      findFirst: async () => active
+      findUnique: async (args: { select: { displayName?: boolean } }) => args.select.displayName && active
         ? { displayName: "测试成员", studyDegree: "MASTER", status: "ACTIVE" }
-        : null,
-      findUnique: async () => active
+        : active
         ? {
+            displayName: "测试成员",
             role: "MEMBER",
             status: "ACTIVE",
+            studyDegree: "MASTER",
+            identityNeedsReview: false,
             tags: [{
               projectId: null,
               expiresAt: null,

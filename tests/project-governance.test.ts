@@ -6,6 +6,7 @@ import {
   assertParticipantsBelongToAdvisor,
   canEditProjectSnapshot,
   canHardDeleteProjectSnapshot,
+  canManageProjectLeaderReassignment,
   canRestoreProjectSnapshot,
   canSoftDeleteProjectSnapshot,
   isEligibleProjectLeaderActor,
@@ -78,6 +79,30 @@ test("canonical 项目组长必须是身份已确认且仍在用的硕博成员"
   assert.equal(isEligibleProjectLeaderActor({ ...student, status: "SUSPENDED" }), false);
   assert.equal(isEligibleProjectLeaderActor({ ...student, studyDegree: "MENTOR" }), false);
   assert.equal(isEligibleProjectLeaderActor({ ...student, identityNeedsReview: true }), false);
+});
+
+test("待重分配项目只允许管理员或具备 advised 权限的负责导师接管", () => {
+  const project = { advisorId: "advisor-1", leaderId: null, deletedAt: null };
+  assert.equal(canManageProjectLeaderReassignment("admin-1", "ADMIN", project, new Set()), true);
+  assert.equal(canManageProjectLeaderReassignment(
+    "advisor-1",
+    "MEMBER",
+    project,
+    new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
+  ), true);
+  assert.equal(canManageProjectLeaderReassignment(
+    "advisor-2",
+    "MEMBER",
+    project,
+    new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
+  ), false);
+  assert.equal(canManageProjectLeaderReassignment("member-1", "MEMBER", project, new Set()), false);
+  assert.equal(canManageProjectLeaderReassignment(
+    "admin-1",
+    "ADMIN",
+    { ...project, deletedAt: new Date() },
+    new Set(),
+  ), false);
 });
 
 test("导师只可软删自己负责的项目，管理员只走恢复或硬删路径", () => {

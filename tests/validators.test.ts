@@ -14,6 +14,7 @@ import {
 import { announcementInputSchema } from "../src/shared/lib/validators/announcements";
 import { commentInputSchema, postInputSchema } from "../src/shared/lib/validators/posts";
 import {
+  projectLeaderReassignmentInputSchema,
   projectMembersInputSchema,
   updateProjectInputSchema,
 } from "../src/shared/lib/validators/projects";
@@ -162,4 +163,9 @@ test("项目信息编辑仅接受名称、简介与显式项目 ID", () => {
 test("项目成员树应支持一次提交多个成员并拒绝空选择", () => {
   assert.equal(projectMembersInputSchema.safeParse({ projectId: "project-1", userIds: ["user-1", "user-2"] }).success, true);
   assert.equal(projectMembersInputSchema.safeParse({ projectId: "project-1", userIds: [] }).success, false);
+});
+
+test("项目负责人重分配必须同时提交项目与候选人 ID", () => {
+  assert.equal(projectLeaderReassignmentInputSchema.safeParse({ projectId: "project-1", leaderId: "user-1" }).success, true);
+  assert.equal(projectLeaderReassignmentInputSchema.safeParse({ projectId: "project-1", leaderId: "" }).success, false);
 });

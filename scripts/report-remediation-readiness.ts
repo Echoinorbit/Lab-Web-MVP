@@ -38,7 +38,7 @@ const LEGACY_GRADE_MAPPING = {
   "博5": "DOCTOR_5",
 } as const;
 
-async function buildReport(prisma: PrismaClient) {
+export async function buildReport(prisma: PrismaClient) {
   return prisma.$transaction(async (tx) => {
     const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>(Prisma.sql`SELECT transaction_timestamp() AS now`);
     const [

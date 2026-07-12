@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import ExcelJS from "exceljs";
 
 import {
   buildAuditExportContentDisposition,
   buildAuditExportPlan,
+  buildAuditWorkbookBuffer,
   formatShanghaiDateForFileName,
   getShanghaiYearEnd,
   isAuditCronAuthorized,
@@ -83,4 +85,35 @@ test("审计导出计划应递增 seq 与 cycle，并在第 4 次触发清库归
 
 test("审计导出归档到期时间应为上海自然年年底", () => {
   assert.equal(getShanghaiYearEnd(2026).toISOString(), "2026-12-31T15:59:59.999Z");
+});
+
+test("审计归档在源日志清理后仍保留历史操作者姓名与账号状态", async () => {
+  const buffer = await buildAuditWorkbookBuffer([{
+    createdAt: new Date("2026-07-10T00:00:00.000Z"),
+    userId: null,
+    actorName: "张三（已毕业）",
+    actorState: "GRADUATED",
+    action: "DELETE",
+    entityType: "User",
+    entityId: "student-1",
+    ipAddress: null,
+    details: { retained: true },
+  }]);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  const sheet = workbook.getWorksheet("audit_logs");
+  assert.ok(sheet);
+  assert.deepEqual((sheet.getRow(1).values as unknown[]).slice(1), [
+    "createdAt",
+    "userId",
+    "actorName",
+    "actorState",
+    "action",
+    "entityType",
+    "entityId",
+    "ipAddress",
+    "details",
+  ]);
+  assert.equal(sheet.getRow(2).getCell(3).value, "张三（已毕业）");
+  assert.equal(sheet.getRow(2).getCell(4).value, "GRADUATED");
 });
