@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getProjectAdvisorLifecycleUserIds } from "@/features/projects/lib/project-responsibility";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { enrollmentDateForGrade } from "@/shared/lib/grade";
 import { PERMISSIONS } from "@/shared/lib/permissions";
@@ -26,7 +27,8 @@ export async function updateUserStudyIdentity(input: unknown) {
 
   await prisma.$transaction(async (tx) => {
     await lockUserAdvisorRelations(tx);
-    for (const userId of orderUserLifecycleLockIds([actor.id, data.userId])) {
+    const relatedUserIds = await getProjectAdvisorLifecycleUserIds(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([actor.id, data.userId, ...relatedUserIds])) {
       await lockUserIdentity(tx, userId);
     }
     const target = await tx.user.findUnique({
@@ -62,6 +64,7 @@ export async function updateUserStudyIdentity(input: unknown) {
         details: {
           before: { studyDegree: target.studyDegree, studyGrade: target.studyGrade },
           after: { studyDegree: data.studyDegree, studyGrade },
+          releasedProjectLeaderIds: identitySync.reconciledProjectIds,
         },
       },
     });

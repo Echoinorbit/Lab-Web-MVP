@@ -51,6 +51,7 @@ export async function getLockedActor(tx: Prisma.TransactionClient, userId: strin
         displayName: true,
         studyDegree: true,
         identityNeedsReview: true,
+        advisorId: true,
       },
     }),
   ]);

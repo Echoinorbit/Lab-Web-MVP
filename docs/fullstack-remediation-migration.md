@@ -1,7 +1,8 @@
 # Full-stack remediation migration runbook
 
 This runbook covers the database rollout introduced by
-`20260710140000_fullstack_remediation`. Run every command from the repository root.
+`20260710140000_fullstack_remediation` and its forward-only responsibility repair
+`20260712143000_reconcile_project_responsibilities`. Run every command from the repository root.
 Never use `prisma migrate reset` against a shared or production database.
 
 ## Scope and compatibility
@@ -11,6 +12,10 @@ The migration is an expand/backfill/contract rollout. It keeps the legacy physic
 snapshots, project leadership/status projection, lifecycle scheduling, and the
 singleton runtime settings row. Existing ambiguous identity evidence is retained as
 `identityNeedsReview`; the migration never guesses from enrollment date or cohort text.
+The forward-only responsibility repair accepts a legacy leader only when both the
+responsible advisor and the direct-student leader satisfy the current canonical contract.
+It revokes ambiguous, inactive, unresolved, administrator, mentor, cross-advisor, and
+invalid-advisor live assignments while retaining their audit rows and bounded snapshots.
 
 The application must deploy with this migration. Older application code still reading
 the physical `grade` column is not compatible after the rename, so rollback after
@@ -37,13 +42,14 @@ The preferred automated rehearsal derives two unique schemas from the database i
 
 1. `remediation_upgrade_*` applies migrations only through
    `20260629131356_drop_unused_user_post_tags`, inserts representative and adversarial
-   legacy users, Tags, projects, leaders, and attribution rows, then applies only
-   `20260710140000_fullstack_remediation`. It asserts the exact identity-review ledger,
-   protected Tag projections, 72-hour lifecycle schedule, leader reconstruction,
+   legacy users, Tags, projects, leaders, and attribution rows, then applies both
+   remediation migrations in order. It asserts the exact identity-review ledger,
+   protected Tag projections, 72-hour lifecycle schedule, eligible direct-student
+   leader reconstruction, rejection of ambiguous/ineligible/cross-advisor authority,
    status derivation, actor snapshots, migration history, and pre/post rollback counts.
    Its deliberate conflicts remain visible in the readiness report, with exact expected
    counts, rather than being guessed away.
-2. `remediation_it_*` keeps the clean-install path: all six migrations, seed, persisted
+2. `remediation_it_*` keeps the clean-install path: all seven migrations, seed, persisted
    settings, lifecycle/deletion, trigger, attribution, and concurrent leader checks.
 
 ```sh
@@ -86,8 +92,9 @@ The production readiness JSON is read-only and must report `ready: true`. If del
 ambiguous identities remain in `unresolvedIdentities`, readiness stays false: review the
 stable reason ledger, repair those accounts through the administrator workflow, and rerun
 the check. Identity projection drift, conflicting effective identity Tags, active projects
-without a leader, project-status drift, lifecycle drift, and missing actor snapshots must
-all be empty or zero. Exactly one settings row with id `singleton` must exist.
+without a leader, `invalidProjectLeaders`, project-status drift, lifecycle drift, and missing
+actor snapshots must all be empty or zero. Exactly one settings row with id `singleton`
+must exist.
 
 After the application is live, run fixtures and the authenticated smoke/browser suites
 against a non-production environment. Provision an external scheduler for the

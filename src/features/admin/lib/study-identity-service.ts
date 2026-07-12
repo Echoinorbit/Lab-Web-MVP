@@ -1,5 +1,10 @@
 import { Prisma, type Role, type StudyDegree, type StudyGrade } from "@prisma/client";
 
+import {
+  assertNoActiveProjectAdvisorResponsibilities,
+  reconcileCanonicalProjectLeadershipForAdvisor,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertStudyIdentity, studyDegreeTagName } from "@/shared/lib/study-identity";
 import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
@@ -26,11 +31,23 @@ export async function syncStudyIdentity(
     await lockUserIdentity(tx, userId);
   }
   const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>(Prisma.sql`SELECT transaction_timestamp() AS now`);
-  const actor = await tx.user.findFirst({
-    where: { id: input.actorId, role: "ADMIN", status: "ACTIVE" },
-    select: { displayName: true, studyDegree: true, status: true },
-  });
+  const [actor, currentTarget] = await Promise.all([
+    tx.user.findFirst({
+      where: { id: input.actorId, role: "ADMIN", status: "ACTIVE" },
+      select: { displayName: true, studyDegree: true, status: true },
+    }),
+    tx.user.findUnique({
+      where: { id: input.userId },
+      select: { studyDegree: true },
+    }),
+  ]);
   if (!actor) throw new Error("执行培养身份变更的管理员账号已失效。");
+  if (
+    currentTarget?.studyDegree === "MENTOR"
+    && (input.role !== "MEMBER" || input.studyDegree !== "MENTOR")
+  ) {
+    await assertNoActiveProjectAdvisorResponsibilities(tx, input.userId);
+  }
   const actorSnapshot = createActorSnapshot(actor, now);
 
   await tx.user.update({
@@ -57,7 +74,27 @@ export async function syncStudyIdentity(
     data: { revokedAt: now, revokedById: input.actorId, revokerSnapshot: actorSnapshot },
   });
 
-  if (input.role === "ADMIN" || !input.studyDegree) return { actorSnapshot, now };
+  const releasedAdvisorProjectIds = currentTarget?.studyDegree === "MENTOR"
+    && (input.role !== "MEMBER" || input.studyDegree !== "MENTOR")
+    ? await reconcileCanonicalProjectLeadershipForAdvisor(tx, {
+        advisorId: input.userId,
+        now,
+        revokedBy: { id: input.actorId, snapshot: actorSnapshot },
+      })
+    : [];
+  const releasedLeaderProjectIds = await reconcileCanonicalProjectLeadershipForUser(tx, {
+    userId: input.userId,
+    now,
+    revokedBy: { id: input.actorId, snapshot: actorSnapshot },
+  });
+  const reconciledProjectIds = [...new Set([
+    ...releasedAdvisorProjectIds,
+    ...releasedLeaderProjectIds,
+  ])];
+
+  if (input.role === "ADMIN" || !input.studyDegree) {
+    return { actorSnapshot, now, reconciledProjectIds };
+  }
   const tag = await tx.tag.findFirstOrThrow({
     where: {
       name: studyDegreeTagName(input.studyDegree),
@@ -75,5 +112,5 @@ export async function syncStudyIdentity(
       source: "STUDY_IDENTITY",
     },
   });
-  return { actorSnapshot, now };
+  return { actorSnapshot, now, reconciledProjectIds };
 }

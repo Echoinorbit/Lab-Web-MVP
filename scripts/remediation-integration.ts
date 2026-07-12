@@ -11,12 +11,18 @@ import ExcelJS from "exceljs";
 
 import { deleteUserAccount } from "../src/features/admin/lib/delete-user-account";
 import { executeAuditExport } from "../src/features/admin/lib/audit-export";
+import { syncStudyIdentity } from "../src/features/admin/lib/study-identity-service";
+import { applyAdminUserRoleUpdate } from "../src/features/admin/lib/user-governance";
 import { cancelUserGraduation, graduateUser } from "../src/features/admin/lib/user-lifecycle";
 import {
   openProgressBackfillWindowForUser,
   resolveProgressWriteWindow,
 } from "../src/features/progress/lib/backfill";
 import { assignProjectLeader } from "../src/features/projects/lib/project-state-service";
+import {
+  ACTIVE_PROJECT_ADVISOR_RESPONSIBILITY_MESSAGE,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "../src/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "../src/shared/lib/actor-snapshot";
 import { appendAuditLog } from "../src/shared/lib/audit";
 import { getShanghaiDateParts } from "../src/shared/lib/date";
@@ -62,7 +68,10 @@ const legacyMigrationNames = [
   "20260627063314_feedback_patch_round4_identity",
   "20260629131356_drop_unused_user_post_tags",
 ] as const;
-const remediationMigrationName = "20260710140000_fullstack_remediation";
+const remediationMigrationNames = [
+  "20260710140000_fullstack_remediation",
+  "20260712143000_reconcile_project_responsibilities",
+] as const;
 
 function run(command: string, args: string[], env = commandEnv) {
   execFileSync(command, args, { cwd: process.cwd(), env, stdio: "inherit" });
@@ -143,12 +152,13 @@ async function insertLegacyFixtures(prisma: PrismaClient) {
         ('legacy-expired-master', 'legacy-expired-master', 'legacy-only', '过期标签硕士', 'MEMBER', 'ACTIVE', '研1', NULL, false, '2026-05-01', '2026-06-01'),
         ('legacy-tag-conflict', 'legacy-tag-conflict', 'legacy-only', '身份标签冲突', 'MEMBER', 'ACTIVE', '研1', NULL, false, '2026-05-01', '2026-06-01'),
         ('legacy-grade-conflict', 'legacy-grade-conflict', 'legacy-only', '学位年级冲突', 'MEMBER', 'ACTIVE', '博2', NULL, false, '2026-05-01', '2026-06-01'),
-        ('legacy-unmapped', 'legacy-unmapped', 'legacy-only', '未映射年级', 'MEMBER', 'ACTIVE', '未知年级', NULL, false, '2026-05-01', '2026-06-01'),
+        ('legacy-unmapped', 'legacy-unmapped', 'legacy-only', '未映射年级', 'MEMBER', 'ACTIVE', '未知年级', 'legacy-mentor', false, '2026-05-01', '2026-06-01'),
         ('legacy-missing', 'legacy-missing', 'legacy-only', '身份证据缺失', 'MEMBER', 'ACTIVE', ' ', NULL, false, '2026-05-01', '2026-06-01'),
         ('legacy-mentor-grade', 'legacy-mentor-grade', 'legacy-only', '导师携带年级', 'MEMBER', 'ACTIVE', '研1', NULL, false, '2026-05-01', '2026-06-01'),
-        ('legacy-graduated-master', 'legacy-graduated-master', 'legacy-only', '旧库毕业硕士', 'MEMBER', 'GRADUATED', '研3', NULL, false, '2026-05-01', '2026-06-01'),
+        ('legacy-graduated-master', 'legacy-graduated-master', 'legacy-only', '旧库毕业硕士', 'MEMBER', 'GRADUATED', '研3', 'legacy-mentor', false, '2026-05-01', '2026-06-01'),
         ('legacy-graduated-mentor', 'legacy-graduated-mentor', 'legacy-only', '旧库毕业导师', 'MEMBER', 'GRADUATED', NULL, NULL, false, '2026-05-01', '2026-06-01'),
-        ('legacy-leader-b', 'legacy-leader-b', 'legacy-only', '旧库候选组长乙', 'MEMBER', 'ACTIVE', '博1', NULL, false, '2026-05-01', '2026-06-01'),
+        ('legacy-invalid-advisor-student', 'legacy-invalid-advisor-student', 'legacy-only', '失效导师直属学生', 'MEMBER', 'ACTIVE', '研1', 'legacy-graduated-mentor', false, '2026-05-01', '2026-06-01'),
+        ('legacy-leader-b', 'legacy-leader-b', 'legacy-only', '旧库候选组长乙', 'MEMBER', 'ACTIVE', '博1', 'legacy-mentor', false, '2026-05-01', '2026-06-01'),
         ('legacy-mentor', 'legacy-mentor', 'legacy-only', '旧库导师', 'MEMBER', 'ACTIVE', NULL, NULL, false, '2026-05-01', '2026-06-01'),
         ('legacy-actor', 'legacy-actor', 'legacy-only', '旧库内容作者', 'MEMBER', 'ACTIVE', '博3', 'legacy-mentor', false, '2026-05-01', '2026-06-01')
     `);
@@ -183,6 +193,12 @@ async function insertLegacyFixtures(prisma: PrismaClient) {
         ('legacy-project-completed', '旧库已完成项目', 'completed priority', 'COMPLETED', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-04', NULL, NULL),
         ('legacy-project-ambiguous', '旧库多组长项目', 'ambiguous leaders', 'REVIEW', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-05', NULL, NULL),
         ('legacy-project-expired', '旧库过期组长项目', 'expired leader', 'IN_PROGRESS', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-inactive', '旧库失效组长项目', 'inactive leader', 'PLANNING', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-invalid-advisor', '旧库失效导师项目', 'invalid advisor', 'PLANNING', 'legacy-actor', 'legacy-graduated-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-admin', '旧库管理员组长项目', 'admin leader', 'PLANNING', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-mentor', '旧库导师组长项目', 'mentor leader', 'PLANNING', 'legacy-actor', 'legacy-graduated-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-unresolved', '旧库待确认组长项目', 'unresolved leader', 'PLANNING', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
+        ('legacy-project-wrong-advisor', '旧库跨导师组长项目', 'wrong advisor leader', 'PLANNING', 'legacy-actor', 'legacy-graduated-mentor', '2026-05-01', '2026-06-06', NULL, NULL),
         ('legacy-project-deleted', '旧库已删除项目', 'deleted project', 'REVIEW', 'legacy-actor', 'legacy-mentor', '2026-05-01', '2026-06-07', '2026-06-08', NULL)
     `);
 
@@ -193,7 +209,13 @@ async function insertLegacyFixtures(prisma: PrismaClient) {
         ('legacy-lead-single', 'project-lead:legacy-project-single', '唯一组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
         ('legacy-lead-empty', 'project-lead:legacy-project-empty', '空节点组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
         ('legacy-lead-ambiguous', 'project-lead:legacy-project-ambiguous', '多组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
-        ('legacy-lead-expired', 'project-lead:legacy-project-expired', '过期组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01')
+        ('legacy-lead-expired', 'project-lead:legacy-project-expired', '过期组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-inactive', 'project-lead:legacy-project-inactive', '失效组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-invalid-advisor', 'project-lead:legacy-project-invalid-advisor', '失效导师组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-admin', 'project-lead:legacy-project-admin', '管理员组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-mentor', 'project-lead:legacy-project-mentor', '导师组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-unresolved', 'project-lead:legacy-project-unresolved', '待确认组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01'),
+        ('legacy-lead-wrong-advisor', 'project-lead:legacy-project-wrong-advisor', '跨导师组长', '[]'::jsonb, 'PROJECT', true, 'legacy-project-lead-template', '2026-05-01', '2026-06-01')
     `);
 
     await tx.$executeRawUnsafe(`
@@ -214,6 +236,12 @@ async function insertLegacyFixtures(prisma: PrismaClient) {
         ('ut-lead-ambiguous-a', 'legacy-actor', 'legacy-lead-ambiguous', 'legacy-project-ambiguous', 'legacy-admin', NULL, NULL, NULL, '2026-05-01'),
         ('ut-lead-ambiguous-b', 'legacy-leader-b', 'legacy-lead-ambiguous', 'legacy-project-ambiguous', 'legacy-admin', NULL, NULL, NULL, '2026-05-02'),
         ('ut-lead-expired', 'legacy-leader-b', 'legacy-lead-expired', 'legacy-project-expired', 'legacy-admin', CURRENT_TIMESTAMP - INTERVAL '1 day', NULL, NULL, '2026-05-03'),
+        ('ut-lead-inactive', 'legacy-graduated-master', 'legacy-lead-inactive', 'legacy-project-inactive', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
+        ('ut-lead-invalid-advisor', 'legacy-invalid-advisor-student', 'legacy-lead-invalid-advisor', 'legacy-project-invalid-advisor', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
+        ('ut-lead-admin', 'legacy-admin', 'legacy-lead-admin', 'legacy-project-admin', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
+        ('ut-lead-mentor', 'legacy-mentor', 'legacy-lead-mentor', 'legacy-project-mentor', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
+        ('ut-lead-unresolved', 'legacy-unmapped', 'legacy-lead-unresolved', 'legacy-project-unresolved', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
+        ('ut-lead-wrong-advisor', 'legacy-leader-b', 'legacy-lead-wrong-advisor', 'legacy-project-wrong-advisor', 'legacy-admin', NULL, NULL, NULL, '2026-05-03'),
         ('ut-custom-revoked', 'legacy-actor', 'legacy-tag-custom', NULL, 'legacy-admin', NULL, '2026-05-10', 'legacy-admin', '2026-05-01')
     `);
 
@@ -233,10 +261,6 @@ async function insertLegacyFixtures(prisma: PrismaClient) {
       INSERT INTO "Comment" (
         "id", "content", "authorId", "postId", "createdAt", "updatedAt"
       ) VALUES ('legacy-comment', '旧库评论', 'legacy-actor', 'legacy-post', '2026-05-01', '2026-06-01')
-    `);
-    await tx.$executeRawUnsafe(`
-      INSERT INTO "ProjectMember" ("id", "userId", "projectId", "joinedAt")
-      VALUES ('legacy-project-member', 'legacy-actor', 'legacy-project-single', '2026-05-01')
     `);
     await tx.$executeRawUnsafe(`
       INSERT INTO "ProjectNode" (
@@ -277,8 +301,12 @@ async function assertLegacyUpgrade(
   beforeTagCount: number,
   beforeUserTagCount: number,
 ) {
-  assert.deepEqual(await migrationHistory(prisma), [...legacyMigrationNames, remediationMigrationName]);
-  assert.deepEqual(await rollbackCounts(prisma), beforeCounts);
+  assert.deepEqual(await migrationHistory(prisma), [...legacyMigrationNames, ...remediationMigrationNames]);
+  const afterCounts = await rollbackCounts(prisma);
+  assert.deepEqual(afterCounts, {
+    ...beforeCounts,
+    ProjectMember: (beforeCounts.ProjectMember ?? 0) + 2,
+  });
 
   const afterGrades = await prisma.user.findMany({
     where: { username: { startsWith: "legacy-" } },
@@ -291,7 +319,7 @@ async function assertLegacyUpgrade(
   );
 
   assert.equal(await prisma.tag.count(), beforeTagCount + 1);
-  assert.equal(await prisma.userTag.count(), beforeUserTagCount + 7);
+  assert.equal(await prisma.userTag.count(), beforeUserTagCount + 8);
   assert.equal(await prisma.systemSetting.count(), 1);
 
   const identities = await prisma.user.findMany({
@@ -312,6 +340,7 @@ async function assertLegacyUpgrade(
     { username: "legacy-grade-conflict", studyDegree: "MASTER", studyGrade: null, identityNeedsReview: true, identityMigrationNote: "GRADE_DEGREE_CONFLICT" },
     { username: "legacy-graduated-master", studyDegree: "MASTER", studyGrade: "MASTER_3", identityNeedsReview: false, identityMigrationNote: null },
     { username: "legacy-graduated-mentor", studyDegree: "MENTOR", studyGrade: null, identityNeedsReview: true, identityMigrationNote: "MENTOR_GRADUATED_LEGACY" },
+    { username: "legacy-invalid-advisor-student", studyDegree: "MASTER", studyGrade: "MASTER_1", identityNeedsReview: false, identityMigrationNote: null },
     { username: "legacy-leader-b", studyDegree: "DOCTOR", studyGrade: "DOCTOR_1", identityNeedsReview: false, identityMigrationNote: null },
     { username: "legacy-master-grade", studyDegree: "MASTER", studyGrade: "MASTER_2", identityNeedsReview: false, identityMigrationNote: null },
     { username: "legacy-mentor", studyDegree: "MENTOR", studyGrade: null, identityNeedsReview: false, identityMigrationNote: null },
@@ -351,6 +380,7 @@ async function assertLegacyUpgrade(
     { username: "legacy-actor", tagName: "grad-phd", source: "STUDY_IDENTITY" },
     { username: "legacy-expired-master", tagName: "grad-master", source: "STUDY_IDENTITY" },
     { username: "legacy-graduated-master", tagName: "grad-master", source: "STUDY_IDENTITY" },
+    { username: "legacy-invalid-advisor-student", tagName: "grad-master", source: "STUDY_IDENTITY" },
     { username: "legacy-leader-b", tagName: "grad-phd", source: "STUDY_IDENTITY" },
     { username: "legacy-master-grade", tagName: "grad-master", source: "STUDY_IDENTITY" },
     { username: "legacy-mentor", tagName: "advisor", source: "STUDY_IDENTITY" },
@@ -375,16 +405,36 @@ async function assertLegacyUpgrade(
 
   const leadSources = await prisma.userTag.findMany({
     where: { id: { startsWith: "ut-lead-" } },
-    select: { id: true, source: true },
+    select: { id: true, source: true, revokedAt: true },
     orderBy: { id: "asc" },
   });
-  assert.deepEqual(leadSources, [
-    { id: "ut-lead-ambiguous-a", source: "LEGACY" },
-    { id: "ut-lead-ambiguous-b", source: "LEGACY" },
-    { id: "ut-lead-empty", source: "PROJECT_LEAD" },
-    { id: "ut-lead-expired", source: "LEGACY" },
-    { id: "ut-lead-single", source: "PROJECT_LEAD" },
+  assert.deepEqual(leadSources.map((row) => ({ ...row, revokedAt: Boolean(row.revokedAt) })), [
+    { id: "ut-lead-admin", source: "PROJECT_LEAD", revokedAt: true },
+    { id: "ut-lead-ambiguous-a", source: "LEGACY", revokedAt: true },
+    { id: "ut-lead-ambiguous-b", source: "LEGACY", revokedAt: true },
+    { id: "ut-lead-empty", source: "PROJECT_LEAD", revokedAt: false },
+    { id: "ut-lead-expired", source: "LEGACY", revokedAt: false },
+    { id: "ut-lead-inactive", source: "PROJECT_LEAD", revokedAt: true },
+    { id: "ut-lead-invalid-advisor", source: "PROJECT_LEAD", revokedAt: true },
+    { id: "ut-lead-mentor", source: "PROJECT_LEAD", revokedAt: true },
+    { id: "ut-lead-single", source: "PROJECT_LEAD", revokedAt: false },
+    { id: "ut-lead-unresolved", source: "PROJECT_LEAD", revokedAt: true },
+    { id: "ut-lead-wrong-advisor", source: "PROJECT_LEAD", revokedAt: true },
   ]);
+
+  const canonicalMembers = await prisma.projectMember.findMany({
+    where: { projectId: { in: ["legacy-project-empty", "legacy-project-single"] } },
+    select: { projectId: true, userId: true, memberSnapshot: true },
+    orderBy: { projectId: "asc" },
+  });
+  assert.deepEqual(canonicalMembers.map((member) => ({
+    projectId: member.projectId,
+    userId: member.userId,
+  })), [
+    { projectId: "legacy-project-empty", userId: "legacy-leader-b" },
+    { projectId: "legacy-project-single", userId: "legacy-actor" },
+  ]);
+  assert(canonicalMembers.every((member) => member.memberSnapshot));
 
   const projects = await prisma.project.findMany({
     where: { id: { startsWith: "legacy-project-" } },
@@ -407,13 +457,19 @@ async function assertLegacyUpgrade(
       leaderNeedsReassignment: project.leaderNeedsReassignment,
     })),
     [
+      { id: "legacy-project-admin", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
       { id: "legacy-project-ambiguous", status: "IN_PROGRESS", leaderId: null, leaderNeedsReassignment: true },
       { id: "legacy-project-archived", status: "ARCHIVED", leaderId: null, leaderNeedsReassignment: false },
       { id: "legacy-project-completed", status: "COMPLETED", leaderId: null, leaderNeedsReassignment: false },
       { id: "legacy-project-deleted", status: "PLANNING", leaderId: null, leaderNeedsReassignment: false },
       { id: "legacy-project-empty", status: "PLANNING", leaderId: "legacy-leader-b", leaderNeedsReassignment: false },
       { id: "legacy-project-expired", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
+      { id: "legacy-project-inactive", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
+      { id: "legacy-project-invalid-advisor", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
+      { id: "legacy-project-mentor", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
       { id: "legacy-project-single", status: "IN_PROGRESS", leaderId: "legacy-actor", leaderNeedsReassignment: false },
+      { id: "legacy-project-unresolved", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
+      { id: "legacy-project-wrong-advisor", status: "PLANNING", leaderId: null, leaderNeedsReassignment: true },
     ],
   );
   const archivedProject = projects.find((project) => project.id === "legacy-project-archived");
@@ -421,6 +477,12 @@ async function assertLegacyUpgrade(
   assert.equal(archivedProject.archivedAt.getTime(), archivedProject.updatedAt.getTime());
   assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-ambiguous")?.leaderSnapshot).displayName, "旧库候选组长乙");
   assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-expired")?.leaderSnapshot).displayName, "旧库候选组长乙");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-inactive")?.leaderSnapshot).displayName, "旧库毕业硕士");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-invalid-advisor")?.leaderSnapshot).displayName, "失效导师直属学生");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-admin")?.leaderSnapshot).displayName, "旧库管理员");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-mentor")?.leaderSnapshot).displayName, "旧库导师");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-unresolved")?.leaderSnapshot).displayName, "未映射年级");
+  assert.equal(snapshot(projects.find((project) => project.id === "legacy-project-wrong-advisor")?.leaderSnapshot).displayName, "旧库候选组长乙");
 
   const report = await buildReport(prisma);
   assert.equal(report.ready, false);
@@ -452,10 +514,17 @@ async function assertLegacyUpgrade(
       .map((project) => ({ id: project.id, leaderNeedsReassignment: project.leaderNeedsReassignment }))
       .sort((a, b) => a.id.localeCompare(b.id)),
     [
+      { id: "legacy-project-admin", leaderNeedsReassignment: true },
       { id: "legacy-project-ambiguous", leaderNeedsReassignment: true },
       { id: "legacy-project-expired", leaderNeedsReassignment: true },
+      { id: "legacy-project-inactive", leaderNeedsReassignment: true },
+      { id: "legacy-project-invalid-advisor", leaderNeedsReassignment: true },
+      { id: "legacy-project-mentor", leaderNeedsReassignment: true },
+      { id: "legacy-project-unresolved", leaderNeedsReassignment: true },
+      { id: "legacy-project-wrong-advisor", leaderNeedsReassignment: true },
     ],
   );
+  assert.deepEqual(report.invalidProjectLeaders, []);
   assert.deepEqual(report.projectStatusDrift, []);
   assert.deepEqual(report.lifecycleDrift, []);
   assert.deepEqual(report.missingSnapshots, {
@@ -490,7 +559,7 @@ async function assertLegacyUpgrade(
 
   return {
     migrationHistory: await migrationHistory(prisma),
-    rollbackCounts: beforeCounts,
+    rowCounts: { before: beforeCounts, after: afterCounts },
     structuralCounts: {
       tags: { before: beforeTagCount, after: await prisma.tag.count() },
       userTags: { before: beforeUserTagCount, after: await prisma.userTag.count() },
@@ -1113,6 +1182,235 @@ async function verifyProjectTriggersAndLeaderSerialization(
   assert.equal((retained.authorSnapshot as { displayName?: string }).displayName, leader.displayName);
 }
 
+async function verifyProjectLeadershipLifecycleReconciliation(
+  prisma: PrismaClient,
+  admin: { id: string; displayName: string; studyDegree: StudyDegree | null; status: "ACTIVE" },
+  mentor: { id: string; displayName: string; studyDegree: StudyDegree | null; status: "ACTIVE" },
+) {
+  const createLedProject = async (key: string) => {
+    const leader = await createMember(prisma, admin, {
+      username: `integration-leader-lifecycle-${key}`,
+      displayName: `负责人生命周期-${key}`,
+      studyDegree: "MASTER",
+      studyGrade: "MASTER_1",
+      advisorId: mentor.id,
+    });
+    const project = await prisma.project.create({
+      data: {
+        name: `integration leader lifecycle ${key}`,
+        creatorId: mentor.id,
+        creatorSnapshot: createActorSnapshot(mentor),
+        advisorId: mentor.id,
+        advisorSnapshot: createActorSnapshot(mentor),
+      },
+    });
+    await prisma.$transaction((tx) => assignProjectLeader(tx, {
+      projectId: project.id,
+      leaderId: leader.id,
+      actorId: admin.id,
+    }));
+    return { leader, project };
+  };
+  const assertReleased = async (
+    fixture: Awaited<ReturnType<typeof createLedProject>>,
+    accountState: "ACTIVE" | "SUSPENDED" | "GRADUATED",
+  ) => {
+    const [project, activeLeadTags] = await Promise.all([
+      prisma.project.findUniqueOrThrow({ where: { id: fixture.project.id } }),
+      prisma.userTag.count({
+        where: { userId: fixture.leader.id, projectId: fixture.project.id, source: "PROJECT_LEAD", revokedAt: null },
+      }),
+    ]);
+    assert.equal(project.leaderId, null);
+    assert.equal(project.leaderNeedsReassignment, true);
+    assert.equal(snapshot(project.leaderSnapshot).displayName, fixture.leader.displayName);
+    assert.equal(snapshot(project.leaderSnapshot).accountState, accountState);
+    assert.equal(activeLeadTags, 0);
+  };
+
+  const suspended = await createLedProject("suspended");
+  await prisma.$transaction(async (tx) => {
+    for (const userId of orderUserLifecycleLockIds([admin.id, suspended.leader.id])) {
+      await lockUserLifecycle(tx, userId);
+    }
+    const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`;
+    const actorSnapshot = createActorSnapshot(admin, now);
+    await tx.user.update({ where: { id: suspended.leader.id }, data: { status: "SUSPENDED" } });
+    await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: suspended.leader.id,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
+    });
+  });
+  await assertReleased(suspended, "SUSPENDED");
+
+  const graduated = await createLedProject("graduated");
+  await prisma.$transaction((tx) => graduateUser(tx, { userId: graduated.leader.id, actorId: admin.id }));
+  await assertReleased(graduated, "GRADUATED");
+
+  const promoted = await createLedProject("promoted");
+  await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
+    for (const userId of orderUserLifecycleLockIds([admin.id, promoted.leader.id])) {
+      await lockUserLifecycle(tx, userId);
+    }
+    const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`;
+    const actorSnapshot = createActorSnapshot(admin, now);
+    await applyAdminUserRoleUpdate(tx, {
+      adminId: admin.id,
+      userId: promoted.leader.id,
+      role: "ADMIN",
+      now,
+      actorSnapshot,
+    });
+    await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: promoted.leader.id,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
+    });
+  });
+  await assertReleased(promoted, "ACTIVE");
+
+  const changedDegree = await createLedProject("mentor-degree");
+  await prisma.$transaction((tx) => syncStudyIdentity(tx, {
+    userId: changedDegree.leader.id,
+    actorId: admin.id,
+    role: "MEMBER",
+    studyDegree: "MENTOR",
+    studyGrade: null,
+  }));
+  await assertReleased(changedDegree, "ACTIVE");
+
+  const movedAdvisor = await createLedProject("advisor-move");
+  const replacementMentor = await createMember(prisma, admin, {
+    username: "integration-replacement-mentor",
+    displayName: "替代导师",
+    studyDegree: "MENTOR",
+    studyGrade: null,
+  });
+  await prisma.$transaction(async (tx) => {
+    await lockUserAdvisorRelations(tx);
+    for (const userId of orderUserLifecycleLockIds([
+      admin.id,
+      mentor.id,
+      movedAdvisor.leader.id,
+      replacementMentor.id,
+    ])) {
+      await lockUserLifecycle(tx, userId);
+    }
+    const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT transaction_timestamp() AS now`;
+    const actorSnapshot = createActorSnapshot(admin, now);
+    await tx.user.update({
+      where: { id: movedAdvisor.leader.id },
+      data: {
+        advisorId: replacementMentor.id,
+        advisorSnapshot: createActorSnapshot(replacementMentor, now),
+      },
+    });
+    await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: movedAdvisor.leader.id,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
+    });
+  });
+  await assertReleased(movedAdvisor, "ACTIVE");
+
+  await assert.rejects(
+    prisma.$transaction((tx) => deleteUserAccount(tx, mentor.id, {
+      kind: "manual",
+      actorId: admin.id,
+      confirmUsername: "integration-mentor",
+    })),
+    { message: ACTIVE_PROJECT_ADVISOR_RESPONSIBILITY_MESSAGE },
+  );
+
+  const recoverableProjectMentor = await createMember(prisma, admin, {
+    username: "integration-recoverable-project-mentor",
+    displayName: "可恢复项目导师",
+    studyDegree: "MENTOR",
+    studyGrade: null,
+  });
+  const recoverableProject = await prisma.project.create({
+    data: {
+      name: "integration recoverable advisor deletion guard",
+      creatorId: recoverableProjectMentor.id,
+      creatorSnapshot: createActorSnapshot(recoverableProjectMentor),
+      advisorId: recoverableProjectMentor.id,
+      advisorSnapshot: createActorSnapshot(recoverableProjectMentor),
+      deletedAt: new Date(),
+    },
+  });
+  await assert.rejects(
+    prisma.$transaction((tx) => deleteUserAccount(tx, recoverableProjectMentor.id, {
+      kind: "manual",
+      actorId: admin.id,
+      confirmUsername: recoverableProjectMentor.username,
+    })),
+    { message: ACTIVE_PROJECT_ADVISOR_RESPONSIBILITY_MESSAGE },
+  );
+  await prisma.project.delete({ where: { id: recoverableProject.id } });
+  assert.equal((await prisma.$transaction((tx) => deleteUserAccount(tx, recoverableProjectMentor.id, {
+    kind: "manual",
+    actorId: admin.id,
+    confirmUsername: recoverableProjectMentor.username,
+  }))).deleted, true);
+
+  const archivedMentor = await createMember(prisma, admin, {
+    username: "integration-archived-only-mentor",
+    displayName: "仅历史项目导师",
+    studyDegree: "MENTOR",
+    studyGrade: null,
+  });
+  const archivedLeader = await createMember(prisma, admin, {
+    username: "integration-archived-only-leader",
+    displayName: "仅历史项目负责人",
+    studyDegree: "MASTER",
+    studyGrade: "MASTER_1",
+    advisorId: archivedMentor.id,
+  });
+  const archivedProject = await prisma.project.create({
+    data: {
+      name: "integration archived advisor deletion",
+      creatorId: archivedMentor.id,
+      creatorSnapshot: createActorSnapshot(archivedMentor),
+      advisorId: archivedMentor.id,
+      advisorSnapshot: createActorSnapshot(archivedMentor),
+    },
+  });
+  await prisma.$transaction((tx) => assignProjectLeader(tx, {
+    projectId: archivedProject.id,
+    leaderId: archivedLeader.id,
+    actorId: admin.id,
+  }));
+  await prisma.project.update({
+    where: { id: archivedProject.id },
+    data: { archivedAt: new Date(), leaderNeedsReassignment: false },
+  });
+  const archivedDeletion = await prisma.$transaction((tx) => deleteUserAccount(tx, archivedMentor.id, {
+    kind: "manual",
+    actorId: admin.id,
+    confirmUsername: archivedMentor.username,
+  }));
+  assert.equal(archivedDeletion.deleted, true);
+  const retainedArchivedProject = await prisma.project.findUniqueOrThrow({ where: { id: archivedProject.id } });
+  assert.equal(retainedArchivedProject.advisorId, null);
+  assert.equal(retainedArchivedProject.leaderId, null);
+  assert.equal(retainedArchivedProject.leaderNeedsReassignment, false);
+  assert.equal(snapshot(retainedArchivedProject.advisorSnapshot).accountState, "DELETED");
+  assert.equal(snapshot(retainedArchivedProject.leaderSnapshot).displayName, archivedLeader.displayName);
+  assert.equal(
+    await prisma.userTag.count({
+      where: {
+        userId: archivedLeader.id,
+        projectId: archivedProject.id,
+        source: "PROJECT_LEAD",
+        revokedAt: null,
+      },
+    }),
+    0,
+  );
+}
+
 async function verifySettings(prisma: PrismaClient, admin: { id: string; displayName: string; studyDegree: StudyDegree | null; status: "ACTIVE" }, userId: string) {
   const initial = await prisma.systemSetting.findUniqueOrThrow({ where: { id: "singleton" } });
   const snapshot = createActorSnapshot(admin, new Date());
@@ -1194,6 +1492,11 @@ async function verifyCleanInstall() {
     await verifyLifecycleLockHierarchy(prisma, admin);
     await verifyActorWriteLifecycleSerialization(prisma, admin, mentor.id);
     await verifyLifecycleAndDeletion(prisma, admin);
+    await verifyProjectLeadershipLifecycleReconciliation(
+      prisma,
+      admin,
+      { ...mentor, status: "ACTIVE" },
+    );
     await verifyProjectTriggersAndLeaderSerialization(
       prisma,
       admin,
@@ -1210,6 +1513,8 @@ async function verifyCleanInstall() {
         "bulk session revocation and advisor rewrites obey the global-to-user lock hierarchy",
         "actor writes, audit attribution, suspension, and backfill serialize with lifecycle deletion",
         "graduation, cancellation, 72-hour schedule, and idempotent scheduled deletion",
+        "leader responsibility reconciles after suspension, graduation, promotion, degree, and advisor changes",
+        "unfinished and recoverable project advisors are deletion-guarded while terminal history remains deletable",
         "historical attribution retained after scheduled/manual deletion",
         "four-cycle audit export retains deleted attribution after source-log cleanup",
         "project PLANNING/IN_PROGRESS/ARCHIVED/COMPLETED trigger priority",

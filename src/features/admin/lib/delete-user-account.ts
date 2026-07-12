@@ -1,5 +1,11 @@
 import type { Prisma } from "@prisma/client";
 
+import {
+  assertNoActiveProjectAdvisorResponsibilities,
+  getProjectAdvisorLifecycleUserIds,
+  reconcileCanonicalProjectLeadershipForAdvisor,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import {
   lockUserAdvisorRelations,
@@ -71,13 +77,10 @@ export async function deleteUserAccount(
   mode: DeleteUserMode,
 ): Promise<DeleteUserAccountResult> {
   await lockUserAdvisorRelations(tx);
-  const advisees = await tx.user.findMany({
-    where: { advisorId: targetUserId },
-    select: { id: true },
-  });
+  const relatedUserIds = await getProjectAdvisorLifecycleUserIds(tx, targetUserId);
   const lifecycleUserIds = mode.kind === "manual"
-    ? [mode.actorId, targetUserId, ...advisees.map(({ id }) => id)]
-    : [targetUserId, ...advisees.map(({ id }) => id)];
+    ? [mode.actorId, targetUserId, ...relatedUserIds]
+    : [targetUserId, ...relatedUserIds];
   for (const userId of orderUserLifecycleLockIds(lifecycleUserIds)) {
     await lockUserLifecycle(tx, userId);
   }
@@ -127,7 +130,24 @@ export async function deleteUserAccount(
     }
   }
 
+  await assertNoActiveProjectAdvisorResponsibilities(tx, target.id);
+
   const targetSnapshot = createActorSnapshot(target, now, getDeletionSnapshotState(mode));
+  const revokedBy = mode.kind === "manual" && actorSnapshot
+    ? { id: mode.actorId, snapshot: actorSnapshot }
+    : null;
+  await reconcileCanonicalProjectLeadershipForAdvisor(tx, {
+    advisorId: target.id,
+    now,
+    revokedBy,
+  });
+  await reconcileCanonicalProjectLeadershipForUser(tx, {
+    userId: target.id,
+    now,
+    force: true,
+    leaderSnapshot: targetSnapshot,
+    revokedBy,
+  });
 
   await Promise.all([
     tx.user.updateMany({
@@ -149,20 +169,6 @@ export async function deleteUserAccount(
     tx.userTag.updateMany({ where: { revokedById: target.id }, data: { revokerSnapshot: targetSnapshot } }),
     tx.systemSetting.updateMany({ where: { updatedById: target.id }, data: { updatedBySnapshot: targetSnapshot } }),
   ]);
-
-  await tx.project.updateMany({
-    where: {
-      leaderId: target.id,
-      deletedAt: null,
-      archivedAt: null,
-      status: { not: "COMPLETED" },
-    },
-    data: { leaderId: null, leaderSnapshot: targetSnapshot, leaderNeedsReassignment: true },
-  });
-  await tx.project.updateMany({
-    where: { leaderId: target.id },
-    data: { leaderId: null, leaderSnapshot: targetSnapshot, leaderNeedsReassignment: false },
-  });
 
   await Promise.all([
     tx.rateLimitCounter.deleteMany({ where: { userId: target.id } }),

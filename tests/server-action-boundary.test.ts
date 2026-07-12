@@ -92,6 +92,7 @@ test("批量会话吊销与导师关系写入必须先取得全局锁再锁用�
     "src/features/admin/actions/create-user.ts",
     "src/features/admin/actions/update-user-advisor.ts",
     "src/features/admin/actions/update-user-role.ts",
+    "src/features/admin/actions/update-user-status.ts",
     "src/features/admin/actions/update-user-study-identity.ts",
     "src/features/admin/lib/delete-user-account.ts",
   ]) {
@@ -102,6 +103,8 @@ test("批量会话吊销与导师关系写入必须先取得全局锁再锁用�
   }
 
   const deletionSource = readFileSync("src/features/admin/lib/delete-user-account.ts", "utf8");
-  assert.match(deletionSource, /where: \{ advisorId: targetUserId \}/);
-  assert.match(deletionSource, /advisees\.map\(\(\{ id \}\) => id\)/);
+  assert.match(deletionSource, /getProjectAdvisorLifecycleUserIds\(tx, targetUserId\)/);
+  const responsibilitySource = readFileSync("src/features/projects/lib/project-responsibility.ts", "utf8");
+  assert.match(responsibilitySource, /where: \{ advisorId \}/);
+  assert.match(responsibilitySource, /where: \{ advisorId, leaderId: \{ not: null \} \}/);
 });

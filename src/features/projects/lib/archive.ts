@@ -1,5 +1,7 @@
 import { PERMISSIONS, type Permission } from "@/shared/lib/permissions";
 
+import { PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE } from "./project-responsibility";
+
 export const PROJECT_UNARCHIVE_COOLDOWN_HOURS = 168;
 export const PROJECT_UNARCHIVE_COOLDOWN_MS = PROJECT_UNARCHIVE_COOLDOWN_HOURS * 60 * 60 * 1000;
 
@@ -27,6 +29,7 @@ export function resolveProjectArchiveAccess(input: {
   actorCanLead: boolean;
   leaderId: string | null;
   globalPermissions: ReadonlySet<Permission>;
+  projectPermissions: ReadonlySet<Permission>;
 }) {
   if (input.actorCanLead && input.leaderId === input.actorId) {
     return { allowed: true as const, scope: "leader" as const };
@@ -34,13 +37,22 @@ export function resolveProjectArchiveAccess(input: {
   if (input.globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)) {
     return { allowed: true as const, scope: "admin" as const };
   }
+  if (input.projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)) {
+    return { allowed: true as const, scope: "project" as const };
+  }
   return { allowed: false as const };
 }
 
-export function assertProjectCanUnarchive(status: string, archivedAt: Date | string | null, now = new Date()) {
+export function assertProjectCanUnarchive(
+  status: string,
+  archivedAt: Date | string | null,
+  advisorEligible: boolean,
+  now = new Date(),
+) {
   if (status !== "ARCHIVED" || !archivedAt) {
     throw new Error("只有已归档的项目可以重新启用。");
   }
+  if (!advisorEligible) throw new Error(PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE);
   if (!canUnarchiveProjectAt(archivedAt, now)) {
     throw new Error("归档后 7 天内不可重新启用");
   }

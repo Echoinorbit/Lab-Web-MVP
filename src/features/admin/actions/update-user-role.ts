@@ -2,6 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  assertNoActiveProjectAdvisorResponsibilities,
+  getProjectAdvisorLifecycleUserIds,
+  reconcileCanonicalProjectLeadershipForAdvisor,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
@@ -37,17 +43,21 @@ export async function updateUserRole(input: unknown) {
 
   await prisma.$transaction(async (tx) => {
     await lockUserAdvisorRelations(tx);
-    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+    const relatedUserIds = await getProjectAdvisorLifecycleUserIds(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId, ...relatedUserIds])) {
       await lockUserLifecycle(tx, userId);
     }
     await lockAdminGovernance(tx);
     const target = await tx.user.findUnique({
       where: { id: data.userId },
-      select: { role: true, status: true },
+      select: { role: true, status: true, studyDegree: true },
     });
     if (!target) throw new Error("用户不存在。");
     if (target.role === data.role) throw new Error("用户角色未发生变化。");
     if (target.status === "GRADUATED") throw new Error("毕业账号不能直接变更系统角色。");
+    if (data.role === "ADMIN") {
+      await assertNoActiveProjectAdvisorResponsibilities(tx, data.userId);
+    }
     if (target.role === "ADMIN" && data.role === "MEMBER" && target.status === "ACTIVE") {
       const activeAdminCount = await tx.user.count({ where: { role: "ADMIN", status: "ACTIVE" } });
       if (activeAdminCount <= 1) throw new Error("不能移除最后一个有效管理员的角色。");
@@ -60,12 +70,25 @@ export async function updateUserRole(input: unknown) {
       }),
     ]);
     if (!actor) throw new Error("执行角色变更的管理员账号已失效。");
+    const actorSnapshot = createActorSnapshot(actor, now);
     await applyAdminUserRoleUpdate(tx, {
       adminId: admin.id,
       userId: data.userId,
       role: data.role,
       now,
-      actorSnapshot: createActorSnapshot(actor, now),
+      actorSnapshot,
+    });
+    if (target.studyDegree === "MENTOR" && data.role === "ADMIN") {
+      await reconcileCanonicalProjectLeadershipForAdvisor(tx, {
+        advisorId: data.userId,
+        now,
+        revokedBy: { id: admin.id, snapshot: actorSnapshot },
+      });
+    }
+    await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: data.userId,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
     });
   });
 

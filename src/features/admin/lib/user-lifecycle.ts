@@ -1,5 +1,6 @@
 import { Prisma, type StudyDegree } from "@prisma/client";
 
+import { reconcileCanonicalProjectLeadershipForUser } from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot, type ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
 import { studyDegreeTagName } from "@/shared/lib/study-identity";
 import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
@@ -160,6 +161,11 @@ export async function graduateUser(
     actorSnapshot,
     now,
   });
+  const releasedProjectLeaderIds = await reconcileCanonicalProjectLeadershipForUser(tx, {
+    userId: target.id,
+    now,
+    revokedBy: { id: input.actorId, snapshot: actorSnapshot },
+  });
 
   await tx.auditLog.create({
     data: {
@@ -172,6 +178,7 @@ export async function graduateUser(
         status: "GRADUATED",
         graduatedAt: now.toISOString(),
         scheduledDeletionAt: scheduledDeletionAt.toISOString(),
+        releasedProjectLeaderIds,
       },
     },
   });

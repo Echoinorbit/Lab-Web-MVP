@@ -98,9 +98,7 @@ export function resolveActorDisplay(
 }
 
 export function getActorDisplayAccountState(actor: ReturnType<typeof resolveActorDisplay>) {
-  return actor.isDeleted && actor.accountState === "ACTIVE"
-    ? "DELETED"
-    : actor.accountState;
+  return actor.accountState;
 }
 
 export function formatActorDisplayName(actor: ReturnType<typeof resolveActorDisplay>) {

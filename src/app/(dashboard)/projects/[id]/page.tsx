@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ProjectDetail } from "@/features/projects";
 import type { ProjectCanvasSourceNode } from "@/features/projects/lib/node-canvas";
+import { isCanonicalProjectLeaderEligible } from "@/features/projects/lib/project-responsibility";
 import { canViewProject } from "@/features/projects/lib/visibility";
 import {
   canEditProjectSnapshot,
@@ -13,7 +14,11 @@ import {
   isEligibleProjectLeaderActor,
 } from "@/features/projects/lib/project-governance";
 import { FORBIDDEN_ROUTE } from "@/shared/lib/access-denied";
-import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
+import {
+  formatActorDisplayName,
+  getActorDisplayAccountState,
+  resolveActorDisplay,
+} from "@/shared/lib/actor-snapshot";
 import { getEffectiveTags, getProjectPermissions, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
@@ -71,11 +76,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           include: { author: { select: { displayName: true, studyDegree: true, status: true } } },
         },
+        creator: {
+          select: { displayName: true, studyDegree: true, status: true },
+        },
         advisor: {
           select: {
             id: true,
             username: true,
             displayName: true,
+            studyDegree: true,
+            status: true,
             students: {
               where: { role: "MEMBER", status: "ACTIVE" },
               orderBy: [{ displayName: "asc" }],
@@ -89,6 +99,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 identityNeedsReview: true,
               },
             },
+          },
+        },
+        leader: {
+          select: {
+            displayName: true,
+            role: true,
+            studyDegree: true,
+            status: true,
+            identityNeedsReview: true,
+            advisorId: true,
           },
         },
       },
@@ -106,12 +126,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     getUserPermissions(user.id),
   ]);
   const combinedPermissions = new Set([...projectPermissions, ...globalPermissions]);
-  const isProjectLead = isEligibleProjectLeaderActor({
-    role: user.role,
-    status: "ACTIVE",
-    studyDegree: user.studyDegree,
-    identityNeedsReview: user.identityNeedsReview,
-  }) && project.leaderId === user.id;
+  const isProjectLead = project.leaderId === user.id
+    && isCanonicalProjectLeaderEligible(project.leader, project.advisorId);
   const isArchived = project.status === "ARCHIVED";
   const isDeleted = Boolean(project.deletedAt);
   const canReassignLeader = project.leaderNeedsReassignment
@@ -140,6 +156,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         }))
         .map((student) => ({ ...student, grade: formatStudyGrade(student.studyDegree, student.studyGrade) }))
     : [];
+  const creator = resolveActorDisplay(project.creator, project.creatorSnapshot);
+  const advisor = resolveActorDisplay(project.advisor, project.advisorSnapshot);
+  const leader = resolveActorDisplay(project.leader, project.leaderSnapshot);
 
   return (
     <ProjectDetail
@@ -150,6 +169,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       archivedAt={project.archivedAt?.toISOString() ?? null}
       deletedAt={project.deletedAt?.toISOString() ?? null}
       viewerId={user.id}
+      creator={{
+        displayName: creator.displayName,
+        accountState: getActorDisplayAccountState(creator),
+      }}
+      advisor={{
+        displayName: advisor.displayName,
+        accountState: getActorDisplayAccountState(advisor),
+      }}
+      leader={{
+        displayName: leader.displayName,
+        accountState: getActorDisplayAccountState(leader),
+      }}
       canvasNodes={buildCanvasNodes(project.nodes)}
       members={project.members.map((member) => ({
         id: member.user?.id ?? member.id,
@@ -163,7 +194,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       canReassignLeader={canReassignLeader}
       canManageMembers={canManageMembers}
       canCreateNode={(isProjectLead || projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE)) && !isDeleted}
-      canArchive={(isProjectLead || globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)) && !isDeleted}
+      canArchive={(isProjectLead
+        || globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)
+        || projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)) && !isDeleted}
       canEdit={canEditProjectSnapshot(user.id, isProjectLead, project, { globalPermissions, projectPermissions })}
       canSoftDelete={canSoftDeleteProjectSnapshot(user.id, project, combinedPermissions)}
       canRestore={canRestoreProjectSnapshot(project, combinedPermissions)}

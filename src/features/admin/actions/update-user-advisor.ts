@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+import { reconcileCanonicalProjectLeadershipForUser } from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
@@ -85,6 +86,11 @@ export async function updateUserAdvisor(input: unknown) {
         advisorSnapshot: advisor ? createActorSnapshot(advisor, now) : Prisma.DbNull,
       },
     });
+    const releasedProjectLeaderIds = await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: data.userId,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
+    });
     await tx.auditLog.create({
       data: {
         userId: admin.id,
@@ -92,7 +98,11 @@ export async function updateUserAdvisor(input: unknown) {
         action: "ADVISOR_CHANGE",
         entityType: "User",
         entityId: data.userId,
-        details: { beforeAdvisorId: target.advisorId, advisorId: advisor?.id ?? null },
+        details: {
+          beforeAdvisorId: target.advisorId,
+          advisorId: advisor?.id ?? null,
+          releasedProjectLeaderIds,
+        },
       },
     });
   });

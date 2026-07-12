@@ -6,13 +6,13 @@ import { Prisma } from "@prisma/client";
 
 import { toActionResult } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
-import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getProjectPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 
 import { assertProjectCanArchiveStatus, resolveProjectArchiveAccess } from "../lib/archive";
-import { isEligibleProjectLeaderActor } from "../lib/project-governance";
+import { isCanonicalProjectLeaderEligible } from "../lib/project-responsibility";
 
 export async function archiveProject(projectId: string) {
   const user = await requireActiveUser();
@@ -23,17 +23,19 @@ export async function archiveProject(projectId: string) {
       await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`);
       const current = await tx.project.findFirstOrThrow({
         where: { id: projectId, deletedAt: null },
-        select: { status: true, leaderId: true },
+        select: { status: true, advisorId: true, leaderId: true },
       });
       if (!actor) throw new PermissionDeniedError(PERMISSIONS.PROJECT_MANAGE);
+      const projectPermissions = await getProjectPermissionsForClient(tx, user.id, projectId, actor.now);
       const globalPermissions = actor.actor.role === "ADMIN"
         ? new Set([PERMISSIONS.PROJECT_ARCHIVE_ANY])
         : new Set<never>();
       const access = resolveProjectArchiveAccess({
         actorId: user.id,
-        actorCanLead: isEligibleProjectLeaderActor(actor.actor),
+        actorCanLead: isCanonicalProjectLeaderEligible(actor.actor, current.advisorId),
         leaderId: current.leaderId,
         globalPermissions,
+        projectPermissions,
       });
       if (!access.allowed) throw new PermissionDeniedError(PERMISSIONS.PROJECT_MANAGE);
       assertProjectCanArchiveStatus(current.status);
@@ -45,6 +47,7 @@ export async function archiveProject(projectId: string) {
           archivedAt: actor.now,
           archivedById: user.id,
           archivedBySnapshot: actor.actorSnapshot,
+          leaderNeedsReassignment: false,
         },
       });
 

@@ -5,6 +5,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { StatusNotice } from "@/shared/components/ui/status-notice";
+import type { ActorSnapshotV1 } from "@/shared/lib/actor-snapshot";
 
 import type { ProjectCanvasSourceNode } from "../lib/node-canvas";
 import { ArchiveProjectButton } from "./archive-project-button";
@@ -23,6 +24,11 @@ export type ProjectMemberRow = {
   username: string | null;
 };
 
+type ProjectAttribution = {
+  displayName: string;
+  accountState: ActorSnapshotV1["accountState"];
+};
+
 const statusLabels: Record<string, string> = {
   PLANNING: "规划中",
   IN_PROGRESS: "进行中",
@@ -31,12 +37,22 @@ const statusLabels: Record<string, string> = {
   ARCHIVED: "已归档",
 };
 
+const accountStateLabels: Record<ActorSnapshotV1["accountState"], string> = {
+  ACTIVE: "账号正常",
+  SUSPENDED: "账号已停用",
+  GRADUATED: "已毕业",
+  DELETED: "账号已删除",
+};
+
 export function ProjectDetail({
   id,
   name,
   status,
   description,
   viewerId,
+  creator,
+  advisor,
+  leader,
   canvasNodes,
   members,
   availableAdvisor,
@@ -59,6 +75,9 @@ export function ProjectDetail({
   status: string;
   description?: string;
   viewerId: string;
+  creator: ProjectAttribution;
+  advisor: ProjectAttribution;
+  leader: ProjectAttribution;
   canvasNodes: readonly ProjectCanvasSourceNode[];
   members: readonly ProjectMemberRow[];
   availableAdvisor?: ProjectAdvisorOption;
@@ -79,6 +98,11 @@ export function ProjectDetail({
   const isArchived = status === "ARCHIVED";
   const isDeleted = Boolean(deletedAt);
   const hasProjectTools = canReassignLeader || canEdit || (canManageMembers && !isArchived) || (canCreateNode && !isArchived);
+  const attributions = [
+    ["创建人", creator],
+    ["负责导师", advisor],
+    ["项目负责人", leader],
+  ] as const;
 
   return (
     <div className="space-y-10">
@@ -100,11 +124,24 @@ export function ProjectDetail({
         )}
       />
 
+      <section className="space-y-5" aria-label="项目归属" data-project-attribution>
+        <SectionHeader title="项目归属" description="账号状态变化后仍保留项目创建与责任关系的历史署名。" />
+        <dl className="grid overflow-hidden rounded-2xl border border-border/90 bg-card sm:grid-cols-3">
+          {attributions.map(([label, actor]) => (
+            <div key={label} className="min-w-0 border-b border-border/75 px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+              <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+              <dd className="mt-1.5 break-words text-sm font-semibold text-foreground">{actor.displayName}</dd>
+              <dd className="mt-2 text-xs text-muted-foreground">{accountStateLabels[actor.accountState]}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
       {leaderNeedsReassignment ? (
         <StatusNotice variant="warning" title="项目负责人待重新分配">
           {canReassignLeader
-            ? "原负责人账号已删除。请从负责导师的直属在读硕博成员中指定新的负责人。"
-            : "原负责人账号已删除，负责人专属的成员与节点管理能力已暂停；请联系负责导师或管理员处理。"}
+            ? "原负责人已不再符合任职条件。请从负责导师的直属在读硕博成员中指定新的负责人。"
+            : "原负责人已不再符合任职条件，负责人专属的成员与节点管理能力已暂停；请联系负责导师或管理员处理。"}
         </StatusNotice>
       ) : null}
 

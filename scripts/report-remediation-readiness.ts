@@ -26,6 +26,27 @@ type IdentityProjectionDrift = {
   protectedProjectionCount: number;
 };
 
+type ProjectLeaderDrift = {
+  id: string;
+  name: string;
+  leaderId: string;
+  leaderUsername: string;
+  projectAdvisorId: string | null;
+  leaderAdvisorId: string | null;
+  advisorRole: string | null;
+  advisorStatus: string | null;
+  advisorStudyDegree: string | null;
+  advisorIdentityNeedsReview: boolean | null;
+  role: string;
+  status: string;
+  studyDegree: string | null;
+  identityNeedsReview: boolean;
+  memberCount: number;
+  effectiveLeadTagCount: number;
+  projectLeadSourceCount: number;
+  canonicalProjectionCount: number;
+};
+
 const LEGACY_GRADE_MAPPING = {
   "研0": "MASTER_0",
   "研1": "MASTER_1",
@@ -47,6 +68,7 @@ export async function buildReport(prisma: PrismaClient) {
       tagConflicts,
       identityProjectionDrift,
       projectsWithoutLeader,
+      invalidProjectLeaders,
       projectDrift,
       lifecycleDrift,
       settings,
@@ -141,6 +163,89 @@ export async function buildReport(prisma: PrismaClient) {
         select: { id: true, name: true, leaderNeedsReassignment: true },
         orderBy: { name: "asc" },
       }),
+      tx.$queryRaw<ProjectLeaderDrift[]>(Prisma.sql`
+        WITH leader_state AS (
+          SELECT
+            p."id",
+            p."name",
+            p."leaderId",
+            leader."username" AS "leaderUsername",
+            p."advisorId" AS "projectAdvisorId",
+            leader."advisorId" AS "leaderAdvisorId",
+            advisor."role"::text AS "advisorRole",
+            advisor."status"::text AS "advisorStatus",
+            advisor."studyDegree"::text AS "advisorStudyDegree",
+            advisor."identityNeedsReview" AS "advisorIdentityNeedsReview",
+            leader."role"::text AS role,
+            leader."status"::text AS status,
+            leader."studyDegree"::text AS "studyDegree",
+            leader."identityNeedsReview",
+            (
+              SELECT count(*)::int
+              FROM "ProjectMember" pm
+              WHERE pm."projectId" = p."id" AND pm."userId" = p."leaderId"
+            ) AS "memberCount",
+            (
+              SELECT count(*)::int
+              FROM "UserTag" ut
+              JOIN "Tag" t ON t."id" = ut."tagId"
+              JOIN "TagTemplate" tt ON tt."id" = t."templateId"
+              WHERE ut."projectId" = p."id"
+                AND ut."revokedAt" IS NULL
+                AND (ut."expiresAt" IS NULL OR ut."expiresAt" > ${now})
+                AND t."scope" = 'PROJECT'
+                AND t."isSystem" = true
+                AND t."name" = ('project-lead:' || p."id")
+                AND tt."name" = 'project-lead'
+            ) AS "effectiveLeadTagCount",
+            (
+              SELECT count(*)::int
+              FROM "UserTag" ut
+              WHERE ut."projectId" = p."id"
+                AND ut."source" = 'PROJECT_LEAD'
+                AND ut."revokedAt" IS NULL
+                AND (ut."expiresAt" IS NULL OR ut."expiresAt" > ${now})
+            ) AS "projectLeadSourceCount",
+            (
+              SELECT count(*)::int
+              FROM "UserTag" ut
+              JOIN "Tag" t ON t."id" = ut."tagId"
+              JOIN "TagTemplate" tt ON tt."id" = t."templateId"
+              WHERE ut."projectId" = p."id"
+                AND ut."userId" = p."leaderId"
+                AND ut."source" = 'PROJECT_LEAD'
+                AND ut."revokedAt" IS NULL
+                AND (ut."expiresAt" IS NULL OR ut."expiresAt" > ${now})
+                AND t."scope" = 'PROJECT'
+                AND t."isSystem" = true
+                AND t."name" = ('project-lead:' || p."id")
+                AND tt."name" = 'project-lead'
+            ) AS "canonicalProjectionCount"
+          FROM "Project" p
+          JOIN "User" leader ON leader."id" = p."leaderId"
+          LEFT JOIN "User" advisor ON advisor."id" = p."advisorId"
+          WHERE p."leaderId" IS NOT NULL
+        )
+        SELECT *
+        FROM leader_state
+        WHERE
+          "projectAdvisorId" IS NULL
+          OR "advisorRole" IS DISTINCT FROM 'MEMBER'
+          OR "advisorStatus" IS DISTINCT FROM 'ACTIVE'
+          OR "advisorIdentityNeedsReview" IS DISTINCT FROM false
+          OR "advisorStudyDegree" IS DISTINCT FROM 'MENTOR'
+          OR role <> 'MEMBER'
+          OR status <> 'ACTIVE'
+          OR "identityNeedsReview" = true
+          OR "studyDegree" IS NULL
+          OR "studyDegree" NOT IN ('MASTER', 'DOCTOR')
+          OR "leaderAdvisorId" IS DISTINCT FROM "projectAdvisorId"
+          OR "memberCount" <> 1
+          OR "effectiveLeadTagCount" <> 1
+          OR "projectLeadSourceCount" <> 1
+          OR "canonicalProjectionCount" <> 1
+        ORDER BY "name"
+      `),
       tx.$queryRaw<ProjectDrift[]>(Prisma.sql`
         SELECT
           p."id",
@@ -205,9 +310,11 @@ export async function buildReport(prisma: PrismaClient) {
     return {
       generatedAt: now.toISOString(),
       ready:
-        tagConflicts.length === 0
+        unresolvedIdentities.length === 0
+        && tagConflicts.length === 0
         && identityProjectionDrift.length === 0
         && projectsWithoutLeader.length === 0
+        && invalidProjectLeaders.length === 0
         && projectDrift.length === 0
         && lifecycleDrift.length === 0
         && settings.length === 1
@@ -222,6 +329,7 @@ export async function buildReport(prisma: PrismaClient) {
       conflictingEffectiveIdentityTags: tagConflicts,
       identityProjectionDrift,
       projectsWithoutLeader,
+      invalidProjectLeaders,
       projectStatusDrift: projectDrift,
       lifecycleDrift,
       settings,

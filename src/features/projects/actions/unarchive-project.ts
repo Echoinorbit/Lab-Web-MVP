@@ -6,36 +6,60 @@ import { Prisma } from "@prisma/client";
 
 import { toActionResult } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
-import { PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getProjectPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 
-import { assertProjectCanUnarchive, resolveProjectArchiveAccess } from "../lib/archive";
-import { isEligibleProjectLeaderActor } from "../lib/project-governance";
+import {
+  assertProjectCanUnarchive,
+  resolveProjectArchiveAccess,
+} from "../lib/archive";
+import {
+  PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE,
+  PROJECT_RESPONSIBILITY_CHANGED_MESSAGE,
+  isCanonicalProjectAdvisorEligible,
+  isCanonicalProjectLeaderEligible,
+  lockProjectResponsibilityContext,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "../lib/project-responsibility";
 
 export async function unarchiveProject(projectId: string) {
   const user = await requireActiveUser();
   try {
     return await prisma.$transaction(async (tx) => {
-      const actor = await getLockedActiveActor(tx, user.id);
-      await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`);
-      const current = await tx.project.findFirstOrThrow({
-        where: { id: projectId, deletedAt: null },
-        select: { status: true, archivedAt: true, leaderId: true },
-      });
-      if (!actor) throw new PermissionDeniedError(PERMISSIONS.PROJECT_MANAGE);
+      const context = await lockProjectResponsibilityContext(tx, { projectId, actorId: user.id });
+      if (!context?.actor || context.project.deletedAt) {
+        throw new PermissionDeniedError(PERMISSIONS.PROJECT_MANAGE);
+      }
+      const { actor, project: current } = context;
+      const projectPermissions = await getProjectPermissionsForClient(tx, user.id, projectId, actor.now);
       const globalPermissions = actor.actor.role === "ADMIN"
         ? new Set([PERMISSIONS.PROJECT_ARCHIVE_ANY])
         : new Set<never>();
       const access = resolveProjectArchiveAccess({
         actorId: user.id,
-        actorCanLead: isEligibleProjectLeaderActor(actor.actor),
+        actorCanLead: isCanonicalProjectLeaderEligible(actor.actor, current.advisorId),
         leaderId: current.leaderId,
         globalPermissions,
+        projectPermissions,
       });
       if (!access.allowed) throw new PermissionDeniedError(PERMISSIONS.PROJECT_MANAGE);
-      assertProjectCanUnarchive(current.status, current.archivedAt, actor.now);
+      assertProjectCanUnarchive(
+        current.status,
+        current.archivedAt,
+        isCanonicalProjectAdvisorEligible(context.advisor),
+        actor.now,
+      );
+
+      const leaderEligible = isCanonicalProjectLeaderEligible(context.leader, current.advisorId);
+      if (current.leaderId && !leaderEligible) {
+        await reconcileCanonicalProjectLeadershipForUser(tx, {
+          userId: current.leaderId,
+          now: actor.now,
+          revokedBy: { id: user.id, snapshot: actor.actorSnapshot },
+        });
+      }
+      const leaderId = leaderEligible ? current.leaderId : null;
 
       const project = await tx.project.update({
         where: { id: projectId },
@@ -44,6 +68,7 @@ export async function unarchiveProject(projectId: string) {
           archivedAt: null,
           archivedById: null,
           archivedBySnapshot: Prisma.DbNull,
+          leaderNeedsReassignment: leaderId === null,
         },
       });
 
@@ -54,7 +79,7 @@ export async function unarchiveProject(projectId: string) {
           action: "UPDATE",
           entityType: "Project",
           entityId: projectId,
-          details: { status: project.status, scope: access.scope },
+          details: { status: project.status, scope: access.scope, leaderNeedsReassignment: leaderId === null },
         },
       });
       return project;
@@ -85,6 +110,11 @@ export async function unarchiveProjectResult(projectId: string) {
     return null;
   }, {
     fallbackMessage: "项目启用失败，请稍后重试。",
-    knownMessages: ["只有已归档的项目可以重新启用。", "归档后 7 天内不可重新启用"],
+    knownMessages: [
+      "只有已归档的项目可以重新启用。",
+      PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE,
+      PROJECT_RESPONSIBILITY_CHANGED_MESSAGE,
+      "归档后 7 天内不可重新启用",
+    ],
   });
 }

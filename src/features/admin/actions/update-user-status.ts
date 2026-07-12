@@ -2,12 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  assertNoActiveProjectAdvisorResponsibilities,
+  getProjectAdvisorLifecycleUserIds,
+  reconcileCanonicalProjectLeadershipForAdvisor,
+  reconcileCanonicalProjectLeadershipForUser,
+} from "@/features/projects/lib/project-responsibility";
 import { createActorSnapshot } from "@/shared/lib/actor-snapshot";
 import { assertPermissionWithAudit } from "@/shared/lib/authorization";
 import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
-import { lockUserLifecycle, orderUserLifecycleLockIds } from "@/shared/lib/user-lifecycle-lock";
+import {
+  lockUserAdvisorRelations,
+  lockUserLifecycle,
+  orderUserLifecycleLockIds,
+} from "@/shared/lib/user-lifecycle-lock";
 import { updateUserStatusInputSchema } from "@/shared/lib/validators/admin";
 
 import {
@@ -37,15 +47,20 @@ export async function updateUserStatus(input: unknown) {
       return;
     }
 
-    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId])) {
+    await lockUserAdvisorRelations(tx);
+    const relatedUserIds = await getProjectAdvisorLifecycleUserIds(tx, data.userId);
+    for (const userId of orderUserLifecycleLockIds([admin.id, data.userId, ...relatedUserIds])) {
       await lockUserLifecycle(tx, userId);
     }
     const target = await tx.user.findUnique({
       where: { id: data.userId },
-      select: { id: true, role: true, status: true },
+      select: { id: true, role: true, status: true, studyDegree: true },
     });
     if (!target) throw new Error("用户不存在。");
     if (target.status === "GRADUATED") throw new Error("请先使用取消毕业流程恢复该账号。");
+    if (data.status === "SUSPENDED") {
+      await assertNoActiveProjectAdvisorResponsibilities(tx, target.id);
+    }
     if (target.role === "ADMIN" && target.status === "ACTIVE" && data.status === "SUSPENDED") {
       await lockAdminGovernance(tx);
       const activeAdminCount = await tx.user.count({ where: { role: "ADMIN", status: "ACTIVE" } });
@@ -67,6 +82,18 @@ export async function updateUserStatus(input: unknown) {
         tokenVersion: { increment: data.status === "SUSPENDED" ? 1 : 0 },
       },
     });
+    const releasedAdvisorProjectLeaderIds = target.studyDegree === "MENTOR" && data.status === "SUSPENDED"
+      ? await reconcileCanonicalProjectLeadershipForAdvisor(tx, {
+          advisorId: target.id,
+          now,
+          revokedBy: { id: admin.id, snapshot: actorSnapshot },
+        })
+      : [];
+    const releasedProjectLeaderIds = await reconcileCanonicalProjectLeadershipForUser(tx, {
+      userId: target.id,
+      now,
+      revokedBy: { id: admin.id, snapshot: actorSnapshot },
+    });
     await tx.auditLog.create({
       data: {
         userId: admin.id,
@@ -74,7 +101,12 @@ export async function updateUserStatus(input: unknown) {
         action: "STATUS_CHANGE",
         entityType: "User",
         entityId: target.id,
-        details: { status: data.status, changedAt: now.toISOString() },
+        details: {
+          status: data.status,
+          changedAt: now.toISOString(),
+          releasedProjectLeaderIds,
+          releasedAdvisorProjectLeaderIds,
+        },
       },
     });
   });

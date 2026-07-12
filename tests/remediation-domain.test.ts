@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createActorSnapshot,
   formatActorDisplayName,
+  getActorDisplayAccountState,
   loadActorSnapshot,
   parseActorSnapshot,
   resolveActorDisplay,
@@ -72,6 +73,9 @@ test("署名快照有版本、隐私边界和损坏回退", () => {
   assert.equal(resolveActorDisplay(null, { v: 99 }).displayName, "已删除用户");
   assert.equal(resolveActorDisplay({ displayName: "实时姓名", studyDegree: "DOCTOR", status: "ACTIVE" }, snapshot).displayName, "实时姓名");
   assert.equal(formatActorDisplayName(resolveActorDisplay(null, snapshot)), "张同学（账号已删除）");
+  const detachedActiveActor = resolveActorDisplay(null, { ...snapshot, accountState: "ACTIVE" });
+  assert.equal(getActorDisplayAccountState(detachedActiveActor), "ACTIVE");
+  assert.equal(formatActorDisplayName(detachedActiveActor), "张同学");
   assert.equal(
     formatActorDisplayName(resolveActorDisplay(null, { ...snapshot, accountState: "GRADUATED" })),
     "张同学（已毕业）",

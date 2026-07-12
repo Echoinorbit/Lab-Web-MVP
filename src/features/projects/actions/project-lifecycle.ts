@@ -12,6 +12,15 @@ import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 
 import { applyHardDeleteProject, type ProjectHardDeleteTransaction } from "../lib/hard-delete";
 import { canRestoreProjectSnapshot, canSoftDeleteProjectSnapshot } from "../lib/project-governance";
+import {
+  PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE,
+  PROJECT_RESPONSIBILITY_CHANGED_MESSAGE,
+  isCanonicalProjectAdvisorEligible,
+  isCanonicalProjectLeaderEligible,
+  lockProjectResponsibilityContext,
+  reconcileCanonicalProjectLeadershipForUser,
+  shouldProjectRequireLeaderReassignment,
+} from "../lib/project-responsibility";
 
 export async function softDeleteAdvisedProject(projectId: string) {
   const actor = await requireActiveUser();
@@ -33,7 +42,7 @@ export async function softDeleteAdvisedProject(projectId: string) {
       }
       const result = await tx.project.updateMany({
         where: { id: projectId, advisorId: actor.id, deletedAt: null },
-        data: { deletedAt: currentActor.now },
+        data: { deletedAt: currentActor.now, leaderNeedsReassignment: false },
       });
       if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
       await tx.auditLog.create({
@@ -64,12 +73,9 @@ export async function restoreProject(projectId: string) {
   const actor = await requireActiveUser();
   try {
     return await prisma.$transaction(async (tx) => {
-      const currentActor = await getLockedActiveActor(tx, actor.id);
-      await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
-      const project = await tx.project.findUnique({
-        where: { id: projectId },
-        select: { name: true, deletedAt: true },
-      });
+      const context = await lockProjectResponsibilityContext(tx, { projectId, actorId: actor.id });
+      const currentActor = context?.actor;
+      const project = context?.project;
       const permissions = await getUserPermissionsForClient(tx, actor.id, currentActor?.now);
       if (
         !currentActor
@@ -78,9 +84,25 @@ export async function restoreProject(projectId: string) {
       ) {
         throw new PermissionDeniedError(PERMISSIONS.PROJECT_RESTORE);
       }
+      if (!isCanonicalProjectAdvisorEligible(context.advisor)) {
+        throw new Error(PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE);
+      }
+      const leaderEligible = isCanonicalProjectLeaderEligible(context.leader, project.advisorId);
+      if (project.leaderId && !leaderEligible) {
+        await reconcileCanonicalProjectLeadershipForUser(tx, {
+          userId: project.leaderId,
+          now: currentActor.now,
+          revokedBy: { id: actor.id, snapshot: currentActor.actorSnapshot },
+        });
+      }
+      const leaderId = leaderEligible ? project.leaderId : null;
       const result = await tx.project.updateMany({
         where: { id: projectId, deletedAt: { not: null } },
-        data: { deletedAt: null },
+        data: {
+          deletedAt: null,
+          leaderNeedsReassignment: shouldProjectRequireLeaderReassignment({ ...project, deletedAt: null })
+            && leaderId === null,
+        },
       });
       if (result.count !== 1) throw new Error("项目状态已变化，请刷新后重试。");
       await tx.auditLog.create({
@@ -135,7 +157,11 @@ export async function hardDeleteProject(projectId: string) {
   }
 }
 
-const lifecycleFeedbackMessages = ["项目状态已变化，请刷新后重试。"] as const;
+const lifecycleFeedbackMessages = [
+  "项目状态已变化，请刷新后重试。",
+  PROJECT_REACTIVATION_ADVISOR_REQUIRED_MESSAGE,
+  PROJECT_RESPONSIBILITY_CHANGED_MESSAGE,
+] as const;
 
 export async function softDeleteAdvisedProjectResult(projectId: string) {
   return toActionResult(async () => {
