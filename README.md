@@ -125,7 +125,17 @@ http://localhost:3000
 15 * * * * curl -sS --fail-with-body -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/purge-graduated-users
 ```
 
-调度器必须检查 HTTP 状态以及 JSON 中的 `failed`、`avatarCleanupFailed`；`207` 表示本批账号事务或头像清理存在失败，应告警并重试。不要在 Next.js 进程中使用内存定时器。完整部署、头像目录和恢复要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
+调度器必须检查 HTTP 状态以及 JSON 中的 `failed`、`avatarCleanupFailed`；`207` 表示本批账号事务或头像清理存在失败，应告警并重试。不要在 Next.js 进程中使用内存定时器。Linux 单机部署见 [Linux 部署说明](docs/linux-deployment.md)，其他运行维护要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
+
+## Linux 生产部署
+
+仓库提供基于 Ubuntu/Debian、PostgreSQL 16、PM2 和 Nginx 的单机部署说明：
+
+- [Linux 单机生产部署说明](docs/linux-deployment.md)：首次部署、环境变量、HTTPS、外部定时任务、备份、升级、回滚和上线检查
+- [全栈整改运维手册](docs/fullstack-remediation-operations.md)：运行维护、账号清理、上传目录和监控要求
+- [数据库迁移手册](docs/fullstack-remediation-migration.md)：迁移演练、维护窗口和恢复流程
+
+生产环境使用 `npm ci`、`npx prisma migrate deploy` 和 `npm run build`，不要使用 `prisma migrate dev`、`migrate reset` 或 `db push`。当前上传文件保存在本地磁盘，因此这套方案面向单实例、持久磁盘部署。
 
 ## 使用路径
 
