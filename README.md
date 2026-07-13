@@ -124,9 +124,6 @@ http://localhost:3000
 ```bash
 15 * * * * curl -sS --fail-with-body -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/purge-graduated-users
 ```
-
-调度器必须检查 HTTP 状态以及 JSON 中的 `failed`、`avatarCleanupFailed`；`207` 表示本批账号事务或头像清理存在失败，应告警并重试。不要在 Next.js 进程中使用内存定时器。Linux 单机部署见 [Linux 部署说明](docs/linux-deployment.md)，其他运行维护要求见 [全栈整改运维手册](docs/fullstack-remediation-operations.md)，数据库升级见 [迁移手册](docs/fullstack-remediation-migration.md)。
-
 ## Linux 生产部署
 
 仓库提供基于 Ubuntu/Debian、PostgreSQL 16、PM2 和 Nginx 的单机部署说明：
