@@ -91,7 +91,7 @@ export default async function AdminUsersPage({
 
       <section aria-label="用户列表" className="min-w-0 space-y-5">
         <SectionHeader title="账号与身份" description="先筛选账号，再进入独立治理页面处理角色、培养身份、状态与删除。" />
-        <form className="grid gap-3 rounded-2xl border border-border/90 bg-card p-4 sm:grid-cols-[minmax(0,1fr)_180px_auto_auto] sm:items-end" action="/admin/users">
+        <form className="grid gap-3 rounded-3xl border border-white/60 bg-card p-4 shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-[minmax(0,1fr)_180px_auto_auto] sm:items-end" action="/admin/users">
           <label className="grid gap-1.5 text-sm">
             <span className="font-medium">搜索用户</span>
             <Input name="q" defaultValue={search} placeholder="用户名、姓名或学号" />

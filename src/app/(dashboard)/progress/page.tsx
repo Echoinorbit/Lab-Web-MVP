@@ -86,7 +86,7 @@ export default async function ProgressPage({
         actions={canExport ? <ExportButton year={year} month={month} /> : null}
       />
 
-      <nav aria-label="进度月份" className="flex flex-col gap-3 rounded-2xl border border-border/90 bg-card p-3 sm:flex-row sm:items-center">
+      <nav aria-label="进度月份" className="flex flex-col gap-3 rounded-3xl border border-white/60 bg-card p-3 shadow-[var(--shadow-surface)] dark:border-border/80 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
           <Link href={`/progress?year=${prev.year}&month=${prev.month}`} className={buttonStyles({ variant: "secondary", size: "small" })}>
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />

@@ -22,10 +22,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const navigationAccess = buildNavigationAccess(permissions);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-transparent">
       <a
         href="#main-content"
-        className="fixed left-3 top-3 z-[70] -translate-y-20 rounded-[10px] bg-foreground px-4 py-2 text-sm font-medium text-background transition-transform focus:translate-y-0"
+        className="fixed left-3 top-3 z-[70] -translate-y-20 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background focus:translate-y-0"
       >
         跳到主要内容
       </a>
@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <main
           id="main-content"
           tabIndex={-1}
-          className="mx-auto min-w-0 w-full max-w-[1440px] px-4 pb-16 pt-8 outline-none sm:px-6 sm:pt-10 lg:px-10 lg:pb-20 lg:pt-12 xl:px-12"
+          className="mx-auto min-w-0 w-full max-w-[1560px] px-4 pb-16 pt-8 outline-none sm:px-7 sm:pt-10 lg:px-10 lg:pb-24 lg:pt-14 xl:px-14 2xl:px-16"
         >
           {children}
         </main>

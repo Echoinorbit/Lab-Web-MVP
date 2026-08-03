@@ -6,7 +6,7 @@ import { getLockedActor } from "./user-lifecycle-lock";
 
 export type AuditDetails = Record<string, string | number | boolean | null | string[]>;
 
-function terminalActorSnapshot(details: Prisma.JsonValue | null) {
+export function terminalActorSnapshot(details: Prisma.JsonValue | null) {
   if (!details || typeof details !== "object" || Array.isArray(details)) return null;
   const record = details as Prisma.JsonObject;
   if (![

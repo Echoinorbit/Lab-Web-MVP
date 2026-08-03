@@ -126,7 +126,7 @@ export function ProjectDetail({
 
       <section className="space-y-5" aria-label="项目归属" data-project-attribution>
         <SectionHeader title="项目归属" description="账号状态变化后仍保留项目创建与责任关系的历史署名。" />
-        <dl className="grid overflow-hidden rounded-2xl border border-border/90 bg-card sm:grid-cols-3">
+        <dl className="grid overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-3">
           {attributions.map(([label, actor]) => (
             <div key={label} className="min-w-0 border-b border-border/75 px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
               <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
@@ -162,7 +162,7 @@ export function ProjectDetail({
       <section className="space-y-5 border-t border-border/80 pt-8">
         <SectionHeader title="项目成员" description={`${members.length} 位成员在当前项目范围内协作。`} />
         {members.length > 0 ? (
-          <ul className="grid overflow-hidden rounded-2xl border border-border/90 bg-card sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((member) => (
               <li key={member.id} className="flex items-center gap-3 border-b border-r border-border/75 px-5 py-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">

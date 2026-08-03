@@ -57,13 +57,13 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
       />
 
       {rows.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-border/90 bg-card">
+        <div className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
           {rows.map((notification) => (
             <article
               key={notification.id}
               data-notification-row
               className={cn(
-                "grid gap-4 border-b border-border/75 px-5 py-5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:px-6",
+                "grid gap-4 border-b border-border/75 px-5 py-5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:px-6",
                 notification.isRead ? "bg-card" : "bg-primary/[0.045]",
               )}
             >

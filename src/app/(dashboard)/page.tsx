@@ -5,7 +5,7 @@ import { AnnouncementList } from "@/features/announcements";
 import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { ProjectList } from "@/features/projects";
-import { canViewProject, getProjectVisibilityWhere } from "@/features/projects/lib/visibility";
+import { getProjectVisibilityWhere } from "@/features/projects/lib/visibility";
 import { SummaryTable, type ProgressSummaryRow } from "@/features/progress";
 import { getProgressAudienceWhere } from "@/features/progress/lib/advisor-filter";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
@@ -25,7 +25,6 @@ export default async function DashboardPage() {
   const projectVisibilityWhere = getProjectVisibilityWhere({ id: user.id, role: user.role, tags: effectiveTags });
   const announcementVisibilityViewer = await getAnnouncementVisibilityViewer(user);
   const announcementWhere = buildAnnouncementVisibilityWhere(announcementVisibilityViewer);
-  const projectViewer = { id: user.id, role: user.role, tags: effectiveTags };
   const progressAudienceWhere = getProgressAudienceWhere({
     userId: user.id,
     canReadAll: canReadAllProgress,
@@ -102,12 +101,12 @@ export default async function DashboardPage() {
     <div className="space-y-10 sm:space-y-12">
       <PageHeader title="协作总览" description="快速掌握实验室正在推进的项目、重要公告、个人通知与本月进度。" />
 
-      <dl className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border/90 bg-card md:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {metrics.map((metric) => {
           const content = (
-            <div className="flex min-h-28 flex-col justify-between p-5 sm:min-h-32 sm:p-6">
-              <dt className="text-sm text-muted-foreground">{metric.label}</dt>
-              <dd className="mt-5 text-[32px] font-semibold tabular-nums tracking-[-0.04em]">{metric.value}</dd>
+            <div className="flex min-h-32 flex-col justify-between rounded-3xl border border-white/60 bg-card p-5 shadow-[var(--shadow-surface)] dark:border-border/80 sm:min-h-36 sm:p-6">
+              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{metric.label}</dt>
+              <dd className="mt-5 text-[38px] font-semibold tabular-nums tracking-[-0.05em] sm:text-[44px]">{metric.value}</dd>
             </div>
           );
 
@@ -117,12 +116,12 @@ export default async function DashboardPage() {
               href={metric.href}
               data-dashboard-metric
               aria-label={`${metric.label}：${metric.value}`}
-              className="border-b border-r border-border/75 transition-colors hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:border-b-0"
+              className="group rounded-3xl transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 [&>div]:transition-[border-color,background-color] [&>div]:duration-[var(--motion-fast)] hover:[&>div]:border-primary/25 hover:[&>div]:bg-primary/[0.035]"
             >
               {content}
             </Link>
           ) : (
-            <div key={metric.label} className="border-b border-r border-border/75 md:border-b-0">
+            <div key={metric.label}>
               {content}
             </div>
           );
@@ -140,7 +139,7 @@ export default async function DashboardPage() {
             title="最新公告"
             description="按置顶与紧急程度优先显示。"
             actions={(
-              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
+              <Link href="/announcements" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-primary/80">
                 查看全部<span className="ml-1" aria-hidden="true">›</span>
               </Link>
             )}
@@ -168,7 +167,7 @@ export default async function DashboardPage() {
           title="最近项目"
           description="按最近更新时间排列。"
           actions={(
-            <Link href="/projects" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
+            <Link href="/projects" className="text-sm font-medium text-primary transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-primary/80">
               查看全部<span className="ml-1" aria-hidden="true">›</span>
             </Link>
           )}
@@ -181,7 +180,6 @@ export default async function DashboardPage() {
             memberCount: project._count.members,
             nodeCount: project._count.nodes,
             description: project.description,
-            canPreview: canViewProject(projectViewer, project),
           }))}
         />
       </section>

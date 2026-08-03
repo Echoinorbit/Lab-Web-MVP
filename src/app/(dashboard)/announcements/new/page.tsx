@@ -5,6 +5,7 @@ import {
 } from "@/features/announcements/lib/access";
 import { getProjectVisibilityWhere } from "@/features/projects/lib/visibility";
 import { requirePermission } from "@/shared/lib/authorization";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { PageHeader } from "@/shared/components/ui/page-header";
 import { getEffectiveTags } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
@@ -24,9 +25,11 @@ export default async function NewAnnouncementPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <PageHeader title="发布公告" description="填写内容与通知范围。全员公告不会携带底层目标 ID，定向公告必须选择明确受众。" />
-      <div className="rounded-2xl border border-border/90 bg-card p-5 sm:p-7">
-        <AnnouncementForm projects={projects} />
-      </div>
+      <Card>
+        <CardContent>
+          <AnnouncementForm projects={projects} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

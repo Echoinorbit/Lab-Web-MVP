@@ -37,12 +37,12 @@ export function PostList({ posts, emptyTitle = "暂无帖子" }: { posts: readon
   }
 
   return (
-    <div className="divide-y divide-border/75 overflow-hidden rounded-2xl border border-border/90 bg-card">
+    <div className="divide-y divide-border/65 overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
       {posts.map((post) => (
         <Link
           key={post.id}
           href={(post.href ?? `/posts/${post.id}`) as Route}
-          className="group block px-5 py-5 transition-colors duration-[var(--motion-fast)] hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"
+          className="group block px-5 py-5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-primary/[0.035] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"
         >
           <div className="flex items-center gap-3">
             <Avatar src={post.authorAvatar} name={post.authorName} size={36} />
@@ -53,7 +53,7 @@ export function PostList({ posts, emptyTitle = "暂无帖子" }: { posts: readon
             </div>
             <Badge className="ml-auto">{categoryLabels[post.category] ?? post.category}</Badge>
           </div>
-          <h3 className="mt-3 text-lg font-semibold leading-6 tracking-[-0.022em] transition-colors group-hover:text-primary">{post.title}</h3>
+          <h3 className="mt-3 text-lg font-semibold leading-6 tracking-[-0.022em] transition-colors duration-[var(--motion-fast)] group-hover:text-primary">{post.title}</h3>
           {post.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {post.tags.map((tag) => (

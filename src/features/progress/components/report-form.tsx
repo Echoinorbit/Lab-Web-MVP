@@ -50,7 +50,7 @@ export function ReportForm({
   const canSave = writeAllowed && !isPending && (!isSubmitted || remainingEdits > 0);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/90 bg-card">
+    <section className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
       <header className="border-b border-border/75 px-5 py-5 sm:px-6">
         <h3 className="text-lg font-semibold tracking-[-0.022em]">
           {year} 年 {month} 月进度报告

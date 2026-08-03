@@ -18,21 +18,21 @@ export default async function AdminPage() {
   return (
     <div className="space-y-10">
       <PageHeader title="系统治理" description="集中管理身份、能力边界、系统记录与基础配置。所有敏感操作均由服务端鉴权并写入审计。" />
-      <div className="grid overflow-hidden rounded-2xl border border-border/90 bg-card md:grid-cols-2">
+      <div className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
         {governanceAreas.map((area) => (
           <Link
             key={area.href}
             href={area.href}
-            className="group flex min-h-48 flex-col border-b border-border/75 p-6 transition-colors duration-[var(--motion-fast)] hover:bg-muted/55 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:odd:border-r md:[&:nth-last-child(-n+2)]:border-b-0"
+            className="group grid min-h-32 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 border-b border-border/65 p-5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-primary/[0.035] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:gap-7 sm:p-7"
           >
-            <div className="flex items-start justify-between gap-4">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-foreground">
-                <area.icon className="h-[18px] w-[18px]" aria-hidden="true" />
-              </span>
-              <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
+              <area.icon className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold tracking-[-0.03em]">{area.title}</h2>
+              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">{area.description}</p>
             </div>
-            <h2 className="mt-8 text-xl font-semibold tracking-[-0.025em]">{area.title}</h2>
-            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{area.description}</p>
+            <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] group-hover:text-primary" aria-hidden="true" />
           </Link>
         ))}
       </div>

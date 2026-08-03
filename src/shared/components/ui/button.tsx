@@ -36,7 +36,7 @@ export function buttonStyles({
   className?: string;
 } = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45",
+    "ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border text-sm font-medium transition-[transform,color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 motion-reduce:active:scale-100",
     variants[variant],
     sizes[size],
     className,

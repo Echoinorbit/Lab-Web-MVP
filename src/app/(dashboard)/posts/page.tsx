@@ -2,6 +2,7 @@ import { PostForm, PostList } from "@/features/posts";
 import { buildMyDraftsWhere, buildPublicPostWhere } from "@/features/posts/lib/drafts";
 import { formatPostQuotaNotice } from "@/features/posts/lib/rate-limit-copy";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -72,13 +73,15 @@ export default async function PostsPage() {
         </div>
 
         {canCreate ? (
-          <aside className="rounded-2xl border border-border/90 bg-card p-5 sm:p-6 xl:sticky xl:top-24">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold tracking-[-0.025em]">新建帖子</h2>
-              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">发布前可保存草稿，离开页面时系统也会尝试自动保存。</p>
-            </div>
-            <PostForm quotaNotice={formatPostQuotaNotice(quotaStatus)} />
-          </aside>
+          <Card className="xl:sticky xl:top-28">
+            <CardContent>
+              <div className="mb-7">
+                <h2 className="text-xl font-semibold tracking-[-0.025em]">新建帖子</h2>
+                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">发布前可保存草稿，离开页面时系统也会尝试自动保存。</p>
+              </div>
+              <PostForm quotaNotice={formatPostQuotaNotice(quotaStatus)} />
+            </CardContent>
+          </Card>
         ) : null}
       </div>
     </div>

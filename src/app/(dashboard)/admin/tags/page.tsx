@@ -84,7 +84,7 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Tag" description="Tag 为 MEMBER 账号授予内容能力或业务范围；管理员角色本身只负责治理。" />
       <StatusNotice title="管理边界">此页只管理 GLOBAL Tag。项目组长与组员 Tag 由项目流程自动维护，不可手动增删。</StatusNotice>
 
-      <form action="/admin/tags" className="grid gap-3 rounded-2xl border border-border/90 bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+      <form action="/admin/tags" className="grid gap-3 rounded-3xl border border-white/60 bg-card p-4 shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium">筛选成员与授权</span>
           <Input name="q" defaultValue={search} placeholder="用户名、姓名或学号" />

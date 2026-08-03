@@ -57,7 +57,7 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
   }, [open]);
 
   return (
-    <div className="xl:hidden">
+    <div className="lg:hidden">
       <Button
         ref={triggerButtonRef}
         variant="ghost"
@@ -70,36 +70,40 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
         <Menu className="h-[18px] w-[18px]" aria-hidden="true" />
       </Button>
 
-      {open ? (
-        <div className="ui-overlay-enter fixed inset-0 z-50">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/25 backdrop-blur-[2px]"
+      <div
+        className="ui-overlay fixed inset-0 z-50"
+        data-state={open ? "open" : "closed"}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <button
+          type="button"
+          className="absolute inset-0 bg-slate-950/45 backdrop-blur-[3px]"
+          onClick={() => setOpen(false)}
+          aria-label="关闭导航"
+        />
+        <section
+          ref={dialogRef}
+          id="mobile-navigation"
+          role="dialog"
+          aria-modal="true"
+          aria-label="移动导航"
+          data-state={open ? "open" : "closed"}
+          className="ui-drawer relative h-full w-[min(88vw,304px)] bg-sidebar text-sidebar-foreground shadow-[var(--shadow-popover)]"
+        >
+          <Button
+            ref={closeButtonRef}
+            variant="ghost"
+            size="icon"
+            className="absolute right-3 top-3 z-10 text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-foreground"
             onClick={() => setOpen(false)}
             aria-label="关闭导航"
-          />
-          <section
-            ref={dialogRef}
-            id="mobile-navigation"
-            role="dialog"
-            aria-modal="true"
-            aria-label="移动导航"
-            className="ui-sheet-enter relative h-full w-[min(88vw,304px)] border-r border-border bg-card"
           >
-            <Button
-              ref={closeButtonRef}
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-3 z-10"
-              onClick={() => setOpen(false)}
-              aria-label="关闭导航"
-            >
-              <X className="h-[18px] w-[18px]" aria-hidden="true" />
-            </Button>
-            <Sidebar className="block h-full w-full overflow-y-auto border-r-0" access={access} />
-          </section>
-        </div>
-      ) : null}
+            <X className="h-[18px] w-[18px]" aria-hidden="true" />
+          </Button>
+          <Sidebar className="block h-full w-full overflow-y-auto border-r-0" access={access} />
+        </section>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { AnnouncementEditForm } from "@/features/announcements";
 import { resolveAnnouncementUpdateAccess } from "@/features/announcements/lib/access";
+import { buttonStyles } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { PageHeader } from "@/shared/components/ui/page-header";
 import { StatusNotice } from "@/shared/components/ui/status-notice";
 import { getUserPermissions } from "@/shared/lib/permissions";
@@ -41,15 +43,17 @@ export default async function EditAnnouncementPage({ params }: { params: Promise
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <Link href={`/announcements/${announcement.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href={`/announcements/${announcement.id}`} className={buttonStyles({ variant: "ghost", size: "small", className: "-ml-3 w-fit" })}>
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         返回公告
       </Link>
       <PageHeader title="编辑公告" description="可修改标题、正文和展示属性；通知受众保持为发布时的范围。" />
       <StatusNotice title="通知范围">{targetLabels[announcement.targetType]}（编辑不会重复发送通知）</StatusNotice>
-      <div className="rounded-2xl border border-border/90 bg-card p-5 sm:p-7">
-        <AnnouncementEditForm announcement={announcement} />
-      </div>
+      <Card>
+        <CardContent>
+          <AnnouncementEditForm announcement={announcement} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

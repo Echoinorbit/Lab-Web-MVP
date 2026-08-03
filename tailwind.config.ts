@@ -35,6 +35,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--surface))",
           raised: "hsl(var(--surface-raised))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          muted: "hsl(var(--sidebar-muted))",
+          border: "hsl(var(--sidebar-border))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",

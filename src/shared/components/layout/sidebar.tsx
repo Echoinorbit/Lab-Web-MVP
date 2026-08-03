@@ -59,34 +59,34 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
   return (
     <aside
       className={cn(
-        "hidden w-[272px] shrink-0 border-r border-border/75 bg-card xl:sticky xl:top-0 xl:block xl:h-screen xl:overflow-y-auto",
+        "hidden w-[252px] shrink-0 bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto",
         className,
       )}
     >
-      <div className="flex h-[68px] items-center border-b border-border/75 px-5">
+      <div className="flex h-20 items-center border-b border-sidebar-border px-5">
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           aria-label="实验室协作首页"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary text-white shadow-[0_8px_24px_hsl(var(--primary)/0.32)]">
             <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[16px] font-semibold tracking-[-0.025em]">实验室协作</span>
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">研究协作工作台</span>
+            <span className="block truncate text-[16px] font-semibold tracking-[-0.025em] text-sidebar-foreground">实验室协作</span>
+            <span className="mt-0.5 block truncate text-xs text-sidebar-muted">协作空间</span>
           </span>
         </Link>
       </div>
 
-      <nav className="space-y-7 px-3.5 py-5" aria-label="主导航">
+      <nav className="space-y-8 px-3 py-6" aria-label="主导航">
         {navigationGroups.map((group) => {
           const visibleItems = group.items.filter((item) => access?.[item.key] ?? true);
           if (visibleItems.length === 0) return null;
 
           return (
             <div key={group.label}>
-              <h2 className="mb-2 px-3 text-xs font-semibold text-muted-foreground">{group.label}</h2>
+              <h2 className="mb-2.5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted">{group.label}</h2>
               <ul className="space-y-1">
                 {visibleItems.map((item) => {
                   const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
@@ -95,10 +95,10 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-[color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-fluid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+                          "flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-[color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-sidebar",
                           active
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground active:bg-muted",
+                            ? "bg-white/[0.1] text-sidebar-foreground"
+                            : "text-sidebar-muted hover:bg-white/[0.07] hover:text-sidebar-foreground active:bg-white/[0.1]",
                         )}
                         aria-current={active ? "page" : undefined}
                       >

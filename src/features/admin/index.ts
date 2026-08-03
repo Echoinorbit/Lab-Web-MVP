@@ -5,3 +5,5 @@ export { AuditLogTable } from "./components/audit-log-table";
 export { SettingsForm } from "./components/settings-form";
 export { UserEditor } from "./components/user-editor";
 export { ADMIN_USERS_PAGE_SIZE } from "./lib/pagination";
+export { resolveAuditUserEntity } from "./lib/audit-entity-display";
+export type { AuditEntityIdentity } from "./lib/audit-entity-display";

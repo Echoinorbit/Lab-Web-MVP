@@ -9,7 +9,7 @@ export type TagPermissionGroup = {
 
 export function TagPermissions({ groups }: { groups: readonly TagPermissionGroup[] }) {
   return (
-    <div className="divide-y divide-border/75 overflow-hidden rounded-2xl border border-border/90 bg-card">
+    <div className="divide-y divide-border/65 overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
       {groups.map((group) => (
         <section key={group.name} className="grid gap-4 px-5 py-5 sm:grid-cols-[220px_minmax(0,1fr)] sm:px-6">
           <div>

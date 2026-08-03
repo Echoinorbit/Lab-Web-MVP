@@ -202,8 +202,8 @@ async function main() {
 
   const visionMember = await login("e2e-vision-member-a", fixturePassword);
   const memberProjects = await expectBodyContains("e2e-vision-member-a", visionMember, "/projects", "图像识别误检分析项目");
-  if (!memberProjects.includes("data-project-preview")) {
-    throw new Error("e2e-vision-member-a: own project did not render its preview surface");
+  if (memberProjects.includes("data-project-preview")) {
+    throw new Error("e2e-vision-member-a: removed project preview surface is still rendered");
   }
   await expectStatus("e2e-vision-member-a", visionMember, "/posts", 200);
   await expectAccessDenied("e2e-vision-member-a", visionMember, "/admin/users", "账号与身份");
@@ -220,7 +220,7 @@ async function main() {
           "e2e-advisor announcements/projects 200",
           "e2e-progress-mgr progress 200",
           "e2e-vision-lead projects/progress 200, admin/tags rejected",
-          "e2e-vision-member-a project preview/posts 200, admin/users rejected",
+          "e2e-vision-member-a projects/posts 200, admin/users rejected",
           "e2e-graduated login rejected",
         ],
         notificationRows: notificationPageOne.total,

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AnnouncementCard } from "@/features/announcements";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { resolveAnnouncementUpdateAccess } from "@/features/announcements/lib/access";
+import { buttonStyles } from "@/shared/components/ui/button";
 import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { prisma } from "@/shared/lib/prisma";
@@ -37,7 +38,7 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <Link href="/announcements" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href="/announcements" className={buttonStyles({ variant: "ghost", size: "small", className: "-ml-3 w-fit" })}>
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         返回公告
       </Link>

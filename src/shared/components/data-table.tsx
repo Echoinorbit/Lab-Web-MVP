@@ -21,14 +21,14 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <div
-      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-border/90 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-white/60 bg-card shadow-[var(--shadow-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-border/80"
       tabIndex={0}
       role="region"
       aria-label={`${label}，可横向滚动`}
     >
       <table className="w-full min-w-[720px] border-collapse text-[15px] [font-variant-numeric:tabular-nums]">
         <caption className="sr-only">{label}</caption>
-        <thead className="bg-surface text-left text-xs text-muted-foreground">
+        <thead className="bg-surface/70 text-left text-xs uppercase tracking-[0.08em] text-muted-foreground">
           <tr>
             {columns.map((column) => (
               <th key={column.key} scope="col" className="border-b border-border/80 px-4 py-3 font-semibold">
@@ -48,7 +48,7 @@ export function DataTable<T>({
             rows.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className="border-b border-border/70 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted/45 last:border-b-0"
+                className="border-b border-border/70 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted/45 last:border-b-0"
               >
                 {columns.map((column) => (
                   <td key={column.key} className="px-4 py-3.5 align-top">

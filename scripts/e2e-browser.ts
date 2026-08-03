@@ -1584,7 +1584,7 @@ async function verifyFixtureReadFlows(page: CdpClient) {
     throw new Error("current submitted progress state was not rendered");
   }
 
-  stage("fixture UI: project preview, author selection, resizer persistence");
+  stage("fixture UI: project navigation, author selection, resizer persistence");
   await clearSession(page);
   await login(page, "e2e-vision-member-a", fixturePassword);
   await navigate(page, "/projects");
@@ -1593,7 +1593,7 @@ async function verifyFixtureReadFlows(page: CdpClient) {
     () => {
       const link = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="/projects/"]'))
         .find((candidate) => candidate.textContent?.includes("图像识别误检分析项目"));
-      if (!link || !link.querySelector("[data-project-preview]")) return "";
+      if (!link || link.querySelector("[data-project-preview]")) return "";
       return new URL(link.href).pathname;
     },
   ) as string;

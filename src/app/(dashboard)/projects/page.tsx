@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { ProjectList } from "@/features/projects";
-import { canViewProject, getMyProjectWhere, getProjectVisibilityWhere, parseProjectListTab } from "@/features/projects/lib/visibility";
+import { getMyProjectWhere, getProjectVisibilityWhere, parseProjectListTab } from "@/features/projects/lib/visibility";
 import { buttonStyles } from "@/shared/components/ui/button";
 import { PageHeader } from "@/shared/components/ui/page-header";
 import { getEffectiveTags, getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -57,7 +57,7 @@ export default async function ProjectsPage({
         ) : null}
       />
 
-      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-white/60 bg-card/80 p-1.5 shadow-[var(--shadow-surface)] backdrop-blur-xl dark:border-border/80">
         {(
           [
             ["all", "可见项目"],
@@ -71,8 +71,8 @@ export default async function ProjectsPage({
             href={`/projects?tab=${value}`}
             aria-current={tab === value ? "page" : undefined}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center rounded-[9px] px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              tab === value && "bg-card text-foreground",
+              "inline-flex h-10 shrink-0 items-center rounded-xl px-4 text-sm font-medium text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              tab === value && "bg-foreground text-background shadow-sm",
             )}
           >
             {label}
@@ -88,7 +88,6 @@ export default async function ProjectsPage({
           memberCount: project._count.members,
           nodeCount: project._count.nodes,
           description: project.description,
-          canPreview: canViewProject(viewer, project),
           deletedAt: project.deletedAt?.toISOString() ?? null,
         }))}
       />

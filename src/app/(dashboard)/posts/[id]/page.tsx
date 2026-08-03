@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { CommentSection, PostDetail, PostModeration } from "@/features/posts";
 import { buildCommentTree } from "@/features/posts/lib/comment-tree";
 import { buildVisiblePostWhere } from "@/features/posts/lib/drafts";
+import { buttonStyles } from "@/shared/components/ui/button";
 import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
 import { getUserPermissions, PERMISSIONS } from "@/shared/lib/permissions";
@@ -36,7 +37,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <Link href="/posts" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href="/posts" className={buttonStyles({ variant: "ghost", size: "small", className: "-ml-3 w-fit" })}>
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         返回帖子
       </Link>

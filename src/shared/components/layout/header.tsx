@@ -20,14 +20,14 @@ type HeaderProps = {
 
 export function Header({ displayName, avatar, role, unreadCount, navigationAccess, logoutAction }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-[68px] items-center gap-2 border-b border-border/75 bg-background/90 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
+    <header className="ui-toolbar sticky top-0 z-30 flex h-20 items-center gap-2 bg-transparent px-3 sm:px-7 lg:px-10 xl:px-14 2xl:px-16">
       <MobileNav access={navigationAccess} />
-      <div className="min-w-0 flex-1 px-1 xl:px-0">
+      <div className="min-w-0 flex-1 px-1 lg:px-0">
         <RouteContext />
       </div>
       <Link
         href="/notifications"
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-fluid)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="ui-pressable relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-[transform,color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.97] hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100"
         aria-label={unreadCount > 0 ? `通知，${unreadCount} 条未读` : "通知"}
       >
         <Bell className="h-[18px] w-[18px]" aria-hidden="true" />

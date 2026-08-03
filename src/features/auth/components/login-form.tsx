@@ -33,10 +33,7 @@ export function LoginForm({ initialNotice = null }: { initialNotice?: string | n
 
   return (
     <div>
-      <h1 className="text-[38px] font-semibold leading-[1.08] tracking-[-0.045em] sm:text-[44px]">欢迎回来</h1>
-      <p className="mt-3 text-[16px] leading-7 text-muted-foreground">登录后继续处理项目、进度与实验室协作。</p>
-
-      <form className="mt-9 space-y-5" onSubmit={handleSubmit} aria-busy={pending}>
+      <form className="space-y-5" onSubmit={handleSubmit} aria-busy={pending}>
         <div className="space-y-2">
           <Label htmlFor="username">用户名</Label>
           <Input id="username" name="username" autoComplete="username" required autoFocus />

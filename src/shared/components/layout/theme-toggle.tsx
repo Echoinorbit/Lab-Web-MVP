@@ -25,7 +25,14 @@ export function ThemeToggle() {
 
   return (
     <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? "切换到浅色主题" : "切换到深色主题"}>
-      {dark ? <Sun className="h-[18px] w-[18px]" aria-hidden="true" /> : <Moon className="h-[18px] w-[18px]" aria-hidden="true" />}
+      <span className="grid place-items-center" aria-hidden="true">
+        <Sun
+          className={`ui-icon-swap col-start-1 row-start-1 h-[18px] w-[18px] transition-[opacity,transform] duration-[var(--motion-fast)] ease-[var(--ease-out)] ${dark ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
+        />
+        <Moon
+          className={`ui-icon-swap col-start-1 row-start-1 h-[18px] w-[18px] transition-[opacity,transform] duration-[var(--motion-fast)] ease-[var(--ease-out)] ${dark ? "scale-90 opacity-0" : "scale-100 opacity-100"}`}
+        />
+      </span>
     </Button>
   );
 }

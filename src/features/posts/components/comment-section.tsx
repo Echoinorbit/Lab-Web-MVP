@@ -239,7 +239,7 @@ export function CommentSection({
         )}
       </div>
         {canComment ? (
-          <form action={formAction} className="grid gap-3 rounded-2xl border border-border/90 bg-card p-5 sm:p-6" aria-busy={isPending}>
+          <form action={formAction} className="grid gap-3 rounded-3xl border border-white/60 bg-card p-5 shadow-[var(--shadow-surface)] dark:border-border/80 sm:p-6" aria-busy={isPending}>
             <input type="hidden" name="postId" value={postId} />
             <label htmlFor="new-comment" className="text-sm font-medium">发表评论</label>
             <Textarea

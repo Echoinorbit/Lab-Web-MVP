@@ -80,17 +80,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function ToastItem({ item, onDismiss }: { item: ToastRecord; onDismiss: (id: number) => void }) {
   const variant = item.variant ?? "info";
   const Icon = variantIcons[variant];
+  const [closing, setClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  const close = useCallback(() => {
+    if (closeTimeoutRef.current !== null) return;
+    setClosing(true);
+    closeTimeoutRef.current = window.setTimeout(() => onDismiss(item.id), 160);
+  }, [item.id, onDismiss]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => onDismiss(item.id), item.duration ?? 4_500);
-    return () => window.clearTimeout(timeout);
-  }, [item.duration, item.id, onDismiss]);
+    const timeout = window.setTimeout(close, item.duration ?? 4_500);
+    return () => {
+      window.clearTimeout(timeout);
+      if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
+    };
+  }, [close, item.duration]);
 
   return (
     <div
       role={variant === "error" ? "alert" : "status"}
+      data-state={closing ? "closed" : "open"}
       className={cn(
-        "ui-popover-enter pointer-events-auto flex w-full max-w-[390px] items-start gap-3 rounded-2xl border bg-surface-raised p-4 text-sm shadow-[var(--shadow-popover)]",
+        "ui-toast pointer-events-auto flex w-full max-w-[390px] items-start gap-3 rounded-2xl border bg-surface-raised p-4 text-sm shadow-[var(--shadow-popover)]",
         variantStyles[variant],
       )}
     >
@@ -112,7 +124,7 @@ function ToastItem({ item, onDismiss }: { item: ToastRecord; onDismiss: (id: num
         variant="ghost"
         size="icon"
         className="-mr-2 -mt-2 h-9 w-9 shrink-0"
-        onClick={() => onDismiss(item.id)}
+        onClick={close}
         aria-label="关闭提示"
       >
         <X className="h-4 w-4" aria-hidden="true" />

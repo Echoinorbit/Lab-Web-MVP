@@ -1,4 +1,4 @@
-import { AuditLogTable } from "@/features/admin";
+import { AuditLogTable, resolveAuditUserEntity } from "@/features/admin";
 import { DataTable } from "@/shared/components/data-table";
 import { PageHeader, SectionHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
@@ -43,8 +43,12 @@ export default async function AdminAuditPage({
     skip: pagination.skip,
     take: pagination.pageSize,
   });
+  const userIds = Array.from(new Set(rows.flatMap((row) => [
+    row.userId,
+    row.entityType === "User" ? row.entityId : null,
+  ]).filter((userId): userId is string => Boolean(userId))));
   const users = await prisma.user.findMany({
-    where: { id: { in: rows.map((row) => row.userId).filter((userId): userId is string => Boolean(userId)) } },
+    where: { id: { in: userIds } },
     select: { id: true, username: true, displayName: true, status: true },
   });
   const userById = new Map(users.map((user) => [user.id, user]));
@@ -73,6 +77,12 @@ export default async function AdminAuditPage({
             action: row.action,
             entityType: row.entityType,
             entityId: row.entityId ?? undefined,
+            entityUser: resolveAuditUserEntity({
+              entityType: row.entityType,
+              entityId: row.entityId,
+              liveUser: row.entityId ? userById.get(row.entityId) : null,
+              details: row.details,
+            }),
           }))}
         />
         <Pagination basePath="/admin/audit" currentPage={pagination.currentPage} totalPages={pagination.totalPages} />

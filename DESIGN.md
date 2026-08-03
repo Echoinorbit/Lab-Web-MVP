@@ -1,86 +1,60 @@
-# Lab Platform Design System
+# Lab Platform — Apple-aligned interface system
 
-## Direction
+## Product posture
 
-The product is a calm research-operations workspace. It borrows Apple-like restraint—clear hierarchy, generous orientation space, neutral material layers, precise typography, and a single interaction accent—without copying Apple assets, layouts, or product-launch language.
+The interface is a calm collaboration workspace. It should help people understand where they are, what changed, and what action is available without turning operational work into a decorative dashboard.
 
-The source references for this rebuild are the repository `awesome-design-md` skill, its Apple `DESIGN.md`, the Impeccable product register, and `docs/frontend-redesign-plan.md`. When guidance conflicts, business truth and accessible task completion win.
+Roles, Tag capabilities, project scope, server-side authorization, URL contracts, and workflow states remain product invariants. This document governs presentation and interaction only.
 
-## Physical Context
+## Human needs first
 
-The primary scene is repeated daily work on a lab or office laptop in normal indoor light. Phone use is occasional but must support complete forms and navigation. Light mode is the default high-clarity canvas; dark mode is a first-class late-work surface.
+- **Clarity:** content and actions lead; decoration stays subordinate.
+- **Deference:** controls use one restrained blue accent, neutral surfaces, and compact hierarchy.
+- **Depth:** material, overlap, and motion explain spatial relationships only when a layer actually moves above another.
+- **Directness:** every interactive object gives immediate press, focus, pending, or selection feedback.
+- **Continuity:** menus, drawers, dialogs, and toasts preserve their spatial origin and remain interruptible.
 
-## System Rules
+## Shared visual language
 
-- Use neutrals for canvas, surfaces, dividers, and typography.
-- Reserve blue for links, focus, current selection, and primary actions.
-- Reserve green, amber, and red for truthful status meaning.
-- Prefer typography, whitespace, dividers, and surface contrast over card stacks.
-- Use a bordered surface only for an independent object, bounded tool, table, form, or overlay.
-- Do not use decorative gradients, frosted content cards, hover lift, glow, or wide shadows.
-- Shadows are reserved for overlays that must detach from the page.
-- Keep operational pages dense enough to compare information; do not turn them into marketing pages.
+- System fonts, optical sizing, tabular numerals for data, and modest title scale create a familiar reading rhythm.
+- Page headers use typography and whitespace rather than decorative orientation marks.
+- Cards and tables use a consistent 16px surface radius. Ordinary sections remain unboxed.
+- Blue communicates action, focus, and selected context. Semantic colors keep literal status meaning.
+- The desktop sidebar is stable and quiet. Active navigation uses a subtle tonal selection instead of a bright floating tile.
+- Sticky toolbars and popovers may use translucent material. Material lives on a pointer-inert pseudo-layer when applying it to an ancestor could change fixed-position behavior.
 
-## Tokens
+## Responsive architecture
 
-The semantic source of truth lives in `src/app/globals.css` and is mapped by `tailwind.config.ts`.
+- `390px`: single-column canvas, complete forms, and a viewport-fixed navigation drawer.
+- `768px`: wider gutters and selective two-column layouts.
+- `1024px`: persistent desktop navigation becomes available.
+- `1440px+`: data-heavy tools gain width while reading surfaces stay bounded.
 
-### Color
+Tables and graphs scroll horizontally when reflow would destroy meaning. The entire workflow must remain usable at every target width.
 
-- `background`: application canvas.
-- `card`: primary content surface.
-- `surface` / `surface-raised`: secondary and overlay layers.
-- `foreground` / `muted-foreground`: primary and supporting copy.
-- `border` / `input`: hairlines and control outlines.
-- `primary`: interaction blue.
-- `success`, `warning`, `destructive`: semantic state colors.
+## Motion and feedback
 
-### Typography
+- Press feedback: `scale(0.97)`, 160ms, strong ease-out.
+- Popovers: origin-aware `translateY(-6px) scale(0.97)`, 160ms.
+- Mobile drawer: direction-aware `translateX(-100%)`, 220ms.
+- Dialogs: centered `scale(0.97)`, 220ms.
+- Toasts: enter and exit through `translateY(100%)`, then unmount after exit.
 
-- Display/page title: 32–40px, semibold, tight tracking.
-- Section title: 20–24px, semibold.
-- Object title: 16–18px, semibold.
-- Body/control: 15–17px.
-- Supporting/meta: 12–14px with normal sentence casing.
-- Long-form content: maximum 70–75 characters per line and relaxed leading.
+Page arrival and routine list scanning do not animate. CSS transitions are preferred so reversible UI can retarget from its current state. Reduced motion removes spatial movement while retaining state feedback.
 
-### Layout and Shape
+## Accessibility and material fallbacks
 
-- Structural rhythm: 8px base, with 12/16/24/32/48px steps.
-- Page gutter: 16px phone, 24px tablet, 32–48px desktop.
-- Data workspace maximum: 1440px. Reading/form width is narrower by task.
-- Standard control height: 44px. Compact control height: 36–40px.
-- Standard surface radius: 12–16px. Full pills are limited to compact statuses or segmented actions.
+- Semantic landmarks, labels, accessible names, visible keyboard focus, and practical touch targets are required.
+- Closed overlays remain mounted but inert and hidden from assistive technology.
+- `prefers-reduced-motion` removes transform movement.
+- `prefers-reduced-transparency` replaces translucent materials with solid surfaces.
+- `prefers-contrast: more` strengthens material boundaries.
+- Selected, unread, denied, pending, and destructive states never rely on color alone.
 
-### Motion and Layering
+## Review questions
 
-- State transition: 160ms; overlay transition: 220ms; one fluid ease.
-- Motion communicates state only. `prefers-reduced-motion` removes it globally.
-- Layer order: content → sticky chrome → backdrop → sheet/popover.
-
-## Shared Components
-
-- `Button`, `Input`, `Textarea`, `Select`, `Badge`: canonical control and state grammar.
-- `PageHeader`, `SectionHeader`: route and section hierarchy.
-- `EmptyState`, `StatusNotice`: reusable state communication.
-- `Card`: bounded surface, not a generic spacing wrapper.
-- `DataTable`, `Pagination`: dense governance and reporting tools.
-- Sidebar/header/mobile navigation: one grouped information architecture across breakpoints.
-
-## Accessibility Contract
-
-- Use semantic links, buttons, inputs, labels, headings, lists, and tables.
-- Keep a visible `focus-visible` treatment on every interaction.
-- Primary touch targets are at least 44px; compact table actions remain keyboard reachable.
-- Do not encode current, selected, unread, error, or disabled state with color alone.
-- Preserve truthful server-side permission checks and native form behavior.
-- Keep tables and graphs horizontally scrollable when reflow would destroy meaning.
-
-## Review Checklist
-
-1. Is there one obvious page purpose and primary action?
-2. Can a container be removed in favor of spacing or a divider?
-3. Is blue used only for interaction or focus?
-4. Are all controls using shared primitives and complete states?
-5. Does the route remain usable at 390, 768, 1024, and 1440px?
-6. Do keyboard focus, dark contrast, empty/error/pending states, and reduced motion remain clear?
+1. Is the primary task obvious before the user inspects every surface?
+2. Does each layer explain a real spatial relationship?
+3. Is identity presented truthfully, including historical and deleted states?
+4. Can every action be completed with keyboard and at 390px width?
+5. Does feedback remain understandable with reduced motion and transparency?
