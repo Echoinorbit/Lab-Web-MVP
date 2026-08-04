@@ -104,7 +104,7 @@ export default async function DashboardPage() {
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {metrics.map((metric) => {
           const content = (
-            <div className="flex min-h-32 flex-col justify-between rounded-3xl border border-white/60 bg-card p-5 shadow-[var(--shadow-surface)] dark:border-border/80 sm:min-h-36 sm:p-6">
+            <div className="flex min-h-32 flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 sm:min-h-36 sm:p-6">
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{metric.label}</dt>
               <dd className="mt-5 text-[38px] font-semibold tabular-nums tracking-[-0.05em] sm:text-[44px]">{metric.value}</dd>
             </div>
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               href={metric.href}
               data-dashboard-metric
               aria-label={`${metric.label}：${metric.value}`}
-              className="group rounded-3xl transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 [&>div]:transition-[border-color,background-color] [&>div]:duration-[var(--motion-fast)] hover:[&>div]:border-primary/25 hover:[&>div]:bg-primary/[0.035]"
+              className="group rounded-2xl transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 [&>div]:transition-[border-color,background-color] [&>div]:duration-[var(--motion-fast)] hover:[&>div]:border-primary/30 hover:[&>div]:bg-primary/[0.025]"
             >
               {content}
             </Link>

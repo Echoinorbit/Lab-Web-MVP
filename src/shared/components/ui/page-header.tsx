@@ -18,8 +18,8 @@ export function PageHeader({ title, description, actions, className, ...props }:
       {...props}
     >
       <div className="min-w-0 max-w-4xl">
-        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[44px]">{title}</h1>
-        {description ? <div className="mt-3 max-w-3xl text-[15px] leading-7 text-muted-foreground sm:text-[16px]">{description}</div> : null}
+        <h1 className="text-[36px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[48px]">{title}</h1>
+        {description ? <div className="mt-3 max-w-3xl text-[16px] leading-7 text-muted-foreground sm:text-[17px]">{description}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div> : null}
     </header>

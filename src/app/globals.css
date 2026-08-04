@@ -1,36 +1,39 @@
+/* Hallmark · genre: modern-minimal · tone: professional workbench · palette: neutral 240 with blue action anchor · macrostructure: Workbench · theme: Apple-aligned · enrichment: none · nav: N3 side-rail · footer: none (dashboard shell) · contrast: pass (40–41) · slop: pass (42–45) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: static pass (49) · icons: pass (30) · mobile: browser QA unavailable (34, 49, 50–57) · pre-emit critique: P5 H4 E4 S5 R5 V4 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: 222 30% 96%;
-  --foreground: 228 28% 13%;
+  --background: 240 6% 96%;
+  --foreground: 240 3% 12%;
   --card: 0 0% 100%;
-  --card-foreground: 228 28% 13%;
-  --surface: 222 24% 92%;
+  --card-foreground: 240 3% 12%;
+  --surface: 240 5% 93%;
   --surface-raised: 0 0% 100%;
-  --primary: 216 100% 50%;
+  --primary: 211 100% 40%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 222 20% 90%;
-  --secondary-foreground: 228 24% 18%;
-  --muted: 222 24% 93%;
-  --muted-foreground: 225 10% 42%;
+  --secondary: 240 5% 92%;
+  --secondary-foreground: 240 3% 18%;
+  --muted: 240 5% 93%;
+  --muted-foreground: 240 3% 42%;
   --success: 145 60% 32%;
   --success-foreground: 0 0% 100%;
   --warning: 35 94% 40%;
-  --warning-foreground: 228 28% 13%;
+  --warning-foreground: 240 3% 12%;
   --destructive: 2 72% 46%;
   --destructive-foreground: 0 0% 100%;
-  --border: 222 18% 84%;
-  --input: 222 16% 76%;
-  --ring: 216 100% 50%;
-  --sidebar: 230 28% 11%;
-  --sidebar-foreground: 220 24% 96%;
-  --sidebar-muted: 226 15% 68%;
-  --sidebar-border: 228 18% 21%;
+  --border: 240 4% 84%;
+  --input: 240 4% 76%;
+  --ring: 211 100% 45%;
+  --sidebar: 240 2% 8%;
+  --sidebar-foreground: 0 0% 96%;
+  --sidebar-muted: 240 2% 66%;
+  --sidebar-border: 240 2% 19%;
   --radius: 1rem;
-  --shadow-surface: 0 1px 2px hsl(228 28% 13% / 0.04), 0 12px 32px hsl(228 28% 13% / 0.055);
-  --shadow-popover: 0 24px 64px hsl(228 28% 13% / 0.18), 0 4px 16px hsl(228 28% 13% / 0.1);
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --shadow-surface: none;
+  --shadow-popover: 0 16px 48px hsl(240 3% 12% / 0.22);
   --motion-fast: 160ms;
   --motion-base: 220ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -41,33 +44,33 @@
 }
 
 .dark {
-  --background: 228 24% 8%;
-  --foreground: 220 24% 96%;
-  --card: 228 21% 12%;
-  --card-foreground: 220 24% 96%;
-  --surface: 228 18% 16%;
-  --surface-raised: 228 17% 18%;
-  --primary: 215 100% 64%;
-  --primary-foreground: 228 24% 8%;
-  --secondary: 228 15% 20%;
-  --secondary-foreground: 220 22% 92%;
-  --muted: 228 17% 17%;
-  --muted-foreground: 224 11% 67%;
+  --background: 240 3% 10%;
+  --foreground: 0 0% 96%;
+  --card: 240 3% 14%;
+  --card-foreground: 0 0% 96%;
+  --surface: 240 3% 18%;
+  --surface-raised: 240 3% 20%;
+  --primary: 211 100% 62%;
+  --primary-foreground: 240 3% 10%;
+  --secondary: 240 3% 22%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 240 3% 18%;
+  --muted-foreground: 240 2% 67%;
   --success: 145 56% 54%;
-  --success-foreground: 228 24% 8%;
+  --success-foreground: 240 3% 10%;
   --warning: 40 92% 56%;
-  --warning-foreground: 228 24% 8%;
+  --warning-foreground: 240 3% 10%;
   --destructive: 2 76% 62%;
-  --destructive-foreground: 228 24% 8%;
-  --border: 228 14% 25%;
-  --input: 228 13% 33%;
-  --ring: 215 100% 64%;
-  --sidebar: 232 28% 6%;
-  --sidebar-foreground: 220 24% 96%;
-  --sidebar-muted: 225 12% 66%;
-  --sidebar-border: 228 15% 18%;
-  --shadow-surface: 0 1px 2px hsl(0 0% 0% / 0.18), 0 18px 40px hsl(0 0% 0% / 0.16);
-  --shadow-popover: 0 28px 72px hsl(0 0% 0% / 0.5), 0 4px 18px hsl(0 0% 0% / 0.32);
+  --destructive-foreground: 240 3% 10%;
+  --border: 240 3% 27%;
+  --input: 240 3% 34%;
+  --ring: 211 100% 68%;
+  --sidebar: 240 2% 6%;
+  --sidebar-foreground: 0 0% 96%;
+  --sidebar-muted: 240 2% 66%;
+  --sidebar-border: 240 2% 18%;
+  --shadow-surface: none;
+  --shadow-popover: 0 20px 56px hsl(0 0% 0% / 0.42);
   color-scheme: dark;
 }
 
@@ -88,20 +91,9 @@ body {
   overflow-x: clip;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Text",
-    "SF Pro Display",
-    "Segoe UI",
-    "PingFang SC",
-    "Hiragino Sans GB",
-    "Microsoft YaHei",
-    ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.55;
   font-feature-settings: "cv11", "ss01";
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
@@ -125,9 +117,11 @@ h1,
 h2,
 h3,
 h4 {
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.025em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 p {
@@ -158,7 +152,6 @@ textarea::placeholder {
   inset: 0;
   border-bottom: 1px solid hsl(var(--border) / 0.62);
   background: hsl(var(--background) / 0.76);
-  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.34);
   backdrop-filter: saturate(150%) blur(18px);
   -webkit-backdrop-filter: saturate(150%) blur(18px);
   content: "";
@@ -169,6 +162,12 @@ textarea::placeholder {
   background: hsl(var(--surface-raised) / 0.82);
   backdrop-filter: saturate(145%) blur(22px);
   -webkit-backdrop-filter: saturate(145%) blur(22px);
+}
+
+@layer utilities {
+  .rounded-3xl {
+    border-radius: var(--radius);
+  }
 }
 
 .ui-overlay {
@@ -232,6 +231,15 @@ textarea::placeholder {
   .ui-toast {
     opacity: 0;
     transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay,
+  .ui-drawer,
+  .ui-popover,
+  .ui-toast {
+    transition-duration: 0.01ms !important;
   }
 }
 

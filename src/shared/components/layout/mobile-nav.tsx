@@ -78,7 +78,7 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
       >
         <button
           type="button"
-          className="absolute inset-0 bg-slate-950/45 backdrop-blur-[3px]"
+          className="absolute inset-0 bg-foreground/35 backdrop-blur-[3px]"
           onClick={() => setOpen(false)}
           aria-label="关闭导航"
         />
@@ -89,7 +89,7 @@ export function MobileNav({ access }: { access: NavigationAccessMap }) {
           aria-modal="true"
           aria-label="移动导航"
           data-state={open ? "open" : "closed"}
-          className="ui-drawer relative h-full w-[min(88vw,304px)] bg-sidebar text-sidebar-foreground shadow-[var(--shadow-popover)]"
+          className="ui-drawer relative h-full w-[min(88vw,320px)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[var(--shadow-popover)]"
         >
           <Button
             ref={closeButtonRef}

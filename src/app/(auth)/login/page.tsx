@@ -11,12 +11,12 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      eyebrow="成员入口"
-      title="欢迎回来"
-      description="登录后继续处理项目、进度与实验室协作。"
-      visualTitle="让研究推进始终保有清晰上下文。"
-      visualDescription="项目节点、实验室权限与月度进度汇聚在同一处，让团队看见正在发生什么，也知道下一步该做什么。"
-      footer="仅限已授权的实验室成员使用。账号状态与权限由系统实时校验。"
+      eyebrow="研究搭子已就位"
+      title="一起把下一步想清楚"
+      description="登录后继续整理项目、进度与每一次协作。"
+      visualTitle="研究，也可以有同伴。"
+      visualDescription="把手边的想法、任务和下一步留在一起。慢一点没关系，我们一起推进。"
+      footer="仅限授权成员使用。账号状态与权限由系统实时校验。"
     >
       <LoginForm initialNotice={notice} />
     </AuthShell>

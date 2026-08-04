@@ -21,7 +21,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <div
-      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-white/60 bg-card shadow-[var(--shadow-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-border/80"
+      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-border/80 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       tabIndex={0}
       role="region"
       aria-label={`${label}，可横向滚动`}

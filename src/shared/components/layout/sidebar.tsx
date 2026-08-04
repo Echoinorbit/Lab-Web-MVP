@@ -59,17 +59,17 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
   return (
     <aside
       className={cn(
-        "hidden w-[252px] shrink-0 bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto",
+        "hidden w-60 shrink-0 bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto",
         className,
       )}
     >
-      <div className="flex h-20 items-center border-b border-sidebar-border px-5">
+      <div className="flex h-14 items-center border-b border-sidebar-border px-5">
         <Link
           href="/"
           className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           aria-label="实验室协作首页"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary text-white shadow-[0_8px_24px_hsl(var(--primary)/0.32)]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-slate-950">
             <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -79,7 +79,7 @@ export function Sidebar({ className, access }: { className?: string; access?: Na
         </Link>
       </div>
 
-      <nav className="space-y-8 px-3 py-6" aria-label="主导航">
+      <nav className="space-y-7 px-3 py-5" aria-label="主导航">
         {navigationGroups.map((group) => {
           const visibleItems = group.items.filter((item) => access?.[item.key] ?? true);
           if (visibleItems.length === 0) return null;

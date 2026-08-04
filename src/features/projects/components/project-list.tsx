@@ -41,9 +41,8 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
         <Link
           key={project.id}
           href={`/projects/${project.id}`}
-          className="group ui-pressable relative flex min-h-64 flex-col overflow-hidden rounded-3xl border border-white/60 bg-card p-5 shadow-[var(--shadow-surface)] transition-[transform,border-color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] hover:border-primary/25 hover:bg-primary/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 dark:border-border/80 sm:p-6"
+          className="group ui-pressable relative flex min-h-64 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-5 transition-[transform,border-color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] hover:border-primary/30 hover:bg-primary/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 sm:p-6"
         >
-          <span className="absolute inset-x-0 top-0 h-1 bg-primary opacity-0 transition-opacity duration-[var(--motion-fast)] group-hover:opacity-100" aria-hidden="true" />
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-xl font-semibold leading-7 tracking-[-0.03em] transition-colors duration-[var(--motion-fast)] group-hover:text-primary">{project.name}</h3>
             <Badge className={project.deletedAt ? "border-destructive/30 bg-destructive/10 text-destructive" : undefined}>

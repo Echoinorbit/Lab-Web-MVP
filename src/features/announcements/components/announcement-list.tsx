@@ -25,7 +25,7 @@ export function AnnouncementList({
   }
 
   return (
-    <div className="divide-y divide-border/65 overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
+    <div className="divide-y divide-border/65 overflow-hidden rounded-2xl border border-border/80 bg-card">
       {announcements.map((announcement) => (
         <AnnouncementCard
           key={announcement.id}

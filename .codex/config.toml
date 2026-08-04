@@ -1,0 +1,16 @@
+[mcp_servers.context7]
+command = "npx"
+args = [
+    "-y",
+    "@upstash/context7-mcp",
+]
+
+[mcp_servers.exa]
+command = "npx"
+args = [
+    "-y",
+    "exa-mcp-server",
+]
+
+[mcp_servers.exa.env]
+EXA_API_KEY = "50f34863-1e93-48d1-8cbf-5b6d71447321"
