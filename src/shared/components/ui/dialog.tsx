@@ -48,7 +48,7 @@ export function Dialog({
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       className={cn(
-        "ui-dialog m-auto max-h-[min(84vh,760px)] w-[min(92vw,560px)] overflow-y-auto rounded-3xl border border-border bg-surface-raised p-0 text-foreground shadow-[var(--shadow-popover)]",
+        "ui-dialog m-auto max-h-[min(84vh,760px)] w-[min(92vw,560px)] overflow-y-auto rounded-xl border border-border bg-surface-raised p-0 text-foreground shadow-[var(--shadow-popover)]",
         className,
       )}
       onCancel={(event) => {

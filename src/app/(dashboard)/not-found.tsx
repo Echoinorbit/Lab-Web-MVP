@@ -13,7 +13,7 @@ export default function DashboardNotFound() {
         title="这个页面不在工作区中"
         description="记录可能已被删除、归档，或当前链接已经失效。返回总览可继续处理可访问事项。"
         action={(
-          <Link href="/" className={buttonStyles()}>
+          <Link href="/dashboard" className={buttonStyles()}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             返回总览
           </Link>

@@ -1,0 +1,8 @@
+{
+  "scannedAt": "2026-08-04",
+  "fontStack": "System UI via --font-display and --font-body in src/app/globals.css",
+  "palette": "HSL semantic custom properties in src/app/globals.css and tailwind.config.ts",
+  "motion": "CSS transitions only; no animation library dependency",
+  "spacing": "Tailwind's default scale; no project-specific extension",
+  "framework": "Next.js 15 App Router with Tailwind CSS"
+}

@@ -21,14 +21,14 @@ export function LoginForm({ initialNotice = null }: { initialNotice?: string | n
       username: String(form.get("username") ?? ""),
       password: String(form.get("password") ?? ""),
       redirect: false,
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
     setPending(false);
     if (result?.error) {
       setError(result.error === "CredentialsSignin" ? "用户名或密码错误" : "登录服务暂时不可用，请检查数据库连接。");
       return;
     }
-    window.location.href = result?.url ?? "/";
+    window.location.href = result?.url ?? "/dashboard";
   };
 
   return (

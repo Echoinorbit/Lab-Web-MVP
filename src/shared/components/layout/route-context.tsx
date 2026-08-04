@@ -15,7 +15,7 @@ const routeContexts = [
 
 export function RouteContext() {
   const pathname = usePathname();
-  const label = pathname === "/" ? "总览" : routeContexts.find((item) => pathname.startsWith(item.prefix))?.label ?? "工作台";
+  const label = pathname === "/dashboard" ? "总览" : routeContexts.find((item) => pathname.startsWith(item.prefix))?.label ?? "工作台";
 
   return (
     <span className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">

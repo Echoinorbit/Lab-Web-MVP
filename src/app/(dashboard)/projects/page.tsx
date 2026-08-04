@@ -57,7 +57,7 @@ export default async function ProjectsPage({
         ) : null}
       />
 
-      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-white/60 bg-card/80 p-1.5 shadow-[var(--shadow-surface)] backdrop-blur-xl dark:border-border/80">
+      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border/80 bg-card p-1.5">
         {(
           [
             ["all", "可见项目"],
@@ -71,8 +71,8 @@ export default async function ProjectsPage({
             href={`/projects?tab=${value}`}
             aria-current={tab === value ? "page" : undefined}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center rounded-xl px-4 text-sm font-medium text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              tab === value && "bg-foreground text-background shadow-sm",
+              "inline-flex h-10 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              tab === value && "bg-primary text-primary-foreground",
             )}
           >
             {label}

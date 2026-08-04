@@ -42,6 +42,7 @@ test("路由预筛选只放行公开入口、认证端点与受控静态资源",
   assert.equal(isPublicRoutePrefilterPath("/avatar/default.png"), true);
   assert.equal(isPublicRoutePrefilterPath("/uploads/avatars/example.png"), true);
   assert.equal(isPublicRoutePrefilterPath("/mostar/index.html"), true);
+  assert.equal(isPublicRoutePrefilterPath("/dashboard"), false);
   assert.equal(isPublicRoutePrefilterPath("/login-impersonation"), false);
   assert.equal(isPublicRoutePrefilterPath("/admin/users"), false);
 });

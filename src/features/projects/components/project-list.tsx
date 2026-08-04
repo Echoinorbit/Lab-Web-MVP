@@ -36,12 +36,12 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
       {projects.map((project) => (
         <Link
           key={project.id}
           href={`/projects/${project.id}`}
-          className="group ui-pressable relative flex min-h-64 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-5 transition-[transform,border-color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] hover:border-primary/30 hover:bg-primary/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 sm:p-6"
+          className="group ui-pressable relative flex min-h-56 flex-col overflow-hidden rounded-xl border border-border/80 bg-card p-5 transition-[transform,border-color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] hover:border-primary/45 hover:bg-primary/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 sm:p-6"
         >
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-xl font-semibold leading-7 tracking-[-0.03em] transition-colors duration-[var(--motion-fast)] group-hover:text-primary">{project.name}</h3>

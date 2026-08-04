@@ -1,6 +1,13 @@
 [
   {
     "date": "2026-08-04",
+    "macrostructure": "Narrative Workflow",
+    "theme": "River workbench",
+    "enrichment": "none — hierarchy and state feedback only",
+    "brief": "Authenticated laboratory collaboration workspace rebuilt from the Mostar visual anchor"
+  },
+  {
+    "date": "2026-08-04",
     "macrostructure": "Cinematic Scroll",
     "theme": "Mostar reference specification",
     "enrichment": "remote scene-photograph layers",

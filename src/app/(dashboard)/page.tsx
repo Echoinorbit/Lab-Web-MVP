@@ -101,12 +101,12 @@ export default async function DashboardPage() {
     <div className="space-y-10 sm:space-y-12">
       <PageHeader title="协作总览" description="快速掌握实验室正在推进的项目、重要公告、个人通知与本月进度。" />
 
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <dl className="grid grid-cols-2 gap-y-7 md:grid-cols-4 md:gap-y-0">
         {metrics.map((metric) => {
           const content = (
-            <div className="flex min-h-32 flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 sm:min-h-36 sm:p-6">
-              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{metric.label}</dt>
-              <dd className="mt-5 text-[38px] font-semibold tabular-nums tracking-[-0.05em] sm:text-[44px]">{metric.value}</dd>
+            <div className="flex min-h-28 flex-col justify-between border-l border-border pl-4 sm:min-h-32 sm:pl-5">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{metric.label}</dt>
+              <dd className="mt-4 text-[38px] font-semibold tabular-nums tracking-[-0.055em] sm:text-[44px]">{metric.value}</dd>
             </div>
           );
 
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               href={metric.href}
               data-dashboard-metric
               aria-label={`${metric.label}：${metric.value}`}
-              className="group rounded-2xl transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.99] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:active:scale-100 [&>div]:transition-[border-color,background-color] [&>div]:duration-[var(--motion-fast)] hover:[&>div]:border-primary/30 hover:[&>div]:bg-primary/[0.025]"
+              className="group rounded-lg transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&>div]:transition-[border-color] [&>div]:duration-[var(--motion-fast)] hover:[&>div]:border-primary"
             >
               {content}
             </Link>

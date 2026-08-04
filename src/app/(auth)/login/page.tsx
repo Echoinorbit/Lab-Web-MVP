@@ -11,11 +11,11 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      eyebrow="研究搭子已就位"
-      title="一起把下一步想清楚"
-      description="登录后继续整理项目、进度与每一次协作。"
-      visualTitle="研究，也可以有同伴。"
-      visualDescription="把手边的想法、任务和下一步留在一起。慢一点没关系，我们一起推进。"
+      eyebrow="LABORATORY WORKSPACE"
+      title="进入工作台"
+      description="继续处理项目、进度、公告与协作事项。"
+      visualTitle="让研究协作保持清晰。"
+      visualDescription="项目、进度与治理信息在同一个受保护的工作台中保持连贯。"
       footer="仅限授权成员使用。账号状态与权限由系统实时校验。"
     >
       <LoginForm initialNotice={notice} />

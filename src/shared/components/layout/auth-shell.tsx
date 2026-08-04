@@ -22,8 +22,8 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <main id="main-content" className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1.25fr)_minmax(440px,0.75fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden bg-sidebar text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16" aria-label="产品概览">
+    <main id="main-content" className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1.18fr)_minmax(440px,0.82fr)]">
+      <section className="relative hidden min-h-screen overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16" aria-label="产品概览">
         <Image
           src={labWorkbench}
           alt=""
@@ -33,26 +33,26 @@ export function AuthShell({
           className="object-cover opacity-55"
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-sidebar/88" aria-hidden="true" />
+        <div className="absolute inset-0 bg-sidebar/90" aria-hidden="true" />
 
         <div className="relative flex items-center gap-3 text-[15px] font-semibold tracking-[-0.02em]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-white text-slate-950">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           实验室协作
         </div>
 
         <div className="relative max-w-3xl pb-8">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-white/62">Research operations</p>
-          <h1 className="max-w-2xl text-[48px] font-semibold leading-[1.01] tracking-[-0.045em] xl:text-[64px]">{visualTitle}</h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-7 text-white/70">{visualDescription}</p>
+          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">Research operations</p>
+          <h1 className="max-w-2xl text-[48px] font-semibold leading-[1.01] tracking-[-0.045em] xl:text-[60px]">{visualTitle}</h1>
+          <p className="mt-6 max-w-xl text-[17px] leading-7 text-sidebar-foreground/70">{visualDescription}</p>
         </div>
       </section>
 
       <section className="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-12 xl:px-16">
         <div className="w-full max-w-[440px]">
           <div className="mb-14 flex items-center gap-3 text-[15px] font-semibold tracking-[-0.02em] lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-foreground text-background">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
             实验室协作

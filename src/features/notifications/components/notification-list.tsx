@@ -57,7 +57,7 @@ export function NotificationList({ pageData }: { pageData: NotificationPageData 
       />
 
       {rows.length > 0 ? (
-        <div className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
+        <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
           {rows.map((notification) => (
             <article
               key={notification.id}

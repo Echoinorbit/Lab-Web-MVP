@@ -21,14 +21,14 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <div
-      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-border/80 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="min-w-0 max-w-full overflow-x-auto rounded-xl border border-border/80 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       tabIndex={0}
       role="region"
       aria-label={`${label}，可横向滚动`}
     >
       <table className="w-full min-w-[720px] border-collapse text-[15px] [font-variant-numeric:tabular-nums]">
         <caption className="sr-only">{label}</caption>
-        <thead className="bg-surface/70 text-left text-xs uppercase tracking-[0.08em] text-muted-foreground">
+        <thead className="bg-surface/75 text-left text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           <tr>
             {columns.map((column) => (
               <th key={column.key} scope="col" className="border-b border-border/80 px-4 py-3 font-semibold">

@@ -20,7 +20,7 @@ type HeaderProps = {
 
 export function Header({ displayName, avatar, role, unreadCount, navigationAccess, logoutAction }: HeaderProps) {
   return (
-    <header className="ui-toolbar sticky top-0 z-30 flex h-14 items-center gap-2 bg-transparent px-3 sm:px-7 lg:px-10 xl:px-14 2xl:px-16">
+    <header className="ui-toolbar sticky top-0 z-30 flex h-16 items-center gap-2 bg-transparent px-3 sm:px-7 lg:px-10 xl:px-14 2xl:px-16">
       <MobileNav access={navigationAccess} />
       <div className="min-w-0 flex-1 px-1 lg:px-0">
         <RouteContext />

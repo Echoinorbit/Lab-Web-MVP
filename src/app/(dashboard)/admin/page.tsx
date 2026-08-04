@@ -18,14 +18,14 @@ export default async function AdminPage() {
   return (
     <div className="space-y-10">
       <PageHeader title="系统治理" description="集中管理身份、能力边界、系统记录与基础配置。所有敏感操作均由服务端鉴权并写入审计。" />
-      <div className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
         {governanceAreas.map((area) => (
           <Link
             key={area.href}
             href={area.href}
             className="group grid min-h-32 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 border-b border-border/65 p-5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-primary/[0.035] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:gap-7 sm:p-7"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
+            <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-foreground">
               <area.icon className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">

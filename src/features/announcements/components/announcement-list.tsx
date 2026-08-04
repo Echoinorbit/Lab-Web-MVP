@@ -25,7 +25,7 @@ export function AnnouncementList({
   }
 
   return (
-    <div className="divide-y divide-border/65 overflow-hidden rounded-2xl border border-border/80 bg-card">
+    <div className="divide-y divide-border/65 overflow-hidden rounded-xl border border-border/80 bg-card">
       {announcements.map((announcement) => (
         <AnnouncementCard
           key={announcement.id}

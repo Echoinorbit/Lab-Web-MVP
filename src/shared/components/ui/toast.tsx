@@ -102,7 +102,7 @@ function ToastItem({ item, onDismiss }: { item: ToastRecord; onDismiss: (id: num
       role={variant === "error" ? "alert" : "status"}
       data-state={closing ? "closed" : "open"}
       className={cn(
-        "ui-toast pointer-events-auto flex w-full max-w-[390px] items-start gap-3 rounded-2xl border bg-surface-raised p-4 text-sm shadow-[var(--shadow-popover)]",
+        "ui-toast pointer-events-auto flex w-full max-w-[390px] items-start gap-3 rounded-xl border bg-surface-raised p-4 text-sm shadow-[var(--shadow-popover)]",
         variantStyles[variant],
       )}
     >
