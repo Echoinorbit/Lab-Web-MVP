@@ -27,11 +27,13 @@ test("Next.js 全局安全响应头应包含基础硬化策略", () => {
   assert.match(headers.get("Content-Security-Policy-Report-Only") ?? "", /frame-ancestors 'none'/);
 });
 
-test("路由预筛选只放行认证端点与受控静态头像路径", () => {
+test("路由预筛选只放行公开入口、认证端点与受控静态资源", () => {
+  assert.equal(isPublicRoutePrefilterPath("/"), true);
   assert.equal(isPublicRoutePrefilterPath("/login"), true);
   assert.equal(isPublicRoutePrefilterPath("/api/auth/csrf"), true);
   assert.equal(isPublicRoutePrefilterPath("/avatar/default.png"), true);
   assert.equal(isPublicRoutePrefilterPath("/uploads/avatars/example.png"), true);
+  assert.equal(isPublicRoutePrefilterPath("/mostar/index.html"), true);
   assert.equal(isPublicRoutePrefilterPath("/login-impersonation"), false);
   assert.equal(isPublicRoutePrefilterPath("/admin/users"), false);
 });
