@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [{ source: "/", destination: "/mostar/index.html" }];
+    return { beforeFiles: [{ source: "/", destination: "/mostar/index.html" }] };
   },
 };
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { securityHeaders } from "../next.config";
+import nextConfig, { securityHeaders } from "../next.config";
 import { isPublicRoutePrefilterPath } from "../src/shared/lib/route-prefilter";
 import { validatePasswordPolicy } from "../src/shared/lib/security";
 
@@ -25,6 +25,14 @@ test("Next.js 全局安全响应头应包含基础硬化策略", () => {
   assert.equal(headers.get("Referrer-Policy"), "strict-origin-when-cross-origin");
   assert.match(headers.get("Strict-Transport-Security") ?? "", /max-age=31536000/);
   assert.match(headers.get("Content-Security-Policy-Report-Only") ?? "", /frame-ancestors 'none'/);
+});
+
+test("根路径在路由解析前重写到 Mostar 静态入口", async () => {
+  const rewrites = await nextConfig.rewrites?.();
+  assert.notEqual(rewrites, undefined);
+  assert.equal(Array.isArray(rewrites), false);
+  if (!rewrites || Array.isArray(rewrites)) return;
+  assert.deepEqual(rewrites.beforeFiles, [{ source: "/", destination: "/mostar/index.html" }]);
 });
 
 test("路由预筛选只放行公开入口、认证端点与受控静态资源", () => {
