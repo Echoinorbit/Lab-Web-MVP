@@ -1,1 +1,0 @@
-export { OperatorSection } from "./OperatorSection";

@@ -37,7 +37,7 @@
 }
 
 .artworkImage {
-  background: url("/images/kv_v1d4.d0e55f7f.jpg") center / cover no-repeat;
+  background: url("/dashboard/kv_v1d4.d0e55f7f.jpg") center / cover no-repeat;
 }
 
 .backgroundFade {
@@ -54,7 +54,7 @@
   top: calc(50% - 17em);
   width: 57.4375em;
   height: 25em;
-  background: url("/images/title_bg.862a2438.png") center / contain no-repeat;
+  background: url("/dashboard/title_bg.862a2438.png") center / contain no-repeat;
   font-size: var(--hero-unit);
   pointer-events: none;
 }
@@ -85,8 +85,8 @@
   position: relative;
   display: block;
   padding-top: 0.07em;
-  -webkit-mask-image: url("/images/title_mask.dcd27773.png");
-  mask-image: url("/images/title_mask.dcd27773.png");
+  -webkit-mask-image: url("/dashboard/title_mask.dcd27773.png");
+  mask-image: url("/dashboard/title_mask.dcd27773.png");
   -webkit-mask-position: center;
   mask-position: center;
   -webkit-mask-size: 125% auto;
@@ -101,7 +101,7 @@
   top: 0.10784em;
   width: 0.09314em;
   height: 0.09314em;
-  background: url("/images/title_deco.326e49e6.png") center / contain no-repeat;
+  background: url("/dashboard/title_deco.326e49e6.png") center / contain no-repeat;
   content: "";
 }
 
@@ -180,7 +180,7 @@
   }
 
   .artworkImage {
-    background-image: url("/images/kv_v1d4_h5.7651b394.jpg");
+    background-image: url("/dashboard/kv_v1d4_h5.7651b394.jpg");
   }
 
   .backgroundFade {

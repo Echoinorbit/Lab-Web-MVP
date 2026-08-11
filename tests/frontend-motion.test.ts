@@ -46,13 +46,11 @@ describe("frontend motion contracts", () => {
     assert.match(dashboard, /<ProgressPage searchParams=\{Promise\.resolve\(\{\}\)\}/);
   });
 
-  it("keeps Endfield's fixed-canvas scaling out of the product workbench", () => {
+  it("keeps preview-only fixed-canvas code out of the product workbench", () => {
     const rootLayout = source("src/app/layout.tsx");
-    const previewLayout = source("src/app/%5Fendfield/layout.tsx");
-    const viewportScale = source("src/shared/components/viewport-scale.tsx");
+    const dashboardLayout = source("src/app/(dashboard)/layout.tsx");
     assert.doesNotMatch(rootLayout, /ViewportScale/);
-    assert.match(previewLayout, /<ViewportScale \/>/);
-    assert.match(viewportScale, /root\.style\.fontSize = previousFontSize/);
+    assert.doesNotMatch(dashboardLayout, /ViewportScale/);
   });
 
   it("uses Endfield's fixed-canvas hero treatment in the dashboard", () => {
@@ -61,6 +59,7 @@ describe("frontend motion contracts", () => {
     assert.doesNotMatch(dashboardHome, /HomeSection\/HomeSection\.module\.css/);
     assert.match(dashboardHomeStyles, /--hero-unit: min\(0\.625vw, 1\.111111vh\)/);
     assert.match(dashboardHomeStyles, /left: calc\(50% - 100em\)/);
+    assert.match(dashboardHomeStyles, /url\("\/dashboard\/kv_v1d4\.d0e55f7f\.jpg"\)/);
     assert.match(dashboardHomeStyles, /@media \(orientation: portrait\)/);
   });
 
