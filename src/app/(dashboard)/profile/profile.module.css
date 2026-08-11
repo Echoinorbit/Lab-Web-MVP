@@ -1,0 +1,157 @@
+.page {
+  margin: 0 auto;
+  width: min(100%, 72rem);
+  display: grid;
+  gap: 3rem;
+  padding: 0 2rem 4rem;
+}
+
+.identityStage {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(15rem, 0.8fr) minmax(0, 1.5fr);
+  border-block: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.identityRail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22rem;
+  background: hsl(var(--brand-yellow));
+  color: hsl(var(--foreground));
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  writing-mode: vertical-rl;
+}
+
+.identityCard {
+  position: relative;
+  display: flex;
+  min-height: 22rem;
+  flex-direction: column;
+  justify-content: end;
+  padding: 2rem;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+
+.recordCode {
+  position: absolute;
+  top: 1.25rem;
+  left: 2rem;
+  margin: 0;
+  color: rgb(255 255 255 / 0.58);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.avatar {
+  margin-bottom: auto;
+  border: 2px solid hsl(var(--brand-yellow));
+  border-radius: 0;
+  background: hsl(var(--surface-raised));
+}
+
+.name {
+  margin: 0;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.identityMeta {
+  margin: 0.75rem 0 0;
+  color: rgb(255 255 255 / 0.66);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.signalLine {
+  width: 9rem;
+  height: 0.375rem;
+  margin-top: 1.5rem;
+  background: linear-gradient(90deg, hsl(var(--accent-magenta)) 0 14%, hsl(var(--brand-yellow)) 14% 86%, hsl(var(--accent-mint)) 86%);
+}
+
+.identityFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  padding: 1rem 2rem;
+}
+
+.field {
+  min-width: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 1.5rem 1rem;
+}
+
+.field:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.field dt {
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.field dd {
+  margin: 0.625rem 0 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-medium);
+  font-size: 1.125rem;
+}
+
+.module {
+  display: grid;
+  gap: 1.25rem;
+  border-top: 1px solid hsl(var(--border));
+  padding-top: 2rem;
+}
+
+.capabilityGrid {
+  border-block: 1px solid hsl(var(--border));
+  padding: 1.5rem 0;
+}
+
+@media (max-width: 767px) {
+  .page {
+    gap: 2.5rem;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .identityStage {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .identityRail {
+    min-height: 0;
+  }
+
+  .identityCard {
+    min-height: 20rem;
+  }
+
+  .identityFields {
+    grid-column: 1 / -1;
+    padding: 0.5rem 1.25rem;
+  }
+
+  .field:nth-last-child(-n + 2) {
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .field:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .identityFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

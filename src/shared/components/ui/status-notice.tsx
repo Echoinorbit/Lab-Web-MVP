@@ -5,10 +5,10 @@ import { cn } from "@/shared/lib/utils";
 type NoticeVariant = "info" | "success" | "warning" | "error";
 
 const variants: Record<NoticeVariant, string> = {
-  info: "border-primary/25 bg-primary/5 text-foreground",
-  success: "border-success/25 bg-success/10 text-foreground",
-  warning: "border-warning/30 bg-warning/10 text-foreground",
-  error: "border-destructive/30 bg-destructive/10 text-foreground",
+  info: "border-foreground/25 bg-surface text-foreground",
+  success: "border-success/50 bg-success/10 text-foreground",
+  warning: "border-warning/50 bg-warning/10 text-foreground",
+  error: "border-destructive/60 bg-destructive/10 text-foreground",
 };
 
 export function StatusNotice({
@@ -21,11 +21,11 @@ export function StatusNotice({
   return (
     <div
       role={variant === "error" ? "alert" : "status"}
-      className={cn("rounded-xl border px-4 py-3 text-sm leading-6", variants[variant], className)}
+      className={cn("border border-l-[2px] border-l-brand-yellow px-4 py-3 text-[1rem] leading-6", variants[variant], className)}
       {...props}
     >
-      {title ? <div className="font-semibold">{title}</div> : null}
-      {children ? <div className={cn(title && "mt-0.5 text-muted-foreground")}>{children}</div> : null}
+      {title ? <div className="font-medium">// {title}</div> : null}
+      {children ? <div className={cn(title && "mt-0.5 text-muted-foreground")}>{title ? null : "// "}{children}</div> : null}
     </div>
   );
 }

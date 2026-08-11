@@ -11,6 +11,8 @@ import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { formatStudyGrade } from "@/shared/lib/study-identity";
 
+import styles from "./profile.module.css";
+
 const roleLabels: Record<"ADMIN" | "MEMBER", string> = {
   ADMIN: "管理员",
   MEMBER: "成员",
@@ -65,34 +67,37 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-12">
-      <PageHeader title="个人中心" description="查看当前身份、协作范围与账号安全入口。权限以有效 Tag 和账号状态为准。" />
+    <div className={styles.page}>
+      <PageHeader title="个人档案" description="查看当前身份、协作范围与账号安全入口。权限以有效 Tag 和账号状态为准。" />
 
-      <section className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
-        <div>
-          <Avatar src={profile.avatar} name={profile.displayName} size={80} priority />
-          <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{profile.displayName}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">@{profile.username} · {roleLabels[profile.role]}</p>
+      <section className={styles.identityStage} aria-labelledby="profile-identity-title">
+        <div className={styles.identityRail} aria-hidden="true">PERSONNEL FILE</div>
+        <div className={styles.identityCard}>
+          <p className={styles.recordCode}>RECORD / 01</p>
+          <Avatar className={styles.avatar} src={profile.avatar} name={profile.displayName} size={112} priority />
+          <h2 id="profile-identity-title" className={styles.name}>{profile.displayName}</h2>
+          <p className={styles.identityMeta}>@{profile.username} · {roleLabels[profile.role]}</p>
+          <div className={styles.signalLine} aria-hidden="true" />
         </div>
 
-        <dl className="grid border-t border-border/80 sm:grid-cols-2">
+        <dl className={styles.identityFields}>
           {fields.map((field) => (
-            <div key={field.label} className="border-b border-border/80 py-5 sm:odd:pr-6 sm:even:pl-6">
-              <dt className="text-sm text-muted-foreground">{field.label}</dt>
-              <dd className="mt-1.5 text-[16px] font-medium">{field.value}</dd>
+            <div key={field.label} className={styles.field}>
+              <dt>{field.label}</dt>
+              <dd>{field.value}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section className="space-y-5 border-t border-border/80 pt-8">
+      <section className={styles.module}>
         <SectionHeader title="头像" description="上传后先在浏览器内完成 1:1 裁剪，服务端会再次校验最终 PNG。" />
         <AvatarEditor currentAvatar={profile.avatar} displayName={profile.displayName} />
       </section>
 
-      <section className="space-y-5">
+      <section className={styles.module}>
         <SectionHeader title="我的 Tag" description="Tag 决定内容能力与项目范围；已撤销或过期的 Tag 不会显示。" />
-        <div className="border-t border-border/80 pt-6">
+        <div className={styles.capabilityGrid}>
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {tags.map((tag, index) => (
@@ -109,17 +114,14 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <section className="space-y-5 border-t border-border/80 pt-8">
+      <section className={styles.module}>
         <SectionHeader
           title="账号安全"
           description="定期更新密码；密码变更后继续使用新凭据登录。"
           actions={(
-          <Link
-            href="/change-password"
-              className={buttonStyles({ variant: "secondary" })}
-          >
-            修改密码
-          </Link>
+            <Link href="/change-password" className={buttonStyles({ variant: "secondary" })}>
+              修改密码
+            </Link>
           )}
         />
       </section>

@@ -1,8 +1,9 @@
-import { FlaskConical } from "lucide-react";
-import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
-import labWorkbench from "@/assets/lab-collaboration-workbench.png";
+import { images } from "@/shared/lib/images";
+
+import styles from "./auth-shell.module.css";
 
 export function AuthShell({
   eyebrow,
@@ -22,47 +23,26 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <main id="main-content" className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1.18fr)_minmax(440px,0.82fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16" aria-label="产品概览">
-        <Image
-          src={labWorkbench}
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 1024px) 62vw, 1px"
-          className="object-cover opacity-55"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 bg-sidebar/90" aria-hidden="true" />
-
-        <div className="relative flex items-center gap-3 text-[15px] font-semibold tracking-[-0.02em]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
-          </span>
-          实验室协作
-        </div>
-
-        <div className="relative max-w-3xl pb-8">
-          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">Research operations</p>
-          <h1 className="max-w-2xl text-[48px] font-semibold leading-[1.01] tracking-[-0.045em] xl:text-[60px]">{visualTitle}</h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-7 text-sidebar-foreground/70">{visualDescription}</p>
-        </div>
+    <main id="main-content" className={styles.shell}>
+      <div className={styles.backdrop} aria-hidden="true">
+        <img className={styles.backdropImage} src={images.loginBackdrop} alt="" />
+        <span className={styles.backdropMask} />
+      </div>
+      <Link href="/" className={styles.brand}>
+        <img className={styles.brandMark} src={images.brandMark} alt="" />
+        <span>实验室协作</span>
+      </Link>
+      <section className={styles.intro} aria-label="产品概览">
+        <p className={styles.introEyebrow}>// SECURE RESEARCH WORKSPACE</p>
+        <h1 className={styles.introTitle}>{visualTitle}</h1>
+        <p className={styles.introText}>{visualDescription}</p>
       </section>
-
-      <section className="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-12 xl:px-16">
-        <div className="w-full max-w-[440px]">
-          <div className="mb-14 flex items-center gap-3 text-[15px] font-semibold tracking-[-0.02em] lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <FlaskConical className="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            实验室协作
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
-          <h1 className="mt-4 text-[40px] font-semibold leading-[1.04] tracking-[-0.04em] sm:text-[48px]">{title}</h1>
-          <p className="mt-4 text-[16px] leading-7 text-muted-foreground">{description}</p>
-          <div className="mt-9">{children}</div>
-          {footer ? <div className="mt-10 text-xs leading-5 text-muted-foreground">{footer}</div> : null}
-        </div>
+      <section className={styles.formPanel} aria-label={title}>
+        <p className={styles.eyebrow}>// {eyebrow}</p>
+        <h2 className={styles.formTitle}>{title}</h2>
+        <p className={styles.formDescription}>{description}</p>
+        {children}
+        {footer ? <div className={styles.footer}>{footer}</div> : null}
       </section>
     </main>
   );

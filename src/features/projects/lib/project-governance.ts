@@ -70,6 +70,21 @@ export function canEditProjectSnapshot(
     globalPermissions: ReadonlySet<Permission>;
   },
 ) {
+  return canManageProjectNodesSnapshot(actorId, actorCanLead, project, { projectPermissions, globalPermissions });
+}
+
+export function canManageProjectNodesSnapshot(
+  actorId: string,
+  actorCanLead: boolean,
+  project: ProjectGovernanceSnapshot,
+  {
+    projectPermissions,
+    globalPermissions,
+  }: {
+    projectPermissions: ReadonlySet<Permission>;
+    globalPermissions: ReadonlySet<Permission>;
+  },
+) {
   if (project.deletedAt) return false;
   return (actorCanLead && project.leaderId === actorId)
     || projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)

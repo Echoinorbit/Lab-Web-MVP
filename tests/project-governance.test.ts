@@ -7,6 +7,7 @@ import {
   canEditProjectSnapshot,
   canHardDeleteProjectSnapshot,
   canManageProjectLeaderReassignment,
+  canManageProjectNodesSnapshot,
   canRestoreProjectSnapshot,
   canSoftDeleteProjectSnapshot,
   isEligibleProjectLeaderActor,
@@ -64,6 +65,26 @@ test("项目组长与负责导师可编辑，学生成员和无关导师不可�
   assert.equal(canEditProjectSnapshot("member-1", false, advised, {
     projectPermissions: new Set(),
     globalPermissions: new Set([PERMISSIONS.PROJECT_MANAGE]),
+  }), false);
+});
+
+test("项目节点管理沿用负责人和负责导师的项目级权限边界", () => {
+  const advised = { advisorId: "advisor-1", leaderId: "lead-1", deletedAt: null };
+  assert.equal(canManageProjectNodesSnapshot("lead-1", true, advised, {
+    projectPermissions: new Set(),
+    globalPermissions: new Set(),
+  }), true);
+  assert.equal(canManageProjectNodesSnapshot("advisor-1", false, advised, {
+    projectPermissions: new Set(),
+    globalPermissions: new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
+  }), true);
+  assert.equal(canManageProjectNodesSnapshot("advisor-1", false, advised, {
+    projectPermissions: new Set(),
+    globalPermissions: new Set(),
+  }), false);
+  assert.equal(canManageProjectNodesSnapshot("advisor-2", false, advised, {
+    projectPermissions: new Set(),
+    globalPermissions: new Set([PERMISSIONS.PROJECT_UPDATE_ADVISED]),
   }), false);
 });
 

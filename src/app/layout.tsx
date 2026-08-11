@@ -7,6 +7,9 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "实验室协作管理平台",
   description: "实验室公告、项目、帖子、进度报告与权限管理。",
+  icons: {
+    icon: "/brand-mark.jpg",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

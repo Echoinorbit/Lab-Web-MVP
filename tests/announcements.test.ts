@@ -23,6 +23,7 @@ import {
   isAnnouncementActive,
   type AnnouncementVisibilityViewer,
 } from "../src/features/announcements/lib/visibility";
+import { summarizeAnnouncementContent } from "../src/features/announcements/lib/preview";
 import { PERMISSIONS } from "../src/shared/lib/permissions";
 
 test("公告发布页应使用独立路由并复用创建权限", () => {
@@ -107,6 +108,15 @@ test("公告默认生命周期应为 72 小时", () => {
   assert.equal(getDefaultAnnouncementExpiresAt(now).toISOString(), "2026-06-28T00:00:00.000Z");
   assert.equal(isAnnouncementActive({ expiresAt: "2026-06-25T00:00:01.000Z" }, now), true);
   assert.equal(isAnnouncementActive({ expiresAt: "2026-06-24T23:59:59.000Z" }, now), false);
+});
+
+test("公告列表预览应只保留可读纯文本并用省略号收尾", () => {
+  assert.equal(
+    summarizeAnnouncementContent("# 标题\n\n- 第一项\n- [链接](https://example.com)\n\n![图片](cover.png)\n\n```ts\nconst secret = 1;\n```", 12),
+    "标题 第一项 链接",
+  );
+  assert.equal(summarizeAnnouncementContent("abcdef", 4), "abc…");
+  assert.equal(summarizeAnnouncementContent("```ts\nconst a = 1;\n```"), "暂无内容");
 });
 
 test("公告可见性应按目标类型限制普通用户，管理员可治理查看", () => {

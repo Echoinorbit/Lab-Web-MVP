@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   darkMode: ["class"],
@@ -6,6 +7,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        "brand-yellow": {
+          DEFAULT: "hsl(var(--brand-yellow))",
+          bright: "hsl(var(--brand-yellow-bright))",
+        },
+        "accent-mint": "hsl(var(--accent-mint))",
+        "accent-magenta": "hsl(var(--accent-magenta))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -55,9 +62,21 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        ui: ["var(--font-sans)"],
+        "ui-medium": ["var(--font-medium)"],
+        "ui-bold": ["var(--font-bold)"],
+        mono: ["var(--font-mono)"],
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addVariant }) => {
+      addVariant("portrait", "@media (orientation: portrait)");
+      addVariant("landscape", "@media (orientation: landscape)");
+      addVariant("hoverable", "@media (any-hover: hover)");
+    }),
+  ],
 };
 
 export default config;

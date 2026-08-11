@@ -19,6 +19,7 @@ public/uploads/**
 !public/uploads/avatars/.gitkeep
 !public/uploads/attachments/
 !public/uploads/attachments/.gitkeep
+public/images/
 /docs/
 # Added by code-review-graph
 .code-review-graph/

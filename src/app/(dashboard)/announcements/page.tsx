@@ -3,10 +3,10 @@ import Link from "next/link";
 
 import { AnnouncementList } from "@/features/announcements";
 import { ANNOUNCEMENT_CREATE_ROUTE } from "@/features/announcements/lib/access";
+import { summarizeAnnouncementContent } from "@/features/announcements/lib/preview";
 import { ANNOUNCEMENT_ORDER_BY } from "@/features/announcements/lib/sorting";
 import { buildAnnouncementVisibilityWhere, getAnnouncementVisibilityViewer } from "@/features/announcements/lib/visibility";
 import { buttonStyles } from "@/shared/components/ui/button";
-import { PageHeader } from "@/shared/components/ui/page-header";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { formatActorDisplayName, resolveActorDisplay } from "@/shared/lib/actor-snapshot";
 import { formatShanghaiDate } from "@/shared/lib/date";
@@ -44,22 +44,26 @@ export default async function AnnouncementsPage({
   const canCreate = permissions.has(PERMISSIONS.ANNOUNCEMENT_CREATE);
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="公告"
-        description="实验室重要通知按置顶、紧急程度与发布时间排序。"
-        actions={canCreate ? (
-          <Link href={ANNOUNCEMENT_CREATE_ROUTE} className={buttonStyles()}>
+    <div>
+      <header className="flex min-h-[16rem] items-end justify-between gap-8 bg-foreground px-8 py-8 text-background portrait:min-h-[20rem] portrait:flex-col portrait:items-start portrait:justify-end portrait:px-6">
+        <div>
+          <p className="font-mono text-[.875rem] uppercase tracking-[.12em] text-background/60">// announcement board</p>
+          <h1 className="mt-4 font-bold text-[3rem] leading-none">公告</h1>
+          <p className="mt-4 max-w-[36rem] text-[1.125rem] leading-7 text-background/72">实验室重要通知按置顶、紧急程度与发布时间排序。</p>
+        </div>
+        {canCreate ? (
+          <Link href={ANNOUNCEMENT_CREATE_ROUTE} className={buttonStyles({ className: "rounded-none font-mono text-[.8125rem] uppercase tracking-[.04em]" })}>
             <Plus className="h-4 w-4" aria-hidden="true" />
             发布公告
           </Link>
         ) : null}
-      />
+      </header>
       <AnnouncementList
         announcements={announcements.map((announcement) => ({
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
+          summary: summarizeAnnouncementContent(announcement.content),
           authorName: formatActorDisplayName(resolveActorDisplay(announcement.author, announcement.authorSnapshot)),
           createdAt: formatShanghaiDate(announcement.createdAt),
           updatedAt: announcement.updatedAt.getTime() > announcement.createdAt.getTime()

@@ -12,14 +12,14 @@ export function PageHeader({ title, description, actions, className, ...props }:
   return (
     <header
       className={cn(
-        "relative flex flex-col gap-5 border-b border-border/75 pb-7 sm:flex-row sm:items-end sm:justify-between sm:gap-10",
+        "relative flex flex-col gap-6 border-y border-border bg-card px-8 py-8 before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-brand-yellow landscape:flex-row landscape:items-end landscape:justify-between landscape:gap-10 portrait:px-6",
         className,
       )}
       {...props}
     >
       <div className="min-w-0 max-w-4xl">
-        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[44px]">{title}</h1>
-        {description ? <div className="mt-3 max-w-3xl text-[15px] leading-7 text-muted-foreground sm:text-[16px]">{description}</div> : null}
+        <h1 className="font-bold text-[3rem] leading-none">{title}</h1>
+        {description ? <div className="mt-4 max-w-3xl text-[1rem] leading-7 text-muted-foreground">{description}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div> : null}
     </header>
@@ -29,12 +29,12 @@ export function PageHeader({ title, description, actions, className, ...props }:
 export function SectionHeader({ title, description, actions, className, ...props }: HeadingProps) {
   return (
     <div
-      className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6", className)}
+      className={cn("flex flex-col gap-3 border-b border-border pb-5 landscape:flex-row landscape:items-end landscape:justify-between landscape:gap-6", className)}
       {...props}
     >
       <div className="min-w-0">
-        <h2 className="text-[21px] font-semibold leading-7 tracking-[-0.032em] sm:text-[24px]">{title}</h2>
-        {description ? <div className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</div> : null}
+        <h2 className="font-medium text-[2rem] leading-none">{title}</h2>
+        {description ? <div className="mt-3 max-w-2xl font-mono text-[.8125rem] uppercase leading-6 tracking-[.04em] text-muted-foreground">// {description}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div> : null}
     </div>

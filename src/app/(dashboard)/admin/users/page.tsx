@@ -14,6 +14,8 @@ import { PERMISSIONS } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { formatStudyGrade } from "@/shared/lib/study-identity";
 
+import styles from "./users.module.css";
+
 export default async function AdminUsersPage({
   searchParams,
 }: {
@@ -83,30 +85,35 @@ export default async function AdminUsersPage({
   const lastVisibleUser = Math.min(pagination.skip + users.length, totalUsers);
 
   return (
-    <div className="min-w-0 space-y-10">
+    <div className={styles.page}>
       <PageHeader
-        title="用户"
+        title="用户治理"
         description={`找到 ${totalUsers} 个账号。当前显示 ${firstVisibleUser}–${lastVisibleUser}，每页 ${ADMIN_USERS_PAGE_SIZE} 个。`}
       />
 
-      <section aria-label="用户列表" className="min-w-0 space-y-5">
+      <section aria-label="用户列表" className={styles.registry}>
         <SectionHeader title="账号与身份" description="先筛选账号，再进入独立治理页面处理角色、培养身份、状态与删除。" />
-        <form className="grid gap-3 rounded-3xl border border-white/60 bg-card p-4 shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-[minmax(0,1fr)_180px_auto_auto] sm:items-end" action="/admin/users">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium">搜索用户</span>
-            <Input name="q" defaultValue={search} placeholder="用户名、姓名或学号" />
-          </label>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium">账号状态</span>
-            <Select name="status" defaultValue={status}>
-              <option value="ALL">全部状态</option>
-              <option value="ACTIVE">在用</option>
-              <option value="SUSPENDED">已暂停</option>
-              <option value="GRADUATED">毕业清理期</option>
-            </Select>
-          </label>
-          <button type="submit" className={buttonStyles()}>筛选</button>
-          <Link href="/admin/users" className={buttonStyles({ variant: "secondary" })}>重置</Link>
+        <form className={styles.queryPanel} action="/admin/users">
+          <div className={styles.queryRail} aria-hidden="true">USER INDEX</div>
+          <div className={styles.queryFields}>
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium">搜索用户</span>
+              <Input name="q" defaultValue={search} placeholder="用户名、姓名或学号" />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium">账号状态</span>
+              <Select name="status" defaultValue={status}>
+                <option value="ALL">全部状态</option>
+                <option value="ACTIVE">在用</option>
+                <option value="SUSPENDED">已暂停</option>
+                <option value="GRADUATED">毕业清理期</option>
+              </Select>
+            </label>
+          </div>
+          <div className={styles.queryActions}>
+            <button type="submit" className={buttonStyles({ className: styles.filterButton })}>筛选</button>
+            <Link href="/admin/users" className={buttonStyles({ variant: "secondary" })}>重置</Link>
+          </div>
         </form>
         <UserTable
           users={users.map((user) => {
@@ -139,25 +146,25 @@ export default async function AdminUsersPage({
         />
       </section>
 
-      <section aria-label="用户开通工具" className="space-y-5 border-t border-border/80 pt-8">
+      <section aria-label="用户开通工具" className={styles.provisioning}>
         <SectionHeader title="开通成员" description="可以单个创建账号，或使用固定列顺序的 Excel 模板批量导入。" />
-        <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>创建成员</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UserCreateForm advisors={advisorOptions} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>批量导入成员</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ExcelImport />
-          </CardContent>
-        </Card>
+        <div className={styles.provisionGrid}>
+          <Card className={styles.provisionCard}>
+            <CardHeader>
+              <CardTitle>创建成员</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserCreateForm advisors={advisorOptions} />
+            </CardContent>
+          </Card>
+          <Card className={styles.provisionCard}>
+            <CardHeader>
+              <CardTitle>批量导入成员</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExcelImport />
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

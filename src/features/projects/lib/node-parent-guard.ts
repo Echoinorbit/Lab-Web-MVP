@@ -15,3 +15,9 @@ export function assertProjectNodeParentAllowed(parent: ProjectNodeParentLookupRe
     throw new Error(PROJECT_NODE_PARENT_INVALID_MESSAGE);
   }
 }
+
+export function assertProjectNodeParentChainAllowed(nodeId: string, parentIds: readonly string[]) {
+  if (parentIds.includes(nodeId) || new Set(parentIds).size !== parentIds.length) {
+    throw new Error(PROJECT_NODE_PARENT_INVALID_MESSAGE);
+  }
+}

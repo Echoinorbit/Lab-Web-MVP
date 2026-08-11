@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { ProjectList } from "@/features/projects";
+import { getProjects, ProjectList, ProjectVersionCalendar } from "@/features/projects";
 import { getMyProjectWhere, getProjectVisibilityWhere, parseProjectListTab } from "@/features/projects/lib/visibility";
 import { buttonStyles } from "@/shared/components/ui/button";
 import { PageHeader } from "@/shared/components/ui/page-header";
@@ -34,6 +34,11 @@ export default async function ProjectsPage({
     orderBy: { updatedAt: "desc" },
     include: {
       members: { select: { userId: true } },
+      nodes: {
+        where: { deletedAt: null },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, title: true, createdAt: true, colorHex: true },
+      },
       _count: {
         select: {
           members: true,
@@ -42,13 +47,15 @@ export default async function ProjectsPage({
       },
     },
   });
+  const presentationProjects = await getProjects(projects);
   const canCreate = permissions.has(PERMISSIONS.PROJECT_CREATE) || permissions.has(PERMISSIONS.PROJECT_CREATE_ON_BEHALF);
+  const asOf = new Date().toISOString();
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="项目"
-        description="以节点图追踪研究过程，并在明确的导师、组长与成员范围内协作。"
+        description="按项目与节点时间线查看研究工作并行推进的节奏。"
         actions={canCreate ? (
           <Link href="/projects/new" className={buttonStyles()}>
             <Plus className="h-4 w-4" aria-hidden="true" />
@@ -57,7 +64,7 @@ export default async function ProjectsPage({
         ) : null}
       />
 
-      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border/80 bg-card p-1.5">
+      <nav aria-label="项目筛选" className="flex max-w-full gap-1 overflow-x-auto border border-border bg-card p-1.5">
         {(
           [
             ["all", "可见项目"],
@@ -71,8 +78,8 @@ export default async function ProjectsPage({
             href={`/projects?tab=${value}`}
             aria-current={tab === value ? "page" : undefined}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-muted-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              tab === value && "bg-primary text-primary-foreground",
+              "inline-flex h-10 shrink-0 items-center px-4 text-sm font-ui-medium text-muted-foreground transition-colors duration-[var(--motion-fast)] hoverable:hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              tab === value && "bg-foreground text-background",
             )}
           >
             {label}
@@ -80,17 +87,9 @@ export default async function ProjectsPage({
         ))}
       </nav>
 
-      <ProjectList
-        projects={projects.map((project) => ({
-          id: project.id,
-          name: project.name,
-          status: project.status,
-          memberCount: project._count.members,
-          nodeCount: project._count.nodes,
-          description: project.description,
-          deletedAt: project.deletedAt?.toISOString() ?? null,
-        }))}
-      />
+      {presentationProjects.length > 0
+        ? <ProjectVersionCalendar projects={presentationProjects} asOf={asOf} />
+        : <ProjectList projects={presentationProjects} />}
     </div>
   );
 }

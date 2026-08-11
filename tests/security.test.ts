@@ -27,12 +27,8 @@ test("Next.js 全局安全响应头应包含基础硬化策略", () => {
   assert.match(headers.get("Content-Security-Policy-Report-Only") ?? "", /frame-ancestors 'none'/);
 });
 
-test("根路径在路由解析前重写到 Mostar 静态入口", async () => {
-  const rewrites = await nextConfig.rewrites?.();
-  assert.notEqual(rewrites, undefined);
-  assert.equal(Array.isArray(rewrites), false);
-  if (!rewrites || Array.isArray(rewrites)) return;
-  assert.deepEqual(rewrites.beforeFiles, [{ source: "/", destination: "/mostar/index.html" }]);
+test("首页不再重写到 Endfield 视觉参考页", () => {
+  assert.equal(nextConfig.rewrites, undefined);
 });
 
 test("路由预筛选只放行公开入口、认证端点与受控静态资源", () => {
@@ -41,7 +37,9 @@ test("路由预筛选只放行公开入口、认证端点与受控静态资源",
   assert.equal(isPublicRoutePrefilterPath("/api/auth/csrf"), true);
   assert.equal(isPublicRoutePrefilterPath("/avatar/default.png"), true);
   assert.equal(isPublicRoutePrefilterPath("/uploads/avatars/example.png"), true);
-  assert.equal(isPublicRoutePrefilterPath("/mostar/index.html"), true);
+  assert.equal(isPublicRoutePrefilterPath("/brand-mark.jpg"), true);
+  assert.equal(isPublicRoutePrefilterPath("/_endfield"), true);
+  assert.equal(isPublicRoutePrefilterPath("/mostar/index.html"), false);
   assert.equal(isPublicRoutePrefilterPath("/dashboard"), false);
   assert.equal(isPublicRoutePrefilterPath("/login-impersonation"), false);
   assert.equal(isPublicRoutePrefilterPath("/admin/users"), false);

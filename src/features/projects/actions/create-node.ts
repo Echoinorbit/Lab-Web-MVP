@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { includeActiveAdminsInNotificationRecipients } from "@/features/notifications/lib/recipients";
 import { getActionErrorMessage } from "@/shared/lib/action-result";
 import { auditPermissionDenied } from "@/shared/lib/audit";
-import { getProjectPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
+import { getProjectPermissionsForClient, getUserPermissionsForClient, PERMISSIONS, PermissionDeniedError } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
@@ -14,7 +14,7 @@ import { projectNodeInputSchema } from "@/shared/lib/validators/projects";
 
 import { assertProjectNodeParentAllowed, buildProjectNodeParentLookupWhere } from "../lib/node-parent-guard";
 import { normalizeProjectNodeParentInput } from "../lib/node-parent-selection";
-import { isEligibleProjectLeaderActor } from "../lib/project-governance";
+import { canManageProjectNodesSnapshot, isEligibleProjectLeaderActor } from "../lib/project-governance";
 import { assertProjectWritableStatus } from "../lib/writable";
 
 async function resolveProjectNodeParentId(
@@ -54,16 +54,20 @@ export async function createProjectNode(input: unknown) {
       await tx.$queryRaw`SELECT "id" FROM "Project" WHERE "id" = ${data.projectId} FOR UPDATE`;
       const project = await tx.project.findFirstOrThrow({
         where: { id: data.projectId, deletedAt: null },
-        select: { status: true, leaderId: true },
+        select: { status: true, leaderId: true, advisorId: true },
       });
-      const projectPermissions = await getProjectPermissionsForClient(tx, user.id, data.projectId, currentActor?.now);
+      const [projectPermissions, globalPermissions] = await Promise.all([
+        getProjectPermissionsForClient(tx, user.id, data.projectId, currentActor?.now),
+        getUserPermissionsForClient(tx, user.id, currentActor?.now),
+      ]);
       const isCurrentLeader = currentActor
         ? isEligibleProjectLeaderActor(currentActor.actor) && project.leaderId === user.id
         : false;
-      if (
-        !currentActor
-        || (!isCurrentLeader && !projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE))
-      ) {
+      const canManageProjectNodes = canManageProjectNodesSnapshot(user.id, isCurrentLeader, project, {
+        projectPermissions,
+        globalPermissions,
+      });
+      if (!currentActor || (!canManageProjectNodes && !projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE))) {
         throw new PermissionDeniedError(PERMISSIONS.PROJECT_NODE_CREATE);
       }
       assertProjectWritableStatus(project.status);

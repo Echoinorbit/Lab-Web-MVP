@@ -17,6 +17,14 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
+      "@/components/*": ["src/shared/components/endfield/*"],
+      "@/content": ["src/shared/components/endfield/content/index.ts"],
+      "@/content/*": ["src/shared/components/endfield/content/*"],
+      "@/hooks/useScrollSpy": ["src/shared/components/endfield/hooks/useScrollSpy.ts"],
+      "@/lib/bulletin": ["src/shared/components/endfield/lib/bulletin.ts"],
+      "@/lib/media": ["src/shared/components/endfield/lib/media.ts"],
+      "@/lib/utils": ["src/shared/lib/utils.ts"],
+      "@/types/site": ["src/shared/components/endfield/types/site.ts"],
       "@/*": ["src/*"]
     }
   },

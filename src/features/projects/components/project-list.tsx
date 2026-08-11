@@ -4,25 +4,10 @@ import Link from "next/link";
 import { Badge } from "@/shared/components/ui/badge";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 
+import { projectStatusLabels, type ProjectSummary } from "../data";
 import { summarizeProjectDescription } from "../lib/preview";
 
-export type ProjectSummary = {
-  id: string;
-  name: string;
-  status: string;
-  memberCount: number;
-  nodeCount: number;
-  description?: string | null;
-  deletedAt?: string | null;
-};
-
-const statusLabels: Record<string, string> = {
-  PLANNING: "规划中",
-  IN_PROGRESS: "进行中",
-  REVIEW: "评审中",
-  COMPLETED: "已完成",
-  ARCHIVED: "已归档",
-};
+export type { ProjectSummary } from "../data";
 
 export function ProjectList({ projects }: { projects: readonly ProjectSummary[] }) {
   if (projects.length === 0) {
@@ -46,7 +31,7 @@ export function ProjectList({ projects }: { projects: readonly ProjectSummary[] 
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-xl font-semibold leading-7 tracking-[-0.03em] transition-colors duration-[var(--motion-fast)] group-hover:text-primary">{project.name}</h3>
             <Badge className={project.deletedAt ? "border-destructive/30 bg-destructive/10 text-destructive" : undefined}>
-              {project.deletedAt ? "已软删除" : statusLabels[project.status] ?? project.status}
+              {project.deletedAt ? "已软删除" : projectStatusLabels[project.status]}
             </Badge>
           </div>
           <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{summarizeProjectDescription(project.description)}</p>

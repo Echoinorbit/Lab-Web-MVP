@@ -173,6 +173,7 @@ function CommitGraphRowButton({
   return (
     <button
       type="button"
+      id={`project-node-${row.id}`}
       data-project-commit-row
       data-selected={selected ? "true" : undefined}
       onClick={onSelect}
@@ -192,7 +193,7 @@ function CommitGraphRowButton({
           <div className="truncate text-sm font-medium">{row.title}</div>
           <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex min-w-0 shrink-0 items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
+              <span className="h-2 w-2 rounded-full bg-[var(--node-color)]" style={{ "--node-color": row.color } as CSSProperties} aria-hidden="true" />
               {row.authorName}
             </span>
             {row.description ? <span className="min-w-0 truncate">{truncateText(row.description, 72)}</span> : null}
@@ -268,14 +269,17 @@ function CommitInspector({
   row,
   viewerId,
   canManageNodeActions,
+  canManageAllNodes,
 }: {
   row: CommitGraphRow;
   viewerId: string;
   canManageNodeActions: boolean;
+  canManageAllNodes: boolean;
 }) {
   const meta = nodeMeta[row.nodeType];
   const Icon = meta.icon;
-  const canManageNode = canManageNodeActions && row.authorId === viewerId;
+  const canEditNode = canManageNodeActions && (canManageAllNodes || row.authorId === viewerId);
+  const canDeleteNode = canManageNodeActions && (canManageAllNodes || row.authorId === viewerId);
 
   return (
     <aside className="flex min-h-[520px] flex-col border-l border-border/80 bg-muted/15" data-project-commit-inspector>
@@ -289,7 +293,7 @@ function CommitInspector({
         </div>
         <h3 className="mt-3 text-base font-semibold leading-6 tracking-[-0.015em]">{row.title}</h3>
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--node-color)]" style={{ "--node-color": row.color } as CSSProperties} aria-hidden="true" />
           {row.authorName}
         </div>
       </div>
@@ -303,10 +307,10 @@ function CommitInspector({
         </p>
       </div>
       <div className="border-t border-border/80 px-4 py-3">
-        {canManageNode ? (
-          <ProjectNodeActions projectId={row.projectId} nodeId={row.id} />
+        {canEditNode ? (
+          <ProjectNodeActions projectId={row.projectId} nodeId={row.id} canDelete={canDeleteNode} />
         ) : (
-          <p className="text-xs text-muted-foreground">节点由作者维护；项目组中其它成员不能修改他人节点。</p>
+          <p className="text-xs text-muted-foreground">节点由作者维护；项目负责人和负责导师可以管理全部节点。</p>
         )}
       </div>
     </aside>
@@ -317,10 +321,12 @@ export function CommitGraphView({
   nodes,
   viewerId,
   canManageNodeActions,
+  canManageAllNodes,
 }: {
   nodes: readonly ProjectCanvasSourceNode[];
   viewerId: string;
   canManageNodeActions: boolean;
+  canManageAllNodes: boolean;
 }) {
   const graph = useMemo(() => buildCommitGraph(nodes), [nodes]);
   const [selectedId, setSelectedId] = useState<string | null>(graph.rows[0]?.id ?? null);
@@ -384,7 +390,7 @@ export function CommitGraphView({
                   selectedAuthorId === lane.authorId && "border-primary/60 bg-primary/[0.08] text-primary",
                 )}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: lane.color }}>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--node-color)] text-[11px] font-semibold text-white" style={{ "--node-color": lane.color } as CSSProperties}>
                   {index + 1}
                 </span>
                 <span className="min-w-0 truncate">{lane.authorName}</span>
@@ -421,7 +427,12 @@ export function CommitGraphView({
         </div>
         <CommitColumnResizer panel="inspector" widths={panelWidths} containerRef={containerRef} onChange={updatePanelWidths} />
         {selectedRow ? (
-          <CommitInspector row={selectedRow} viewerId={viewerId} canManageNodeActions={canManageNodeActions} />
+          <CommitInspector
+            row={selectedRow}
+            viewerId={viewerId}
+            canManageNodeActions={canManageNodeActions}
+            canManageAllNodes={canManageAllNodes}
+          />
         ) : null}
       </div>
     </div>

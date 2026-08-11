@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { toActionResult } from "@/shared/lib/action-result";
 import { appendAuditLog } from "@/shared/lib/audit";
+import { getProjectPermissionsForClient, getUserPermissionsForClient } from "@/shared/lib/permissions";
 import { prisma } from "@/shared/lib/prisma";
 import { requireActiveUser } from "@/shared/lib/session";
 import { getLockedActiveActor } from "@/shared/lib/user-lifecycle-lock";
 import { deleteProjectNodeInputSchema } from "@/shared/lib/validators/projects";
 
-import { ProjectNodeAuthorError, resolveProjectNodeAuthorAccess } from "../lib/node-author-ops";
+import { ProjectNodeManagerError, resolveProjectNodeManagerAccess } from "../lib/node-author-ops";
+import { canManageProjectNodesSnapshot, isEligibleProjectLeaderActor } from "../lib/project-governance";
 import { assertProjectWritableStatus } from "../lib/writable";
 
 export async function deleteProjectNode(input: unknown) {
@@ -27,7 +29,7 @@ export async function deleteProjectNode(input: unknown) {
       const [project, node] = await Promise.all([
         tx.project.findFirstOrThrow({
           where: { id: locatedNode.projectId, deletedAt: null },
-          select: { status: true },
+          select: { status: true, advisorId: true, leaderId: true },
         }),
         tx.projectNode.findFirstOrThrow({
           where: { id: locatedNode.id, projectId: locatedNode.projectId, deletedAt: null },
@@ -35,8 +37,22 @@ export async function deleteProjectNode(input: unknown) {
         }),
       ]);
       assertProjectWritableStatus(project.status);
-      const access = resolveProjectNodeAuthorAccess({ userId: actor.id, authorId: node.authorId });
-      if (!currentActor || !access.allowed) throw new ProjectNodeAuthorError();
+      const [projectPermissions, globalPermissions] = await Promise.all([
+        getProjectPermissionsForClient(tx, actor.id, locatedNode.projectId, currentActor?.now),
+        getUserPermissionsForClient(tx, actor.id, currentActor?.now),
+      ]);
+      const isCurrentLeader = currentActor
+        ? project.leaderId === actor.id && isEligibleProjectLeaderActor(currentActor.actor)
+        : false;
+      const access = resolveProjectNodeManagerAccess({
+        userId: actor.id,
+        authorId: node.authorId,
+        canManageProjectNodes: canManageProjectNodesSnapshot(actor.id, isCurrentLeader, project, {
+          projectPermissions,
+          globalPermissions,
+        }),
+      });
+      if (!currentActor || !access.allowed) throw new ProjectNodeManagerError();
 
       await tx.projectNode.update({
         where: { id: node.id },
@@ -54,13 +70,13 @@ export async function deleteProjectNode(input: unknown) {
       });
     });
   } catch (error) {
-    if (error instanceof ProjectNodeAuthorError) {
+    if (error instanceof ProjectNodeManagerError) {
       await appendAuditLog({
         userId: actor.id,
         action: "PERMISSION_DENIED",
         entityType: "ProjectNode",
         entityId: locatedNode.id,
-        details: { projectId: locatedNode.projectId, reason: "author_only" },
+        details: { projectId: locatedNode.projectId, reason: "node_manager_only" },
       });
     }
     throw error;
@@ -75,6 +91,6 @@ export async function deleteProjectNodeResult(input: unknown) {
     return null;
   }, {
     fallbackMessage: "项目节点删除失败，请稍后重试。",
-    knownMessages: ["只有节点作者可以编辑或删除该节点。", "已归档项目不可写入。"],
+    knownMessages: ["只有节点作者、项目负责人或负责导师可以管理该节点。", "已归档项目不可写入。"],
   });
 }

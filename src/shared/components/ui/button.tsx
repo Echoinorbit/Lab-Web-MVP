@@ -11,13 +11,11 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "border-primary bg-primary text-primary-foreground hover:border-primary/90 hover:bg-primary/90 active:bg-primary/80",
+  primary: "border-primary bg-primary text-primary-foreground hoverable:hover:border-primary/90 hoverable:hover:bg-primary/90 active:bg-primary/80",
   secondary:
-    "border-border bg-card text-foreground hover:border-primary/35 hover:bg-secondary active:bg-secondary/80",
-  ghost:
-    "border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/75",
-  destructive:
-    "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80",
+    "border-border bg-card text-foreground hoverable:hover:border-primary/35 hoverable:hover:bg-secondary active:bg-secondary/80",
+  ghost: "border-transparent bg-transparent text-muted-foreground hoverable:hover:bg-muted hoverable:hover:text-foreground active:bg-muted/75",
+  destructive: "border-transparent bg-destructive text-destructive-foreground hoverable:hover:bg-destructive/90 active:bg-destructive/80",
 };
 
 const sizes: Record<ButtonSize, string> = {
@@ -36,7 +34,7 @@ export function buttonStyles({
   className?: string;
 } = {}) {
   return cn(
-    "ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border text-[15px] font-medium transition-[transform,color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:active:scale-100",
+    "ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none border text-[15px] font-medium transition-[transform,color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:active:scale-100",
     variants[variant],
     sizes[size],
     className,

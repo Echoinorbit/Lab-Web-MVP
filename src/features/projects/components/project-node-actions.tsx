@@ -12,7 +12,7 @@ import { useToast } from "@/shared/components/ui/toast";
 
 import { deleteProjectNodeResult } from "../actions/delete-node";
 
-export function ProjectNodeActions({ projectId, nodeId }: { projectId: string; nodeId: string }) {
+export function ProjectNodeActions({ projectId, nodeId, canDelete }: { projectId: string; nodeId: string; canDelete: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -49,10 +49,12 @@ export function ProjectNodeActions({ projectId, nodeId }: { projectId: string; n
           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
           编辑
         </Link>
-        <Button type="button" variant="destructive" size="small" disabled={isPending} onClick={() => setDeleteOpen(true)}>
-          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-          删除
-        </Button>
+        {canDelete ? (
+          <Button type="button" variant="destructive" size="small" disabled={isPending} onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            删除
+          </Button>
+        ) : null}
       </div>
       <ConfirmDialog
         open={deleteOpen}

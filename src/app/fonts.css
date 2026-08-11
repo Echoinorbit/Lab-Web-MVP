@@ -1,0 +1,153 @@
+@font-face {
+  font-family: Gilroy-ExtraBold;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Gilroy-ExtraBold.7b2f8c.woff2") format("woff2"),
+    url("/fonts/Gilroy-ExtraBold.b8f935.woff") format("woff"),
+    url("/fonts/Gilroy-ExtraBold.9856d3.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Gilroy-Light;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Gilroy-Light.9981d6.woff2") format("woff2"),
+    url("/fonts/Gilroy-Light.d7cc70.woff") format("woff"),
+    url("/fonts/Gilroy-Light.dab230.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Gilroy-Medium;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Gilroy-Medium.376b06.woff2") format("woff2"),
+    url("/fonts/Gilroy-Medium.543de8.woff") format("woff"),
+    url("/fonts/Gilroy-Medium.4f7868.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Novecentosanswide-Bold;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Novecentosanswide-Bold.7ac6f1.woff2") format("woff2"),
+    url("/fonts/Novecentosanswide-Bold.65d5d0.woff") format("woff"),
+    url("/fonts/Novecentosanswide-Bold.4617ad.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Novecentosanswide-DemiBold;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Novecentosanswide-DemiBold.089c2d.woff2") format("woff2"),
+    url("/fonts/Novecentosanswide-DemiBold.9da0ec.woff") format("woff"),
+    url("/fonts/Novecentosanswide-DemiBold.be3c15.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Novecentosanswide-Medium;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Novecentosanswide-Medium.748604.woff2") format("woff2"),
+    url("/fonts/Novecentosanswide-Medium.ef16a8.woff") format("woff"),
+    url("/fonts/Novecentosanswide-Medium.b77880.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: ProtestStrike-Regular;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/ProtestStrike-Regular.7d04dd.woff2") format("woff2"),
+    url("/fonts/ProtestStrike-Regular.8cd908.woff") format("woff"),
+    url("/fonts/ProtestStrike-Regular.13abe8.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Roboto-Black;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Roboto-Black.6e4071.woff2") format("woff2"),
+    url("/fonts/Roboto-Black.6a179a.woff") format("woff"),
+    url("/fonts/Roboto-Black.44fd4a.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Roboto-Regular;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/Roboto-Regular.978751.woff2") format("woff2"),
+    url("/fonts/Roboto-Regular.47822e.woff") format("woff"),
+    url("/fonts/Roboto-Regular.6e6837.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: SpaceGrotesk;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/SpaceGrotesk.edd157.woff2") format("woff2"),
+    url("/fonts/SpaceGrotesk.912379.woff") format("woff"),
+    url("/fonts/SpaceGrotesk.d83d94.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: SansRegular;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/HarmonyOS_Sans_SC_Regular.3848ad.woff2") format("woff2"),
+    url("/fonts/HarmonyOS_Sans_SC_Regular.3fe043.woff") format("woff"),
+    url("/fonts/HarmonyOS_Sans_SC_Regular.af51ee.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: SansMedium;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/HarmonyOS_Sans_SC_Medium.fa43c4.woff2") format("woff2"),
+    url("/fonts/HarmonyOS_Sans_SC_Medium.9de059.woff") format("woff"),
+    url("/fonts/HarmonyOS_Sans_SC_Medium.6430c3.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: SansBold;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/HarmonyOS_Sans_SC_Bold.50b93a.woff2") format("woff2"),
+    url("/fonts/HarmonyOS_Sans_SC_Bold.ea2157.woff") format("woff"),
+    url("/fonts/HarmonyOS_Sans_SC_Bold.cf65a4.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: SansBlack;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("/fonts/HarmonyOS_Sans_SC_Black.e135b0.woff2") format("woff2"),
+    url("/fonts/HarmonyOS_Sans_SC_Black.5b9984.woff") format("woff"),
+    url("/fonts/HarmonyOS_Sans_SC_Black.c2a313.ttf") format("truetype");
+}

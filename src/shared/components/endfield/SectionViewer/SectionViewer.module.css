@@ -1,0 +1,58 @@
+/* Extracted from endfield.hypergryph.com production CSS (SectionViewer module).
+   Class hashes stripped -> drop-in *.module.css.
+
+   NOTE: the target has two similarly-named modules. `sections` styles the OUTER
+   wrapper, where `.contentContainer { display: flex }` places the header rail
+   beside the viewer. `SectionViewer` styles the INNER column. Merging them makes
+   the page sections lay out in a row, so only the SectionViewer rules belong
+   here; `.modalLayer` is carried over from `sections` because the overlay root
+   is rendered at this level. */
+
+.sectionViewer {
+  position: relative;
+  width: 100%;
+  display: flex;
+}
+
+@media (max-width: 767px) {
+  .sectionViewer {
+    flex-direction: column;
+  }
+}
+
+.sectionViewer .header {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  flex-shrink: 0;
+  top: 0;
+  align-self: flex-start;
+  z-index: 50;
+}
+
+.sectionViewer .contentContainer {
+  flex: 1 1;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+@media (max-width: 767px) {
+  .sectionViewer .header {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .sectionViewer .contentContainer .section {
+    scroll-margin-top: 9.625rem;
+  }
+}
+
+.modalLayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none;
+}

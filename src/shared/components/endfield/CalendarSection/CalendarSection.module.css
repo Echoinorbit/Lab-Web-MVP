@@ -1,0 +1,67 @@
+
+.sectionContainer{position:relative;width:100%;height:max-content;padding:6rem 0 2rem;box-sizing:border-box}
+
+@media(orientation:portrait){.sectionContainer{display:flex;flex-direction:column;align-items:center}}
+
+.sectionContainer .stickContainer{position:absolute;top:0;left:calc(50% - 66.5625rem);width:142.8125rem;z-index:1;opacity:0}
+
+@media(orientation:landscape){.sectionContainer .stickContainer{background-image:linear-gradient(0deg,rgba(255,255,255,0) 0,rgb(255,255,255) 1.25rem)}}
+
+@media(orientation:portrait){.sectionContainer .stickContainer{position:relative;left:0;width:100%}}
+
+@media(orientation:landscape){.sectionContainer .stickFixed{position:fixed!important;top:0;z-index:2}.sectionContainer .stickBottom{position:absolute!important;top:auto;left:calc(50% - 66.5625rem);bottom:0}}
+
+.sectionContainer .title{position:relative;width:141.375rem;height:auto;background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+@media(orientation:portrait){.sectionContainer .title{height:10rem;width:63.75rem;object-fit:cover;object-position:left center}html[data-oversea=true] .sectionContainer .title{height:auto;width:63.75rem;object-fit:unset;object-position:unset}}
+
+.sectionContainer .timeline{position:relative;left:-7rem;width:148.5rem;height:auto;background-position:50%;background-repeat:no-repeat;background-size:contain;background-size:100% 100%}
+
+@media(orientation:portrait){.sectionContainer .timeline{display:none}}
+
+.sectionContainer .calendar{position:relative;background-position:50%;background-repeat:no-repeat;background-size:contain;opacity:0;width:141.375rem;height:auto;margin-top:25rem}
+
+@media(orientation:portrait){.sectionContainer .calendar{display:none}}
+
+.sectionContainer .calendarContainer{position:relative;width:100%;padding-left:calc(50% - 66.5625rem);box-sizing:border-box}
+
+@media(orientation:portrait){.sectionContainer .calendarContainer{padding-left:calc(50% - 31.25rem)}}
+
+.sectionContainer .calendarScroll{position:relative;margin:0 0 4rem;height:128rem;width:63.75rem;opacity:0}
+
+@media(orientation:landscape){.sectionContainer .calendarScroll{display:none}}
+
+.sectionContainer .calendarScroll .scrollContainer{position:relative;width:99.46rem;height:100%}
+
+.sectionContainer .calendarScroll .content{position:relative;display:flex;justify-content:center;width:99.46rem;min-width:max-content}
+
+.sectionContainer .calendarScroll .content .timeScrollContainer{position:relative;width:99.46rem;height:2.8rem}
+
+.sectionContainer .calendarScroll .content .timelineScroll{position:absolute;left:-4.9rem;width:104.45rem;height:auto;z-index:1}
+
+.sectionContainer .calendarScroll .calendarH5{position:relative;background-position:50%;background-repeat:no-repeat;background-size:contain;width:99.46rem;height:auto}
+
+
+.rollingContent,.rollingContent .overflowWrapper{position:relative;width:100%;height:100%}
+
+.rollingContent .overflowWrapper .contentContainer{position:absolute;min-width:100%;height:100%;display:flex;align-items:center;justify-content:center;white-space:nowrap;left:0;transform:translateX(0)}
+
+.rollingContent.rolling .overflowWrapper{overflow:hidden}
+
+.rollingContent.new .overflowWrapper .contentContainer .realContent:before,.rollingContent.new.rolling:before{opacity:1}
+
+.rollingContent.new.rolling .overflowWrapper .contentContainer .realContent:before{opacity:0}
+
+.carouselContent,.carouselContent .overflowWrapper{position:relative;width:100%;height:100%}
+
+.carouselContent .overflowWrapper .contentContainer{position:absolute;min-width:100%;height:100%;display:flex;align-items:center;justify-content:center;white-space:nowrap;animation-name:ef-carousel;animation-timing-function:linear;animation-iteration-count:infinite;animation-play-state:paused;animation-direction:normal}
+
+.carouselContent .overflowWrapper .contentContainer .realContent{position:relative}
+
+.carouselContent .overflowWrapper .contentContainer .repeat{display:none}
+
+.carouselContent.rolling .overflowWrapper{overflow:hidden}
+
+.carouselContent.rolling .overflowWrapper .contentContainer{animation-play-state:running}
+
+.carouselContent.rolling .overflowWrapper .contentContainer .repeat{display:block;margin:0 .3rem}

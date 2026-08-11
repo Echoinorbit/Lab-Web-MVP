@@ -12,18 +12,22 @@ import { StatusNotice } from "@/shared/components/ui/status-notice";
 
 import { updateProjectNodeFormAction, type UpdateProjectNodeState } from "../actions/edit-node";
 import type { ProjectCanvasNodeType } from "../lib/node-canvas";
+import { PROJECT_NODE_ROOT_PARENT_VALUE } from "../lib/node-parent-selection";
 
 const initialState: UpdateProjectNodeState = { ok: false, message: null };
 
 export function ProjectNodeEditForm({
   node,
+  parentOptions,
 }: {
   node: {
     id: string;
     title: string;
     description?: string | null;
     nodeType: ProjectCanvasNodeType;
+    parentId: string | null;
   };
+  parentOptions: readonly { id: string; title: string }[];
 }) {
   const [description, setDescription] = useState(node.description ?? "");
   const [state, formAction, isPending] = useActionState(updateProjectNodeFormAction, initialState);
@@ -53,6 +57,20 @@ export function ProjectNodeEditForm({
               <option value="DECISION">决策</option>
               <option value="ISSUE">问题</option>
               <option value="RESOURCE">资源</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="parent-node">父节点</Label>
+            <Select
+              id="parent-node"
+              name="parentId"
+              className="w-full"
+              defaultValue={node.parentId ?? PROJECT_NODE_ROOT_PARENT_VALUE}
+            >
+              <option value={PROJECT_NODE_ROOT_PARENT_VALUE}>根节点</option>
+              {parentOptions.map((parent) => (
+                <option key={parent.id} value={parent.id}>{parent.title}</option>
+              ))}
             </Select>
           </div>
           <MarkdownEditor name="description" value={description} onChange={setDescription} placeholder="节点说明" />

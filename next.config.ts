@@ -13,8 +13,8 @@ export const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
+      "img-src 'self' data: blob: https://raft-blast-61784561.figma.site https://d8j0ntlcm91z4.cloudfront.net",
+      "font-src 'self' data: https://dcym8fthxf5uu.cloudfront.net",
       "connect-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
@@ -38,9 +38,6 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
-  },
-  async rewrites() {
-    return { beforeFiles: [{ source: "/", destination: "/mostar/index.html" }] };
   },
 };
 

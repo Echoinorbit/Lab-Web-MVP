@@ -1,0 +1,255 @@
+.shell {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-areas:
+    "brand ."
+    "intro form";
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+  grid-template-rows: auto 1fr;
+  gap: 3rem clamp(2rem, 6vw, 8rem);
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: clamp(1.5rem, 4vw, 4.25rem);
+  background: #fff;
+}
+
+.backdrop,
+.backdropMask {
+  position: absolute;
+  inset: 0;
+}
+
+.backdrop {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.backdropImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.backdropMask {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.08) 0, rgb(255 255 255 / 0.55) 50%, #fff 76%);
+}
+
+.brand {
+  grid-area: brand;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #191919;
+  font-family: var(--font-medium);
+  font-size: 1.25rem;
+}
+
+.brandMark {
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: cover;
+}
+
+.intro {
+  grid-area: intro;
+  align-self: center;
+  z-index: 2;
+  width: min(100%, 42rem);
+  color: #191919;
+}
+
+.intro::before {
+  position: absolute;
+  z-index: -1;
+  inset: -1.5rem -3rem;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0));
+  content: "";
+}
+
+.introEyebrow,
+.eyebrow {
+  margin: 0;
+  color: #666;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.introTitle {
+  margin: 1.5rem 0 0;
+  font-family: var(--font-bold);
+  font-size: 4rem;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.introText {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.formPanel {
+  grid-area: form;
+  align-self: end;
+  width: 100%;
+  z-index: 3;
+  box-sizing: border-box;
+  border-top: 0.5rem solid #fffa00;
+  background: rgb(25 25 25 / 0.92);
+  padding: 2rem 2.25rem 2.25rem;
+  color: #fff;
+}
+
+.formPanel::before {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  width: 1.5rem;
+  height: 0.5rem;
+  background: #00ffa2;
+  content: "";
+}
+
+.formTitle {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-bold);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.formDescription {
+  margin: 0.75rem 0 2rem;
+  color: #ccc;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.formPanel form label {
+  color: #ccc;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.formPanel form input {
+  height: 2.75rem;
+  border-color: #666;
+  border-radius: 0;
+  background: #fff;
+  color: #191919;
+}
+
+.formPanel form input:focus {
+  border-color: #fff;
+  box-shadow: inset 0.1875rem 0 #fffa00;
+}
+
+.formPanel form button[type="submit"] {
+  min-height: 3.5rem;
+  border-radius: 2px;
+  background: #fffa00;
+  color: #191919;
+  font-family: var(--font-medium);
+}
+
+.formPanel [role="alert"],
+.formPanel [role="status"] {
+  background: rgb(255 255 255 / 0.94);
+  color: #191919;
+}
+
+.footer {
+  margin: 1.25rem 0 0;
+  border-top: 1px solid rgb(255 255 255 / 0.25);
+  padding-top: 1rem;
+  color: #ccc;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-areas:
+      "brand"
+      "intro"
+      "form";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    gap: 2.5rem;
+  }
+
+  .backdropMask {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.04) 12%, rgb(255 255 255 / 0.86) 58%, #fff 78%);
+  }
+
+  .brand {
+    align-self: start;
+  }
+
+  .intro {
+    align-self: center;
+    max-width: 34rem;
+  }
+
+  .intro::before {
+    inset: -1.25rem -1rem;
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.08));
+  }
+
+  .introTitle {
+    font-size: 3rem;
+  }
+
+  .introText {
+    max-width: 26rem;
+  }
+
+  .formPanel {
+    max-width: 26rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .shell {
+    gap: 2rem;
+    padding: 1.5rem;
+  }
+
+  .brand {
+    font-size: 1rem;
+  }
+
+  .brandMark {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .intro {
+    align-self: end;
+  }
+
+  .introTitle {
+    font-size: 2.5rem;
+  }
+
+  .introText {
+    font-size: 1rem;
+  }
+
+  .formPanel {
+    max-width: none;
+    padding: 1.5rem;
+  }
+}

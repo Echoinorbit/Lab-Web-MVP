@@ -24,7 +24,7 @@ export const projectNodeInputSchema = z.object({
   nodeType: z.enum(["MILESTONE", "UPDATE", "DECISION", "ISSUE", "RESOURCE"]),
 });
 
-export const updateProjectNodeInputSchema = projectNodeInputSchema.omit({ projectId: true, parentId: true }).extend({
+export const updateProjectNodeInputSchema = projectNodeInputSchema.omit({ projectId: true }).extend({
   nodeId: z.string().min(1),
 });
 

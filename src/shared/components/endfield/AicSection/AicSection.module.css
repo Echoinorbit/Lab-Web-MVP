@@ -1,0 +1,86 @@
+/* Extracted verbatim from endfield.hypergryph.com production CSS.
+   Module: __08-AIC   Rules: 33
+   Class hashes stripped -> drop-in *.module.css. Asset URLs localized.
+
+   The only edit to the extract is the `.decoLeft.active` animation name: the
+   production build ships a module-local `flashing` keyframe, we reuse the
+   shared `ef-flashing` keyframe from globals.css instead. */
+
+.sectionContainer{position:relative;width:100%;height:77.25rem;box-sizing:border-box}
+
+@media(orientation:portrait){.sectionContainer{height:110.5rem}}
+
+.sectionContainer .pageTitle{position:absolute;top:6.6875rem;left:calc(50% - 80rem + 3.75rem + 125rem);text-transform:uppercase}
+
+@media(orientation:portrait){.sectionContainer .pageTitle{left:calc(50% - 18.1875rem);top:18.0625rem}}
+
+.sectionContainer .decoLeft{position:absolute;top:15.6875rem;left:calc(50% - 80rem + 3.75rem + 125rem);color:#999;opacity:0}
+
+@media(orientation:portrait){.sectionContainer .decoLeft{top:25.3125rem;left:calc(50% - 18.1875rem);opacity:1}}
+
+.sectionContainer .decoLeft .title{position:absolute;left:-.5rem;width:8.8125rem;height:auto}
+
+.sectionContainer .decoLeft .blocks{position:absolute;top:3.375rem;width:3.9375rem;height:auto}
+
+@media(orientation:portrait){.sectionContainer .decoLeft .blocks{display:none}}
+
+.sectionContainer .decoLeft .codePrinter{position:absolute;left:0;top:6.9375rem}
+
+@media(orientation:portrait){.sectionContainer .decoLeft .codePrinter{display:none}}
+
+.sectionContainer .decoLeft:after{content:"";position:absolute;left:0;top:5.25rem;width:1.125rem;height:7.0625rem;background-image:url(/images/color-bar.1f0aa038.png);background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+.sectionContainer .decoLeft.active{animation:1s ease-out forwards ef-flashing}
+
+.sectionContainer .itemIcon{position:absolute;left:calc(50% - 80rem + 3.75rem + 125rem);top:51.0625rem;width:9.25rem;height:9.25rem;display:flex;align-items:center;justify-content:center;background-color:#d9d9d9;opacity:0}
+
+@media(orientation:portrait){.sectionContainer .itemIcon{top:18.0625rem;left:calc(50% + 24.25rem);width:5.25rem;height:5.25rem}}
+
+.sectionContainer .itemIcon .icon{width:5.6875rem;height:auto;color:#a6a6a6}
+
+@media(orientation:portrait){.sectionContainer .itemIcon .icon{width:3.625rem}}
+
+.sectionContainer .h5Icon{position:absolute;top:4.625rem;left:calc(50% - 18.6875rem);height:7.5rem;width:auto}
+
+@media(orientation:landscape){.sectionContainer .h5Icon{display:none}}
+
+.sectionContainer .H5DecoLine{position:absolute;top:0;left:calc(50% - 31.25rem);width:8.25rem;height:100%;background-color:#fffa00;overflow:hidden}
+
+@media(orientation:landscape){.sectionContainer .H5DecoLine{display:none}}
+
+.sectionContainer .H5DecoLine .line{position:absolute;left:1rem;bottom:calc(100% - 3.9375rem);width:calc(100vh - 9.625rem - 3.9375rem);height:2.25rem;transform-origin:left bottom;transform:rotate(90deg);background-color:#fff}
+
+.sectionContainer .H5DecoLine .line .endfield{position:absolute;left:.875rem;bottom:.625rem;width:15.3125rem;height:auto;color:#191919}
+
+.sectionContainer .H5DecoLine .line .deco{position:absolute;top:.5rem;right:1.125rem;width:10.375rem;height:auto}
+
+.sectionContainer .H5DecoLine .line .ak{position:absolute;left:.9375rem;bottom:3.75rem;line-height:1;font-family:Gilroy-Medium;font-size:1.125rem;color:#191919}
+
+.sectionContainer .detailButton{position:absolute;width:20.0625rem;height:4.5rem;left:calc(50% - 80rem + 3.75rem + 125rem);top:80.9375rem}
+
+@media(orientation:portrait){.sectionContainer .detailButton{left:calc(50% + 2.125rem);top:91.5625rem;width:25rem;height:5.5rem}}
+
+@media(orientation:portrait)and (orientation:portrait){html[data-oversea=true] .sectionContainer .detailButton{top:97rem}}
+
+@media(orientation:portrait){html[lang=es-mx] .aicTitle{font-size:2.5rem;letter-spacing:-.02em}}
+
+@media(orientation:landscape){html[lang=de-de] .aicTitle{font-size:2.875rem;letter-spacing:-.02em}}
+
+@media(orientation:portrait){html[lang=it-it] .aicTitle{font-size:2.5rem;letter-spacing:-.02em}}
+
+@media(orientation:landscape){html[lang=it-it] .aicTitle{font-size:2.5rem;letter-spacing:-.02em}html[lang=id-id] .aicTitle{letter-spacing:-.03em}html[lang=vi-vn] .aicTitle{font-size:2.5rem;letter-spacing:-.03em}}
+
+@media(orientation:portrait){html[lang=vi-vn] .aicTitle{font-size:2.5rem;letter-spacing:-.03em}}
+
+/* --- Added for the clone --------------------------------------------------
+   The production build drives the reveals below from JavaScript once the
+   section scrolls into view. No extracted value is altered. */
+
+/* `.itemIcon` has no `opacity: 1` rule in either orientation. */
+.sectionContainer .itemIcon{transition:opacity .6s ease,transform .6s ease;transform:translateY(1.5rem)}
+
+.sectionContainer .itemIcon.inView{opacity:1;transform:translateY(0)}
+
+/* The wiki link is the shared `Button`; `.detailButton` only frames it, so the
+   button has to fill the frame instead of using its own 20rem x 4.5rem. */
+.sectionContainer .detailButton button{width:100%;height:100%}

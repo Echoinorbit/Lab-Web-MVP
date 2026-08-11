@@ -8,6 +8,7 @@ import { canViewProject } from "@/features/projects/lib/visibility";
 import {
   canEditProjectSnapshot,
   canHardDeleteProjectSnapshot,
+  canManageProjectNodesSnapshot,
   canManageProjectLeaderReassignment,
   canRestoreProjectSnapshot,
   canSoftDeleteProjectSnapshot,
@@ -128,6 +129,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const combinedPermissions = new Set([...projectPermissions, ...globalPermissions]);
   const isProjectLead = project.leaderId === user.id
     && isCanonicalProjectLeaderEligible(project.leader, project.advisorId);
+  const canManageProjectNodes = canManageProjectNodesSnapshot(user.id, isProjectLead, project, {
+    projectPermissions,
+    globalPermissions,
+  });
   const isArchived = project.status === "ARCHIVED";
   const isDeleted = Boolean(project.deletedAt);
   const canReassignLeader = project.leaderNeedsReassignment
@@ -193,7 +198,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       leaderNeedsReassignment={project.leaderNeedsReassignment}
       canReassignLeader={canReassignLeader}
       canManageMembers={canManageMembers}
-      canCreateNode={(isProjectLead || projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE)) && !isDeleted}
+      canCreateNode={(canManageProjectNodes || projectPermissions.has(PERMISSIONS.PROJECT_NODE_CREATE)) && !isDeleted}
+      canManageAllNodes={canManageProjectNodes && !isDeleted}
       canArchive={(isProjectLead
         || globalPermissions.has(PERMISSIONS.PROJECT_ARCHIVE_ANY)
         || projectPermissions.has(PERMISSIONS.PROJECT_MANAGE)) && !isDeleted}

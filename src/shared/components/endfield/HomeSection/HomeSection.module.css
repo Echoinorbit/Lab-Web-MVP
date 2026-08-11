@@ -1,0 +1,300 @@
+/*
+ * 01-Home — hero.
+ *
+ * Composed verbatim from the extracted production CSS:
+ *   docs/research/components/css/bg.css         (shared background system)
+ *   docs/research/components/css/pc-cn.css      (landscape overlay)
+ *   docs/research/components/css/h5-cn.css      (portrait overlay)
+ *   docs/research/components/css/downloader.css (download panel)
+ *
+ * `pc-cn` and `h5-cn` are separate modules upstream and reuse the same class
+ * names (`.container`, `.rbContainer`, `.button`, `.text`, …). Merged into one
+ * CSS Module they would collide, so every rule is scoped under `.pcContainer`
+ * or `.h5Container` — the values themselves are untouched.
+ *
+ * 1rem = 16 design px against a 2560x1440 (landscape) / 1080x1920 (portrait)
+ * canvas. See docs/research/BUILDER_BRIEF.md. Never convert these to px.
+ */
+
+/* ---------------------------------------------------------------- shell -- */
+
+.home{position:relative;width:100%;height:100vh;overflow:hidden}
+
+/* ------------------------------------------------------------------ bg -- */
+
+.bgContainer{position:absolute;top:0;left:0;width:100%;height:100%;background-color:#fff;overflow:hidden}
+
+.bgContainer .bg{position:absolute}
+
+@media(orientation:landscape){.bgContainer .bg{left:calc(50% - 100rem);top:calc(50% - 80rem);width:200rem;height:160rem}}
+
+@media(orientation:portrait){.bgContainer .bg{top:-7.5rem;left:0;width:100%;height:calc(100% + 7.5rem)}}
+
+.bgContainer .bg .horizontalMask{width:100%;height:100%}
+
+@media(orientation:landscape){.bgContainer .bg .horizontalMask{-webkit-mask-image:linear-gradient(90deg,transparent 0,black 10rem,black calc(100% - 10rem),transparent);mask-image:linear-gradient(90deg,transparent 0,black 10rem,black calc(100% - 10rem),transparent)}}
+
+.bgContainer .bg .verticalMask{width:100%;height:100%}
+
+.bgContainer .bg .inner{width:100%;height:100%;background-position:50%;background-repeat:no-repeat;background-size:cover}
+
+@media(orientation:landscape){.bgContainer .bg .inner{background-image:url(/images/kv_v1d4.d0e55f7f.jpg)}}
+
+@media(orientation:portrait){.bgContainer .bg .inner{background-image:url(/images/kv_v1d4_h5.7651b394.jpg)}}
+
+.bgContainer .mask{position:absolute;left:0;bottom:0;width:100%;height:40%;background-image:linear-gradient(180deg,transparent 0,white)}
+
+@media(orientation:portrait){.bgContainer .mask{height:50%;opacity:1;background-image:linear-gradient(180deg,transparent 0,white 90%,white)}}
+
+/* ------------------------------------------------- version title lockup -- */
+
+.bgContainer .titleFrame{position:absolute;background-image:url(/images/title_bg.862a2438.png)}
+
+@media(orientation:landscape){.bgContainer .titleFrame{left:calc(50% - 71rem - 7.5rem - 20rem + 120.4375rem);top:calc(50% - 45rem - 35rem + 66.8125rem);width:57.4375rem;height:20.125rem;background-position:50%;background-repeat:no-repeat;background-size:contain}}
+
+@media(orientation:portrait){.bgContainer .titleFrame{left:calc(50% - .75rem);top:calc(50% - 60rem - 3.75rem + 71.75rem);width:57.4375rem;height:20.125rem;transform:translate3d(-50%,0,0);background-position:50%;background-repeat:no-repeat;background-size:contain}.bgContainer .titleFrame.high{top:calc(50% - 60rem - 3.75rem + 71.75rem - 7rem)}}
+
+.bgContainer .titleFrame.cn .text{top:calc(50% + .375rem);font-size:12.75rem}
+
+.bgContainer .titleFrame.cn .text:after{right:-3.5rem;top:1.375rem}
+
+.bgContainer .titleFrame.cn .text .innerText{padding-top:.07em}
+
+.bgContainer .titleFrame.cn .suTitleContainer{top:21.9375rem}
+
+.bgContainer .titleFrame.cn .subtitle1{position:absolute;left:22.625rem;top:15.25rem;width:14.1875rem;height:3.4375rem;display:flex;align-items:center;justify-content:center;z-index:2}
+
+.bgContainer .titleFrame.cn .subtitle1 .titleBg{position:absolute;left:-1.875rem;bottom:0;width:18.6875rem;height:6.75rem;background-image:url(/images/core_cn.59b1fff7.png);background-size:contain;background-repeat:no-repeat;background-position:50%}
+
+.bgContainer .titleFrame.cn .subtitle2{padding:0 5.375rem}
+
+.bgContainer .titleFrame.cn .subtitle2 .innerText{font-size:4.375rem}
+
+.bgContainer .titleFrame.cn .subtitle2:after,.bgContainer .titleFrame.cn .subtitle2:before{content:"";position:absolute;top:50%;width:1.1875rem;height:3.75rem;background-image:url(/images/title_2_deco.de05fa81.png);background-size:contain;background-repeat:no-repeat;background-position:50%}
+
+.bgContainer .titleFrame.cn .subtitle3{margin-top:2.25rem;padding:0 5rem}
+
+.bgContainer .titleFrame.cn .subtitle3 .innerText{font-size:1.5625rem}
+
+.bgContainer .titleFrame .text{position:absolute;text-align:center;color:#000;text-transform:uppercase;left:calc(50% + .75rem);top:calc(50% + 1.5rem);transform:translate3d(-50%,-50%,0);font-family:SansBold;white-space:nowrap;line-height:1;font-size:4.5rem;letter-spacing:-.05em}
+
+.bgContainer .titleFrame .text .innerText{position:relative;padding-top:.3em;-webkit-mask-image:url(/images/title_mask.dcd27773.png);mask-image:url(/images/title_mask.dcd27773.png);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:125% auto;mask-size:125% auto;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;white-space:nowrap}
+
+.bgContainer .titleFrame .text:after{content:"";position:absolute;right:-1.5rem;top:0;width:1.1875rem;height:1.1875rem;background-image:url(/images/title_deco.326e49e6.png);background-position:50%;background-size:contain;background-repeat:no-repeat}
+
+.bgContainer .titleFrame .subtitle1 .innerText{position:absolute;font-size:1.875rem;color:#fff;font-family:SansBold;line-height:1.25;text-shadow:0 0 .75rem rgba(0,0,0,.5);white-space:nowrap}
+
+.bgContainer .titleFrame .suTitleContainer{position:absolute;left:calc(50% + .75rem);top:20.5rem;transform:translateX(-50%)}
+
+.bgContainer .titleFrame .subtitle2{position:relative;padding:0 3.375rem;height:3.75rem;font-family:SansBold;display:flex;align-items:center;justify-content:center}
+
+.bgContainer .titleFrame .subtitle2 .innerText{position:relative;font-size:2.75rem;line-height:1.25;padding-top:.07em;-webkit-mask-image:url(/images/title_mask.dcd27773.png);mask-image:url(/images/title_mask.dcd27773.png);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:110% auto;mask-size:110% auto;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;white-space:nowrap;color:#be1414}
+
+.bgContainer .titleFrame .subtitle2:after,.bgContainer .titleFrame .subtitle2:before{content:"";position:absolute;top:50%;transform:translateY(-50%);width:1.1875rem;height:3.25rem;background-image:url(/images/title_2_deco_os.7880c9df.png);background-size:contain;background-repeat:no-repeat;background-position:50%}
+
+.bgContainer .titleFrame .subtitle2:before{right:0}
+
+.bgContainer .titleFrame .subtitle2:after{left:0;transform:translateY(-50%) scaleX(-1)}
+
+.bgContainer .titleFrame .subtitle3{position:relative;margin-top:1.375rem;padding:0 5rem;height:.8125rem;font-family:SansMedium;display:flex;align-items:center;justify-content:center}
+
+.bgContainer .titleFrame .subtitle3 .innerText{position:relative;font-size:1.75rem;line-height:1.25;padding-top:.07em;-webkit-mask-image:url(/images/title_mask.dcd27773.png);mask-image:url(/images/title_mask.dcd27773.png);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:110% auto;mask-size:110% auto;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;white-space:nowrap;color:#000}
+
+.bgContainer .titleFrame .subtitle3:after,.bgContainer .titleFrame .subtitle3:before{content:"";position:absolute;top:50%;transform:translateY(-50%);width:3.0625rem;height:.75rem;background-image:url(/images/title_3_deco.67695222.png);background-size:contain;background-repeat:no-repeat;background-position:50%}
+
+.bgContainer .titleFrame .subtitle3:before{right:0}
+
+.bgContainer .titleFrame .subtitle3:after{left:0;transform:translateY(-50%) scaleX(-1)}
+
+/* ------------------------------------------------- landscape overlay (pc-cn) -- */
+
+.pcContainer{position:absolute;inset:0;pointer-events:none}
+
+@media(orientation:portrait){.pcContainer{display:none}}
+
+.pcContainer .rbContainer{position:absolute;right:3.0625rem;bottom:4.0625rem;width:max-content;max-width:100%;height:12.5rem;display:flex;align-items:flex-end;gap:.875rem;pointer-events:auto}
+
+.pcContainer .downloadContainer,.pcContainer .downloadWrapper{position:relative}
+
+.pcContainer .extraContainer{position:relative;box-sizing:border-box;width:14.375rem;height:100%;padding:1rem .8125rem;border-radius:.25rem;background-color:rgba(0,0,0,.5);display:flex;flex-direction:column;justify-content:center;gap:.625rem}
+
+.pcContainer .button{position:relative;width:100%;height:4.875rem;border-radius:.4375rem;background-color:#000;color:#fff;cursor:pointer;transition:background-color .2s ease}
+
+@media(any-hover:hover){.pcContainer .button:hover{background-color:#222}}
+
+.pcContainer .button:active{background-color:#333}
+
+.pcContainer .iconCharge{width:2.75rem;height:auto;filter:drop-shadow(0 0 .5rem rgba(0,0,0,.75))}
+
+.pcContainer .iconCharge,.pcContainer .iconSkland{position:absolute;left:2.4375rem;top:50%;transform:translate3d(-50%,-50%,0)}
+
+.pcContainer .iconSkland{width:2.6875rem;height:2.6875rem;background-image:url(/images/skland.46bc0df3.png);background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+.pcContainer .button .text{position:relative;padding-left:4rem;font-size:1.375rem;line-height:5.25rem;font-family:SansRegular;text-align:center}
+
+.pcContainer .rtButtonGroup{position:absolute;right:3.0625rem;top:4.0625rem;height:7.75rem;width:auto;object-fit:contain;filter:drop-shadow(0 0 1rem rgb(0,0,0));pointer-events:none}
+
+html[lang=ja-jp] .pcContainer .rtButtonGroup,html[lang=zh-cn] .pcContainer .rtButtonGroup,html[lang=zh-tw] .pcContainer .rtButtonGroup{height:9.6875rem}
+
+.pcContainer .age{right:3.0625rem;bottom:18rem;width:4rem;height:5.125rem;background-image:url(/images/age.6871a633.png);background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+.pcContainer .age,.pcContainer .cloudGameButton{position:absolute;cursor:pointer;pointer-events:auto}
+
+.pcContainer .cloudGameButton{bottom:4.0625rem;right:70rem;width:14.6875rem;height:12.5rem}
+
+.pcContainer .cloudGameButton:after,.pcContainer .cloudGameButton:before{content:"";position:absolute;left:0;top:0;width:100%;height:100%;background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+.pcContainer .cloudGameButton:before{background-image:url(/images/cloud-game-base.a3c5eb0c.png)}
+
+.pcContainer .cloudGameButton:after{background-image:url(/images/cloud-game-active.6c5cfe38.png);-webkit-clip-path:polygon(0 0,0 0,0 100%,0 100%);clip-path:polygon(0 0,0 0,0 100%,0 100%);transition:-webkit-clip-path .3s ease;transition:clip-path .3s ease;transition:clip-path .3s ease,-webkit-clip-path .3s ease}
+
+@media(any-hover:hover){.pcContainer .cloudGameButton:hover:after{-webkit-clip-path:polygon(0 0,100% 0,100% 100%,0 100%);clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}
+
+/* -------------------------------------------------- portrait overlay (h5-cn) -- */
+
+.h5Container{position:absolute;inset:0;pointer-events:none}
+
+@media(orientation:landscape){.h5Container{display:none}}
+
+.h5Container .rbContainer{position:absolute;left:50%;bottom:8.5rem;transform:translateX(-50%);width:max-content;max-width:100%;height:8rem;display:flex;align-items:flex-end;gap:1.125rem;pointer-events:auto}
+
+.h5Container .downloadContainer,.h5Container .downloadWrapper{position:relative}
+
+.h5Container .extraContainer{position:relative;width:max-content;height:max-content;display:flex;justify-content:center;flex-direction:column;gap:.625rem;padding:1rem;border-radius:.25rem;background-color:rgba(0,0,0,.5)}
+
+.h5Container .extraContainer .line{position:relative;display:flex;min-width:19.0625rem;height:6rem;justify-content:space-evenly}
+
+.h5Container .lineButton{min-width:19.0625rem;height:6rem;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;background-color:#000;border-radius:.4375rem}
+
+.h5Container .lineButton .cloudGameIcon{position:relative;width:4.6875rem;height:3.25rem;background-position:50%;background-repeat:no-repeat;background-size:contain;background-image:url(/images/cloud-game-icon.e214f39f.png);margin-bottom:.5rem}
+
+.h5Container .lineButton .text{position:relative;font-size:1.875rem;font-family:SansMedium;line-height:1;color:#fff}
+
+.h5Container .button{position:relative;width:6rem;height:6rem;flex:unset;border-radius:.25rem;background-color:rgba(0,0,0,.5);color:#fff;cursor:pointer}
+
+.h5Container .iconCharge{width:4.6875rem;height:auto;filter:drop-shadow(0 0 .5rem rgba(0,0,0,.75))}
+
+.h5Container .iconCharge,.h5Container .iconSkland{position:absolute;left:50%;top:50%;transform:translate3d(-50%,-50%,0)}
+
+.h5Container .iconSkland{width:5rem;height:5rem;background-image:url(/images/skland.46bc0df3.png);background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+.h5Container .rtButtonGroup{position:absolute;top:11rem;right:1.5625rem;height:9.6875rem;width:auto;object-fit:contain;filter:drop-shadow(0 0 1rem rgb(0,0,0))}
+
+.h5Container .age{top:1.875rem;right:1.5625rem;width:6.25rem;height:7.8125rem;cursor:pointer;pointer-events:auto;background-image:url(/images/age.6871a633.png)}
+
+.h5Container .age,.h5Container .scrollTip{position:absolute;background-position:50%;background-repeat:no-repeat;background-size:contain}
+
+/* `h5-cn_scrollTipMove__uvZzG` maps to the shared `ef-scroll-tip-move`
+   keyframes already declared in src/app/globals.css. */
+.h5Container .scrollTip{left:50%;transform:translateX(-50%);bottom:2.75rem;width:5.9375rem;height:4.625rem;background-image:url(/images/scroll_tip.351d44bc.png);animation:ef-scroll-tip-move 1.6s infinite}
+
+/* ------------------------------------------------------ downloader panel -- */
+
+.downloadContainer{position:relative;width:26.5rem;height:12.5rem;box-sizing:border-box;border-radius:.25rem;background-color:rgba(0,0,0,.5);border-left:.9375rem solid rgba(0,0,0,.5);width:max-content!important}
+
+@media(orientation:portrait){.downloadContainer{width:max-content;height:max-content;border-left:none}}
+
+.decoText{position:absolute;width:4.8125rem;height:auto;left:.9375rem;bottom:1rem;color:#7e7e7e}
+
+@media(orientation:portrait){.decoText{left:1rem;bottom:1rem;color:#b8b8b8;display:none}}
+
+.decoRt{position:absolute;width:2.625rem;height:auto;top:1.3125rem;right:1.5625rem;color:#7e7e7e}
+
+@media(orientation:portrait){.decoRt{top:1.125rem;right:1.5625rem;color:#b8b8b8;display:none}}
+
+.decoRb{position:absolute;width:.5625rem;height:auto;bottom:1rem;right:12.75rem;color:#7e7e7e}
+
+@media(orientation:portrait){.decoRb{bottom:1rem;right:14.8125rem;color:#b8b8b8}}
+
+.iconContainer{position:absolute;width:1.6875rem;height:1.6875rem;left:.9375rem;top:1.125rem;border-radius:.1875rem;background-color:#fffa00}
+
+@media(orientation:portrait){.iconContainer{width:2rem;height:2rem;left:.875rem;top:1rem;display:none}}
+
+.iconContainer .icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1.125rem;height:auto;color:#191919}
+
+@media(orientation:portrait){.iconContainer .icon{width:1.25rem}}
+
+.downloadTitle{position:absolute;top:.9375rem;left:3.25rem;font-size:1.375rem;line-height:2.25rem;height:2.25rem;font-family:SansMedium;color:#fff;border-left:2px solid #4d4d4d;padding-left:.625rem}
+
+@media(orientation:portrait){.downloadTitle{display:none;top:1.0625rem;left:3.5rem;font-size:1.875rem;height:1.875rem;line-height:1;padding-left:.4375rem;border-left:1px solid #999}}
+
+.contentContainer{position:relative;padding-left:.9375rem;padding-right:1.125rem;padding-top:3.6875rem;width:max-content;display:flex;gap:1.75rem}
+
+@media(orientation:portrait){.contentContainer{padding:1rem}}
+
+.contentContainer .qrcode{position:relative;width:7.75rem;height:7.75rem;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-image:url(/images/qrcode.2680d634.png);mask-image:url(/images/qrcode.2680d634.png);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;background-color:#fff}
+
+@media(orientation:portrait){.contentContainer .qrcode{display:none}}
+
+.platforms{position:relative;width:max-content;display:flex;gap:.625rem}
+
+.platforms .line{display:flex;gap:.625rem;flex-direction:column}
+
+.item{position:relative;width:100%;min-width:12.25rem;height:3.625rem;background-position:50%;background-repeat:no-repeat;background-size:contain;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;background-color:#000;border-radius:.4375rem;box-sizing:border-box;transition:background-color .2s ease}
+
+.item.disabled{cursor:not-allowed;pointer-events:none}
+
+@media(any-hover:hover){.item:hover{background-color:#222}}
+
+.item:active{background-color:#333}
+
+@media(orientation:portrait){.item{min-width:19.0625rem;height:6rem}}
+
+.item img.ps5{width:7.5rem;height:auto}
+
+.item img.appStore{width:auto;height:3.375rem}
+
+@media(orientation:portrait){.item img.appStore{height:5.75rem}}
+
+html[lang=zh-cn] .item img.appStore,html[lang=zh-tw] .item img.appStore{height:3.75rem}
+
+@media(orientation:portrait){html[lang=zh-cn] .item img.appStore,html[lang=zh-tw] .item img.appStore{height:6.5rem}}
+
+.item img.android{width:auto;height:2.25rem}
+
+.item img.pc{width:auto;height:2.125rem}
+
+.item img.taptap{width:8.5rem;height:auto}
+
+@media(orientation:portrait){.item img.taptap{width:12.1875rem}}
+
+.item .text{font-family:SansRegular;color:#fff;font-size:1.375rem;line-height:1}
+
+@media(orientation:portrait){.item .text{font-size:2.0625rem}}
+
+/* ------------------------------------------------------ entrance reveal -- */
+
+/*
+ * Upstream: `.container [data-animation-element]{opacity:0}` — the site fades
+ * these in from JS once the key art has loaded. The reveal transition is ours
+ * (BUILDER_BRIEF house feel: `.6s ease`). `translate` is used instead of
+ * `transform` so it composes with the centring transforms several of these
+ * elements already carry.
+ */
+.pcContainer [data-animation-element],
+.h5Container [data-animation-element],
+.bgContainer [data-animation-element]{opacity:0;translate:0 1.25rem;transition:opacity .6s ease,translate .6s ease}
+
+.revealed [data-animation-element]{opacity:1;translate:none}
+
+.d0{transition-delay:0s}
+.d1{transition-delay:.08s}
+.d2{transition-delay:.16s}
+.d3{transition-delay:.24s}
+.d4{transition-delay:.32s}
+
+/* 01-Home section wrapper — the only rule the target defines on this module.
+   Portrait subtracts the h5 header height (9.625rem) from the viewport. */
+.sectionContainer {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (orientation: portrait) {
+  .sectionContainer {
+    height: calc(100vh - var(--vh-offset) - 9.625rem);
+  }
+}

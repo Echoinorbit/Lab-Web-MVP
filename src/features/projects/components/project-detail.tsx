@@ -62,6 +62,7 @@ export function ProjectDetail({
   canReassignLeader,
   canManageMembers,
   canCreateNode,
+  canManageAllNodes,
   canArchive,
   canEdit,
   canSoftDelete,
@@ -87,6 +88,7 @@ export function ProjectDetail({
   canReassignLeader: boolean;
   canManageMembers: boolean;
   canCreateNode: boolean;
+  canManageAllNodes: boolean;
   canArchive: boolean;
   canEdit: boolean;
   canSoftDelete: boolean;
@@ -106,7 +108,7 @@ export function ProjectDetail({
 
   return (
     <div className="space-y-10">
-      <Link href="/projects" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href="/projects" className="inline-flex items-center gap-1 font-mono text-[.8125rem] uppercase tracking-[.04em] text-muted-foreground hoverable:hover:text-foreground">
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         返回项目
       </Link>
@@ -126,12 +128,12 @@ export function ProjectDetail({
 
       <section className="space-y-5" aria-label="项目归属" data-project-attribution>
         <SectionHeader title="项目归属" description="账号状态变化后仍保留项目创建与责任关系的历史署名。" />
-        <dl className="grid overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-3">
+        <dl className="grid border border-border bg-card landscape:grid-cols-3">
           {attributions.map(([label, actor]) => (
-            <div key={label} className="min-w-0 border-b border-border/75 px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-              <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-              <dd className="mt-1.5 break-words text-sm font-semibold text-foreground">{actor.displayName}</dd>
-              <dd className="mt-2 text-xs text-muted-foreground">{accountStateLabels[actor.accountState]}</dd>
+            <div key={label} className="min-w-0 border-b border-border px-5 py-5 last:border-b-0 landscape:border-b-0 landscape:border-r landscape:last:border-r-0">
+              <dt className="font-mono text-[.8125rem] uppercase tracking-[.04em] text-muted-foreground">// {label}</dt>
+              <dd className="mt-3 break-words text-[1.25rem] font-medium text-foreground">{actor.displayName}</dd>
+              <dd className="mt-2 font-mono text-[.75rem] uppercase tracking-[.04em] text-muted-foreground">{accountStateLabels[actor.accountState]}</dd>
             </div>
           ))}
         </dl>
@@ -146,31 +148,36 @@ export function ProjectDetail({
       ) : null}
 
       {canArchive || canSoftDelete || canRestore || canHardDelete ? (
-        <div className="flex flex-wrap items-center gap-3 border-b border-border/80 pb-6">
-          <span className="mr-auto text-sm text-muted-foreground">项目生命周期</span>
+        <div className="flex flex-wrap items-center gap-3 border-y border-border bg-card px-5 py-5">
+          <span className="mr-auto font-mono text-[.8125rem] uppercase tracking-[.04em] text-muted-foreground">// 项目生命周期</span>
           {canArchive ? <ArchiveProjectButton projectId={id} status={status} archivedAt={archivedAt} /> : null}
           <ProjectLifecycleActions projectId={id} canSoftDelete={canSoftDelete} canRestore={canRestore} canHardDelete={canHardDelete} />
         </div>
       ) : null}
 
       {!isDeleted ? (
-        <ProjectNodeViews viewerId={viewerId} canvasNodes={canvasNodes} canManageNodeActions={!isArchived} />
+        <ProjectNodeViews
+          viewerId={viewerId}
+          canvasNodes={canvasNodes}
+          canManageNodeActions={!isArchived}
+          canManageAllNodes={canManageAllNodes}
+        />
       ) : (
         <EmptyState title="项目已软删除" description="节点图与编辑工具已隐藏。管理员可以恢复项目或执行永久删除。" />
       )}
 
-      <section className="space-y-5 border-t border-border/80 pt-8">
+      <section className="space-y-5 border-t border-border pt-8">
         <SectionHeader title="项目成员" description={`${members.length} 位成员在当前项目范围内协作。`} />
         {members.length > 0 ? (
-          <ul className="grid overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid border border-border bg-card landscape:grid-cols-2 2xl:grid-cols-3">
             {members.map((member) => (
-              <li key={member.id} className="flex items-center gap-3 border-b border-r border-border/75 px-5 py-4">
+              <li key={member.id} className="flex items-center gap-3 border-b border-r border-border px-5 py-5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                   {member.displayName.trim().charAt(0).toUpperCase() || "?"}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">{member.displayName}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
+                  <span className="block truncate text-[1.125rem] font-medium">{member.displayName}</span>
+                  <span className="mt-1 block truncate font-mono text-[.75rem] uppercase tracking-[.04em] text-muted-foreground">
                     {member.username ? `@${member.username}` : "历史成员"}
                   </span>
                 </span>
@@ -183,7 +190,7 @@ export function ProjectDetail({
       </section>
 
       {hasProjectTools && !isDeleted ? (
-        <section className="space-y-5 border-t border-border/80 pt-8">
+        <section className="space-y-5 border-t border-border pt-8">
           <SectionHeader title="项目工具" description="编辑项目信息、成员与节点；归档项目保持只读。" />
           <div className="grid items-start gap-5 lg:grid-cols-2 2xl:grid-cols-3">
             {canReassignLeader ? <ProjectLeaderReassignmentForm projectId={id} candidates={leaderCandidates} /> : null}

@@ -56,6 +56,7 @@ export default [
     rules: {
       "no-alert": "error",
       "no-console": "error",
+      "@next/next/no-img-element": "off",
     },
   },
   {

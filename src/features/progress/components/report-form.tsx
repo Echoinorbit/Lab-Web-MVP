@@ -50,13 +50,13 @@ export function ReportForm({
   const canSave = writeAllowed && !isPending && (!isSubmitted || remainingEdits > 0);
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-white/60 bg-card shadow-[var(--shadow-surface)] dark:border-border/80">
-      <header className="border-b border-border/75 px-5 py-5 sm:px-6">
-        <h3 className="text-lg font-semibold tracking-[-0.022em]">
+    <section className="border border-border bg-card">
+      <header className="border-b border-border px-5 py-5 landscape:px-6">
+        <h3 className="font-medium text-[1.5rem] leading-7">
           {year} 年 {month} 月进度报告
         </h3>
       </header>
-      <div className="p-5 sm:p-6">
+      <div className="p-5 landscape:p-6">
         <form className="grid gap-5" action={formAction} aria-busy={isPending}>
           <input type="hidden" name="year" value={year} />
           <input type="hidden" name="month" value={month} />
